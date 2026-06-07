@@ -1,0 +1,24 @@
+{
+  "appId": "rw.everydayjoe.app",
+  "appName": "Everyday Joe",
+  "webDir": "www",
+  "backgroundColor": "#0A0A0A",
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0A0A0A",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "overlaysWebView": true
+    }
+  }
+}

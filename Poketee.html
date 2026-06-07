@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+  <title>Everyday Joe</title>
+
+  <!-- PWA / installed-app metadata -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Everyday Joe" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png" />
+
+  <!-- Type: friendly geometric sans (Manrope) + alternates, JetBrains Mono for numerals -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #F7F6F2; height: 100%; }
+    html, body { overscroll-behavior: none; }
+    /* Installed / native runtime keeps the same soft warm canvas. */
+    html.pk-native, html.pk-native body { background: #F7F6F2; }
+    body {
+      font-family: "Manrope", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      color: #0A0A0A;
+    }
+    * { box-sizing: border-box; }
+    /* Disable coding-font ligatures (JetBrains Mono applies calt/liga by
+       default in browsers, which mangles pairs like "8%"). We rely on none. */
+    * { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+    button { font-family: inherit; }
+
+    /* ─────────────────────────────── Animations ─────────────────────────────── */
+
+    /* Tactile press feedback on every button — keeps interactions feeling alive
+       without any per-component wiring. */
+    button {
+      transition: transform 120ms ease, opacity 140ms ease,
+                  box-shadow 200ms ease, background 180ms ease,
+                  border-color 180ms ease, color 160ms ease;
+    }
+    button:active:not(:disabled) { transform: scale(0.965); }
+    button:disabled { transform: none; }
+
+    /* Soft pulse halo on the bottom-right Send/Confirm CTA — invites the tap. */
+    @keyframes pkPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(10,10,10,0.20), 0 10px 28px rgba(0,0,0,0.22); }
+      70%  { box-shadow: 0 0 0 14px rgba(10,10,10,0),    0 10px 28px rgba(0,0,0,0.22); }
+      100% { box-shadow: 0 0 0 0 rgba(10,10,10,0),       0 10px 28px rgba(0,0,0,0.22); }
+    }
+    .pk-pulse { animation: pkPulse 2.4s ease-out infinite; }
+
+    /* Step / content rise on mount — applied via key={stepName} so each step
+       remounts and the new screen eases in. */
+    @keyframes pkRise {
+      0%   { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0);   }
+    }
+    .pk-rise { animation: pkRise 320ms cubic-bezier(.2,.7,.2,1) both; }
+
+    /* Sequential staggered children for hero blocks. */
+    .pk-stagger > * { animation: pkRise 320ms cubic-bezier(.2,.7,.2,1) both; }
+    .pk-stagger > *:nth-child(2) { animation-delay: 60ms;  }
+    .pk-stagger > *:nth-child(3) { animation-delay: 120ms; }
+    .pk-stagger > *:nth-child(4) { animation-delay: 180ms; }
+
+    /* Success checkmark draws itself in. */
+    .pk-check-path {
+      stroke-dasharray: 30;
+      stroke-dashoffset: 30;
+      animation: pkDraw 700ms ease-out 200ms forwards;
+    }
+    @keyframes pkDraw { to { stroke-dashoffset: 0; } }
+
+    /* Ring around the checkmark eases in. */
+    @keyframes pkRing {
+      0%   { transform: scale(0.6); opacity: 0; }
+      60%  { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    .pk-ring { animation: pkRing 480ms cubic-bezier(.2,.7,.2,1) both; }
+
+    /* Spinner glyph used on Review → Done. */
+    @keyframes pkSpin { to { transform: rotate(360deg); } }
+    .pk-spin { animation: pkSpin 700ms linear infinite; transform-origin: 50% 50%; }
+
+    /* Selected-state radio dot pops in. */
+    @keyframes pkPop {
+      0%   { transform: scale(0);    }
+      60%  { transform: scale(1.18); }
+      100% { transform: scale(1);    }
+    }
+    .pk-pop { animation: pkPop 220ms cubic-bezier(.2,.7,.2,1) both; }
+
+    /* Wrong-passcode shake on the lock gate. */
+    @keyframes pkShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-9px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(4px); }
+    }
+    .pk-shake { animation: pkShake 460ms cubic-bezier(.36,.07,.19,.97) both; }
+
+    /* Disable animations when the user has opted out. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+
+  <!-- React / Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<link id="gfont-Noto-Sans" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap">
+</head>
+<body style="font-family: &quot;Noto Sans&quot;">
+  <div id="root"></div>
+
+  <template id="__bundler_thumbnail">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" rx="22" fill="#0A0A0A"/>
+      <g fill="none" stroke="#F4F1EA" stroke-width="7.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 44 28 V 72"/>
+        <path d="M 44 30.5 A 12.5 12.5 0 1 1 44 55.5"/>
+      </g>
+    </svg>
+  </template>
+
+  <!-- Mark the runtime as native/standalone early so the backdrop matches. -->
+  <script>
+    (function () {
+      try {
+        var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+          || window.navigator.standalone === true
+          || (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+          || new URLSearchParams(location.search).get('app') === '1';
+        if (standalone) document.documentElement.classList.add('pk-native');
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Order matters: primitives + data first, frames + panel next, screens, native layer, then app. -->
+  <script type="text/babel" src="ui.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="native.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

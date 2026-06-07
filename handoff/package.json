@@ -1,0 +1,28 @@
+{
+  "name": "everyday-joe-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Everyday Joe — save, grow, and access a savings-backed credit line. Capacitor wrapper.",
+  "scripts": {
+    "assets": "capacitor-assets generate --iconBackgroundColor #0A0A0A --splashBackgroundColor #0A0A0A --splashBackgroundColorDark #0A0A0A",
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "run:ios": "cap run ios",
+    "run:android": "cap run android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.1",
+    "@capacitor/push-notifications": "^6.0.2",
+    "@capacitor/haptics": "^6.0.2",
+    "@capacitor/app": "^6.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/assets": "^3.0.5"
+  }
+}
