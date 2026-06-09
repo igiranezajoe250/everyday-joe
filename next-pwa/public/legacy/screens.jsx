@@ -5675,6 +5675,7 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
 
 function SettingsScreen({ accent, onBack, onSignOut }) {
   const user = CC_PORTFOLIO.user;
+  const [confirmSignOut, setConfirmSignOut] = React.useState(false);
   return (
     <div style={{ paddingBottom: 24 }}>
       <ScreenHeader
@@ -5706,7 +5707,7 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
             <RoundedCard padding={0} radius={20}>
               {g.items.map((it, i) => (
                 <div key={it.id}
-                  onClick={it.id === 'so' && onSignOut ? onSignOut : undefined}
+                  onClick={it.id === 'so' ? () => setConfirmSignOut(true) : undefined}
                   style={{
                   display: 'flex', alignItems: 'center',
                   justifyContent: 'space-between',
@@ -5740,6 +5741,25 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
           </div>
         ))}
       </div>
+
+      {confirmSignOut && (
+        <div style={{ padding: '20px 24px 0' }}>
+          <div style={{
+            background: paper, border: `1px solid ${ink12}`, borderRadius: 20,
+            padding: 18, boxShadow: cardShadow,
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: ink }}>Sign out of Everyday?</div>
+            <div style={{ fontSize: 13, color: ink55, marginTop: 6, lineHeight: 1.5 }}>
+              You’ll need your passcode to sign back in.
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <CCButton variant="ghost" size="sm" fullWidth onClick={() => setConfirmSignOut(false)}>Cancel</CCButton>
+              <CCButton variant="solid" size="sm" accent={accent} fullWidth
+                onClick={() => { setConfirmSignOut(false); onSignOut && onSignOut(); }}>Sign out</CCButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{
         padding: '28px 24px 0',

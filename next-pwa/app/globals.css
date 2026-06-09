@@ -69,6 +69,11 @@ body {
   transform: scale(0.95);
 }
 
+.view-toggle:focus-visible {
+  outline: 2px solid rgba(10, 10, 10, 0.55);
+  outline-offset: 2px;
+}
+
 .view-toggle--dark {
   background: rgba(250, 246, 241, 0.12);
   border-color: rgba(250, 246, 241, 0.15);

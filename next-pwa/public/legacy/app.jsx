@@ -40,7 +40,8 @@ function App() {
   const handleUnlock = () => {
     try { sessionStorage.setItem('pk_sess', '1'); } catch (e) {}
     setUnlocked(true);
-    PoketeePush.init();
+    // Push permission is NOT requested here — asking at unlock is "jumping the
+    // gun". It should be triggered by an explicit Notifications opt-in instead.
   };
   const handleSignOut = () => {
     try { sessionStorage.removeItem('pk_sess'); } catch (e) {}
@@ -58,7 +59,6 @@ function App() {
       navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
       if (window.caches) caches.keys().then((ks) => ks.forEach((k) => k.startsWith('poketee') && caches.delete(k))).catch(() => {});
     }
-    if (unlocked) PoketeePush.init();
   }, []);
   const [moneyMode, setMoneyMode] = React.useState('add');
   // Where a money flow returns to when closed (capital home vs credit tab).

@@ -35,6 +35,11 @@
     }
     button:active:not(:disabled) { transform: scale(0.965); }
     button:disabled { transform: none; }
+    /* Keyboard/pointer focus ring — visible only for keyboard navigation. */
+    button:focus-visible, [role="button"]:focus-visible, a:focus-visible,
+    input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid rgba(200,16,46,0.55); outline-offset: 2px;
+    }
     @keyframes pkPulse {
       0% { box-shadow: 0 0 0 0 rgba(10,10,10,0.20), 0 10px 28px rgba(0,0,0,0.22); }
       70% { box-shadow: 0 0 0 14px rgba(10,10,10,0), 0 10px 28px rgba(0,0,0,0.22); }
