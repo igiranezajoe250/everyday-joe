@@ -1,4 +1,4 @@
-const CACHE = "everyday-joe-next-pwa-v1";
+const CACHE = "everyday-next-pwa-v1";
 
 const SHELL = [
   "/",

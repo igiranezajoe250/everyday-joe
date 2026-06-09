@@ -11,19 +11,19 @@ function App() {
   const accent = (CC_PALETTES[t.accentKey] || CC_PALETTES.teal).accent;
   const fontStack = CC_TYPES[t.typeKey] || CC_TYPES.manrope;
 
-  // route: 'capital' | 'credit' | 'growth' | 'money' | 'wallet' | 'settings' | 'activity'
+  // route: 'hub' | 'capital' | 'credit' | 'growth' | 'money' | 'wallet' | 'settings' | 'activity'
   const TRANSIENT = ['money'];
   const MAIN_TABS = ['capital', 'credit'];
-  const ALLOWED_ROUTES = ['capital', 'credit', 'growth', 'money', 'wallet', 'settings', 'activity'];
+  const ALLOWED_ROUTES = ['hub', 'capital', 'credit', 'growth', 'money', 'wallet', 'settings', 'activity'];
   const [route, setRoute] = React.useState(() => {
-    let r = PKStore.get('route', 'capital');
-    if (TRANSIENT.includes(r)) r = PKStore.get('tab', 'capital');
-    return ALLOWED_ROUTES.includes(r) ? r : 'capital';
+    let r = PKStore.get('route', 'hub');
+    if (TRANSIENT.includes(r)) r = PKStore.get('tab', 'hub');
+    return ALLOWED_ROUTES.includes(r) ? r : 'hub';
   });
-  const [tab, setTab] = usePersisted('tab', 'capital');
+  const [tab, setTab] = usePersisted('tab', 'hub');
   const [ventureId, setVentureId] = usePersisted('ventureId', null);
-  // Reset a stale persisted tab (e.g. the removed 'venture') on load.
-  React.useEffect(() => { if (!MAIN_TABS.includes(tab)) setTab('capital'); }, []);
+  // Reset a stale persisted tab on load.
+  React.useEffect(() => { if (!['hub', ...MAIN_TABS].includes(tab)) setTab('hub'); }, []);
   // Persist non-transient routes so a cold start returns the user where they were.
   React.useEffect(() => {
     if (!TRANSIENT.includes(route)) PKStore.set('route', route);
@@ -47,7 +47,7 @@ function App() {
   const handleSignOut = () => {
     try { sessionStorage.removeItem('pk_sess'); } catch (e) {}
     setUnlocked(false);
-    setTab('capital'); setRoute('capital');
+    setTab('hub'); setRoute('hub');
   };
   // Register the service worker for offline — only in the installed/native
   // runtime. In the editable preview we skip it so design edits are never
@@ -102,7 +102,7 @@ function App() {
     const v = ccLookup(ventureId);
     beginInvest(ventureId, v && v.type === 'company' ? 'company' : 'fund', 'detail');
   };
-  const finishCheckout = () => { setTab('capital'); setRoute('capital'); };
+  const finishCheckout = () => { setTab('hub'); setRoute('hub'); };
   // If viewing a company detail, back goes to its parent fund.
   // Otherwise back to the venture list.
   const backFromDetail = () => {
@@ -135,9 +135,13 @@ function App() {
   const openSettings = () => { setTab('capital'); setRoute('settings'); };
   const openActivity = () => { setTab('capital'); setRoute('activity'); };
   const backToCapital = () => { setTab('capital'); setRoute('capital'); };
+  const backToHub = () => { setTab('hub'); setRoute('hub'); };
+  const openSaveFromHub = () => { pkHaptic('select'); setTab('capital'); setRoute('capital'); };
+  const openCreditFromHub = () => { pkHaptic('select'); setTab('credit'); setRoute('credit'); };
 
-  // Hide tab bar on full-screen modal flows
+  // Hide tab bar on full-screen modal flows and the hub
   const showTab = t.showTabBar
+    && route !== 'hub'
     && route !== 'money'
     && route !== 'wallet'
     && route !== 'settings'
@@ -146,7 +150,7 @@ function App() {
 
   return (
     <React.Fragment>
-    <AppShell native={PK_NATIVE} fontStack={fontStack}>
+    <AppShell native={PK_NATIVE} web={PK_WEB} fontStack={fontStack}>
         <div style={{
           height: '100%',
           display: 'flex', flexDirection: 'column',
@@ -170,18 +174,30 @@ function App() {
           }}>
             <style>{`.cc-scroll::-webkit-scrollbar { display: none; }`}</style>
             <div className="cc-scroll" style={{ height: '100%' }}>
+              {route === 'hub' && (
+                <EverydayHub
+                  web={PK_WEB}
+                  onSave={openSaveFromHub}
+                  onPlan={() => {}}
+                  onShop={() => {}}
+                  onCommute={() => {}}
+                  onSettings={openSettings}
+                />
+              )}
               {route === 'capital' && (
-                <CapitalScreen accent={accent}
+                <CapitalScreen accent={accent} web={PK_WEB}
                   onMoney={openMoney}
                   onWallet={openWallet}
                   onProfile={openSettings}
                   onCredit={openCredit}
-                  onGrowth={openGrowth} />
+                  onGrowth={openGrowth}
+                  onBack={backToHub} />
               )}
               {route === 'credit' && (
                 <CreditScreen accent={accent}
                   onMoney={openMoney}
-                  onGrowth={openGrowth} />
+                  onGrowth={openGrowth}
+                  onBack={backToHub} />
               )}
               {route === 'growth' && (
                 <GrowthScreen accent={accent}
@@ -219,7 +235,7 @@ function App() {
     </AppShell>
 
       {!PK_NATIVE && (
-      <TweaksPanel title="Everyday Joe">
+      <TweaksPanel title="Everyday">
         <TweakSection label="Palette" />
         <TweakColor label="Accent"
           value={t.accentKey === 'teal'  ? '#2FAE9B' :

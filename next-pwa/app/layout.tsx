@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Everyday Joe",
+  title: "Everyday",
   description:
     "Save consistently, grow your money, and unlock a credit line backed by your savings.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Everyday Joe",
+    title: "Everyday",
   },
   icons: {
     icon: [

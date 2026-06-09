@@ -275,7 +275,7 @@ function Onboarding({ native, accent, onDone }) {
       mark: true,
       eyebrow: 'Welcome',
       title: 'Build wealth, one save at a time.',
-      body: 'Everyday Joe helps you grow your money through one simple habit — saving consistently, straight from your pocket.',
+      body: 'Everyday helps you grow your money through one simple habit — saving consistently, straight from your pocket.',
     },
     {
       eyebrow: 'Save · Grow · Access',

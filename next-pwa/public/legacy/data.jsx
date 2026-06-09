@@ -18,13 +18,13 @@ const CC_PORTFOLIO = {
   ],
 };
 
-// ───────────────────────── Savings & Credit (Everyday Joe core) ─────────────────────────
+// ───────────────────────── Savings & Credit (Everyday core) ─────────────────────────
 // Saving is the primary behaviour. Returns grow the savings; the savings
 // balance in turn unlocks a credit line (capacity = 70% of savings).
 //
 // INTERNAL ECONOMICS (not surfaced in the customer UI):
 //   Pooled savings are placed with professional investors earning ~12%.
-//   Customers receive 8% interest on their savings; Everyday Joe keeps the
+//   Customers receive 8% interest on their savings; Everyday keeps the
 //   ~4% spread, which also funds the credit line. Only the 8% interest and
 //   the 70% borrowing ratio are shown to customers.
 
@@ -89,7 +89,7 @@ const CC_DESTINATIONS = [
 const CC_MANDATE_TARGETS = [
   { id: 'cash',     label: 'Your wallet',
                     sub: 'Hold as cash. Use to invest later.' },
-  { id: 'house',    label: 'Invest with Everyday Joe',
+  { id: 'house',    label: 'Invest with Everyday',
                     sub: 'Our team allocates across the live funds.' },
   { id: 'savannah', label: 'Savannah Creek',
                     sub: 'Eco-tourism · safari camps in Akagera.' },
@@ -515,7 +515,7 @@ const CC_PARENT_FUNDS = [
     yieldRange: '9–14%', yieldHero: '11%',
     capitalNeeded: 'RWF 580M', raisedPct: 49, lockMonths: 24,
     minInvest: 'RWF 100,000',
-    image: 'COVER · INDUSTRY', website: 'everydayjoe.rw/funds/manufacturing',
+    image: 'COVER · INDUSTRY', website: 'everyday.rw/funds/manufacturing',
     financials: fin('RWF 480M', '+28% YoY', '13%'),
     metrics: [
       { label: 'Companies',       value: '2' },
@@ -547,7 +547,7 @@ const CC_PARENT_FUNDS = [
     yieldRange: '10–15%', yieldHero: '12%',
     capitalNeeded: 'RWF 540M', raisedPct: 33, lockMonths: 18,
     minInvest: 'RWF 100,000',
-    image: 'COVER · SERVICES', website: 'everydayjoe.rw/funds/services',
+    image: 'COVER · SERVICES', website: 'everyday.rw/funds/services',
     financials: fin('RWF 336M', '+42% YoY', '22%'),
     metrics: [
       { label: 'Companies',       value: '3' },
@@ -579,7 +579,7 @@ const CC_PARENT_FUNDS = [
     yieldRange: '9–15%', yieldHero: '11%',
     capitalNeeded: 'RWF 1.08B', raisedPct: 56, lockMonths: 36,
     minInvest: 'RWF 100,000',
-    image: 'COVER · REIT', website: 'everydayjoe.rw/funds/reit',
+    image: 'COVER · REIT', website: 'everyday.rw/funds/reit',
     financials: fin('RWF 1.03B', '+26% YoY', '20%'),
     metrics: [
       { label: 'Companies',       value: '3' },

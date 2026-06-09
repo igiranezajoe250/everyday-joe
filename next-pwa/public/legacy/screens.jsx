@@ -1,11 +1,330 @@
 // screens.jsx — Capital home, Venture feed, Detail, Checkout
-// Everyday Joe — low-fi swiss wireframes, pill-rounded geometry.
+// Everyday — low-fi swiss wireframes, pill-rounded geometry.
+
+// ────────────────────────────── EVERYDAY HUB ──────────────────────────────
+// Vertical scroll-wheel picker. Single arrow top/bottom. Supports touch
+// swipe, mouse wheel, and click. "Everyday" label at top.
+
+function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
+  const hubBg = '#0A0A0A';
+  const hubText = '#FAF6F1';
+  const hubTextDim = 'rgba(250,246,241,0.25)';
+  const hubTextMid = 'rgba(250,246,241,0.55)';
+
+  const sections = [
+    { id: 'save',    label: 'Save',    action: onSave },
+    { id: 'plan',    label: 'Plan',    action: onPlan },
+    { id: 'shop',    label: 'Shop',    action: onShop },
+    { id: 'commute', label: 'Commute', action: onCommute },
+  ];
+
+  const [selected, setSelected] = React.useState(0);
+  const total = sections.length;
+  const wheelRef = React.useRef(null);
+  const touchRef = React.useRef({ y: 0 });
+
+  const goUp = () => { pkHaptic('select'); setSelected((i) => (i - 1 + total) % total); };
+  const goDown = () => { pkHaptic('select'); setSelected((i) => (i + 1) % total); };
+  const goOpen = () => { pkHaptic('medium'); sections[selected].action && sections[selected].action(); };
+
+  // Mouse wheel scrolling
+  React.useEffect(() => {
+    const el = wheelRef.current;
+    if (!el) return;
+    let cooldown = false;
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (cooldown) return;
+      cooldown = true;
+      setTimeout(() => { cooldown = false; }, 200);
+      if (e.deltaY > 0) goDown();
+      else if (e.deltaY < 0) goUp();
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  });
+
+  // Touch swipe
+  React.useEffect(() => {
+    const el = wheelRef.current;
+    if (!el) return;
+    const onStart = (e) => { touchRef.current.y = e.touches[0].clientY; };
+    const onEnd = (e) => {
+      const dy = touchRef.current.y - e.changedTouches[0].clientY;
+      if (Math.abs(dy) < 30) return;
+      if (dy > 0) goDown();
+      else goUp();
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchend', onEnd); };
+  });
+
+  const prev2 = sections[(selected - 2 + total) % total];
+  const prev  = sections[(selected - 1 + total) % total];
+  const current = sections[selected];
+  const next  = sections[(selected + 1) % total];
+  const next2 = sections[(selected + 2) % total];
+
+  // ── Desktop / web layout ──
+  if (web) {
+    const webCards = [
+      { ...sections[0], color: '#2FAE9B', icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      )},
+      { ...sections[1], color: '#E2941F', icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="17" rx="2" />
+          <path d="M3 9h18M8 2v4M16 2v4" />
+        </svg>
+      )},
+      { ...sections[2], color: '#A37BF2', icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      )},
+      { ...sections[3], color: '#3B82F6', icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z" />
+          <path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8" />
+          <path d="M6 9h12" />
+        </svg>
+      )},
+    ];
+    const subs = { save: 'Grow your money', plan: 'Organise your day', shop: 'Browse & buy', commute: 'Get around' };
+
+    return (
+      <div style={{
+        height: '100%', display: 'flex', flexDirection: 'column',
+        background: hubBg,
+      }}>
+        {/* Top nav */}
+        <div style={{
+          padding: '24px 48px 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{
+            fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: hubText,
+          }}>Everyday</div>
+          <button onClick={onSettings} aria-label="Settings" style={{
+            background: 'rgba(250,246,241,0.08)', border: '1px solid rgba(250,246,241,0.10)',
+            borderRadius: 10, cursor: 'pointer', padding: '8px 16px',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 500, color: hubTextMid,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hubTextMid} strokeWidth="1.5" strokeLinecap="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+            </svg>
+            Settings
+          </button>
+        </div>
+
+        {/* Greeting */}
+        <div style={{ padding: '40px 48px 0' }}>
+          <div style={{
+            fontSize: 36, fontWeight: 300, letterSpacing: '-0.03em',
+            color: hubText, lineHeight: 1.15,
+          }}>
+            Hello, Joseph.
+          </div>
+          <div style={{
+            fontSize: 16, color: hubTextMid, marginTop: 8, fontWeight: 400,
+          }}>
+            What would you like to do today?
+          </div>
+        </div>
+
+        {/* Cards row */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center',
+          padding: '0 48px', gap: 16,
+        }}>
+          {webCards.map((c) => (
+            <button
+              key={c.id}
+              onClick={c.action}
+              className="pk-calm-action"
+              style={{
+                flex: 1, height: 200,
+                background: 'rgba(250,246,241,0.06)',
+                border: '1px solid rgba(250,246,241,0.10)',
+                borderRadius: 20,
+                padding: '28px 24px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex', flexDirection: 'column',
+                justifyContent: 'space-between',
+                textAlign: 'left',
+                transition: 'border-color 200ms ease, background 200ms ease, transform 180ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = c.color;
+                e.currentTarget.style.background = c.color + '12';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(250,246,241,0.10)';
+                e.currentTarget.style.background = 'rgba(250,246,241,0.06)';
+              }}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: 14,
+                background: c.color + '18',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {React.cloneElement(c.icon, { stroke: c.color })}
+              </div>
+              <div>
+                <div style={{
+                  fontSize: 18, fontWeight: 650, color: hubText,
+                  letterSpacing: '-0.01em',
+                }}>{c.label}</div>
+                <div style={{
+                  fontSize: 13, color: hubTextMid, marginTop: 4,
+                }}>{subs[c.id]}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 48px 24px', textAlign: 'center' }}>
+          <span style={{
+            fontSize: 12, color: 'rgba(250,246,241,0.20)', fontWeight: 500,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>Everyday Joe</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Mobile layout (scroll-wheel picker) ──
+  return (
+    <div style={{
+      height: '100%', display: 'flex', flexDirection: 'column',
+      background: hubBg, userSelect: 'none', overflow: 'hidden',
+    }}>
+      {/* "Everyday" top label */}
+      <div style={{ padding: '8px 0 0', textAlign: 'center' }}>
+        <span style={{
+          fontSize: 14, fontWeight: 400, color: hubTextMid,
+          letterSpacing: '0.01em',
+        }}>
+          Everyday
+        </span>
+      </div>
+
+      {/* Scroll-wheel area */}
+      <div ref={wheelRef} style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        cursor: 'ns-resize', touchAction: 'none',
+      }}>
+        {/* Single up arrow */}
+        <button onClick={goUp} aria-label="Previous" style={{
+          background: 'transparent', border: 0, cursor: 'pointer',
+          padding: '10px 24px',
+        }}>
+          <svg width="24" height="14" viewBox="0 0 24 14" fill="none"
+            stroke={hubTextDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 11L12 3L20 11" />
+          </svg>
+        </button>
+
+        {/* Two-above (very faint) */}
+        <div style={{
+          fontSize: 16, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
+          height: 24, lineHeight: '24px', cursor: 'pointer',
+        }} onClick={goUp}>
+          {prev2.label}
+        </div>
+
+        {/* Previous (dimmed) */}
+        <div style={{
+          fontSize: 24, fontWeight: 300, color: hubTextDim,
+          height: 36, lineHeight: '36px', cursor: 'pointer',
+          transition: 'all 180ms ease',
+        }} onClick={goUp}>
+          {prev.label}
+        </div>
+
+        {/* ── Selected ── */}
+        <button onClick={goOpen} style={{
+          background: 'transparent', border: 0, cursor: 'pointer',
+          fontFamily: 'inherit', padding: '14px 0', margin: '4px 0',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+        }}>
+          <div style={{
+            fontSize: 58, fontWeight: 700, letterSpacing: '-0.04em',
+            color: hubText, lineHeight: 1,
+          }}>
+            {current.label}
+          </div>
+        </button>
+
+        {/* Next (dimmed) */}
+        <div style={{
+          fontSize: 24, fontWeight: 300, color: hubTextDim,
+          height: 36, lineHeight: '36px', cursor: 'pointer',
+          transition: 'all 180ms ease',
+        }} onClick={goDown}>
+          {next.label}
+        </div>
+
+        {/* Two-below (very faint) */}
+        <div style={{
+          fontSize: 16, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
+          height: 24, lineHeight: '24px', cursor: 'pointer',
+        }} onClick={goDown}>
+          {next2.label}
+        </div>
+
+        {/* Single down arrow */}
+        <button onClick={goDown} aria-label="Next" style={{
+          background: 'transparent', border: 0, cursor: 'pointer',
+          padding: '10px 24px',
+        }}>
+          <svg width="24" height="14" viewBox="0 0 24 14" fill="none"
+            stroke={hubTextDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 3L12 11L20 3" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Action button */}
+      <div style={{ padding: '0 40px 32px', display: 'flex', justifyContent: 'center' }}>
+        <button
+          onClick={goOpen}
+          className="pk-calm-action"
+          style={{
+            width: '100%', maxWidth: 340, height: 50, borderRadius: 14,
+            background: 'rgba(250,246,241,0.10)',
+            border: '1px solid rgba(250,246,241,0.15)',
+            cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 15, fontWeight: 600,
+            letterSpacing: '-0.01em',
+            color: hubText,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          Open {current.label}
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={hubText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 3l5 5-5 5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ────────────────────────────── SAVE HOME ──────────────────────────────
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved · how much has it grown · how much can I access.
 
-function CapitalScreen({ accent, onMoney, onWallet, onProfile, onCredit, onGrowth }) {
+function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, onGrowth, onBack }) {
   const p = CC_PORTFOLIO;
   const s = CC_SAVINGS;
   const c = CC_CREDIT;
@@ -22,9 +341,18 @@ function CapitalScreen({ accent, onMoney, onWallet, onProfile, onCredit, onGrowt
   const mask = (v) => (hidden ? '••••••' : v);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      height: '100%', display: 'flex', flexDirection: 'column',
+    }}>
       <ScreenHeader
-        left={<span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Everyday Joe</span>}
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onBack && <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>}
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
+        </div>}
         right={<>
           <IconBtn onClick={onWallet}>
             <svg width="16" height="16" viewBox="0 0 16 16">
@@ -42,7 +370,7 @@ function CapitalScreen({ accent, onMoney, onWallet, onProfile, onCredit, onGrowt
         </>}
       />
 
-      <div style={{ flex: 1, overflow: 'hidden', scrollbarWidth: 'none' }} className="cc-scroll">
+      <div style={{ flex: 1, overflow: 'hidden', scrollbarWidth: 'none', ...(web ? { maxWidth: 700, margin: '0 auto', width: '100%' } : {}) }} className="cc-scroll">
         {/* Greeting */}
         <div style={{ padding: '10px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 15, color: ink70, whiteSpace: 'nowrap' }}>Good morning, {p.user.name}.</div>
@@ -469,7 +797,7 @@ function EyeToggle({ hidden, onToggle }) {
 // Makes the savings → credit relationship the centrepiece: the more you save,
 // the more you can borrow. Capacity = 70% of savings.
 
-function CreditScreen({ accent, onMoney, onGrowth }) {
+function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
   const s = CC_SAVINGS;
   const c = CC_CREDIT;
   const [hidden, setHidden] = React.useState(false);
@@ -484,7 +812,14 @@ function CreditScreen({ accent, onMoney, onGrowth }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ScreenHeader
-        left={<Eyebrow>Credit</Eyebrow>}
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onBack && <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>}
+          <Eyebrow>Credit</Eyebrow>
+        </div>}
         right={<EyeToggle hidden={hidden} onToggle={() => setHidden((h) => !h)} />}
       />
 
@@ -1073,7 +1408,7 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
   };
   const subByFilter = {
     funds:  'Optional — once you’re saving, put some to work in vetted funds.',
-    foryou: 'Businesses Everyday Joe is helping grow directly.',
+    foryou: 'Businesses Everyday is helping grow directly.',
   };
 
   const sortOptions = [
@@ -1636,7 +1971,7 @@ function DetailReviewBlock({ venture }) {
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst · Everyday Joe',
+    role: 'Senior Investment Analyst · Everyday',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -2150,10 +2485,10 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
   );
 }
 
-// Mandate step — choose Everyday Joe (in-house picks) OR a specific fund.
+// Mandate step — choose Everyday (in-house picks) OR a specific fund.
 function CheckoutMandate({ mandate, setMandate, venture }) {
   const options = [
-    { id: 'cc', label: 'Invest with Everyday Joe',
+    { id: 'cc', label: 'Invest with Everyday',
       sub: 'Our in-house team allocates your capital across the funds.',
       tag: 'Recommended' },
     ...CC_FUNDS_V2.map((f) => ({
@@ -2366,7 +2701,7 @@ function buildReceiptText(title, rows, reference) {
   lines.push('');
   rows.forEach(([k, v]) => { lines.push((k + ':').padEnd(14, ' ') + v); });
   lines.push('');
-  lines.push('Saved to your Everyday Joe account · everydayjoe.app');
+  lines.push('Saved to your Everyday account · everyday.app');
   return lines.join('\n');
 }
 
@@ -2445,7 +2780,7 @@ function CheckoutRecommendation({ venture }) {
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst · Everyday Joe',
+    role: 'Senior Investment Analyst · Everyday',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -2760,7 +3095,7 @@ function CheckoutSourceLegacy({ source, setSource, amount, venture }) {
 // Resolve the mandate id to a readable label.
 function mandateLabel(mandateId) {
   if (!mandateId) return null;
-  if (mandateId === 'cc') return 'Everyday Joe (house pick)';
+  if (mandateId === 'cc') return 'Everyday (house pick)';
   const fund = CC_FUNDS_V2.find((f) => f.id === mandateId);
   return fund ? fund.name + ' Fund' : mandateId;
 }
@@ -2811,7 +3146,7 @@ function CheckoutReview({ venture, amount, source, mandate, mode = 'fund' }) {
         borderRadius: 18, background: paperSoft,
         fontSize: 12, color: ink70, lineHeight: 1.55,
       }}>
-        By confirming you authorise Everyday Joe to allocate funds from
+        By confirming you authorise Everyday to allocate funds from
         your selected source. Capital is locked for the stated period. Projected
         yields are not guaranteed.
       </div>
@@ -2895,7 +3230,7 @@ function CheckoutDone({ venture, amount, source, mandate, mode = 'fund' }) {
       </div>
 
       <ReceiptActions
-        filename={`everyday-joe-receipt-${reference}.txt`}
+        filename={`everyday-receipt-${reference}.txt`}
         title="Investment receipt"
         rows={receiptRows}
         reference={reference} />
@@ -3492,7 +3827,7 @@ function FlowReview({ mode, cfg, amount, picks, pickerLabelFor }) {
         borderRadius: 18, background: paperSoft,
         fontSize: 12, color: ink70, lineHeight: 1.55,
       }}>
-        By confirming you authorise Everyday Joe to process this
+        By confirming you authorise Everyday to process this
         transaction on your behalf. A receipt will be sent to your inbox.
       </div>
     </div>
@@ -3572,7 +3907,7 @@ function FlowDone({ title, sub, mode, amount, picks, cfg, pickerLabelFor }) {
       </div>
 
       <ReceiptActions
-        filename={`everyday-joe-receipt-${reference}.txt`}
+        filename={`everyday-receipt-${reference}.txt`}
         title={`${modeLabel} receipt`}
         rows={receiptRows}
         reference={reference} />
@@ -3803,7 +4138,7 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
         fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
         color: ink40, textAlign: 'center', textTransform: 'uppercase',
       }}>
-        Everyday Joe · v0.4.0
+        Everyday · v0.4.0
       </div>
     </div>
   );

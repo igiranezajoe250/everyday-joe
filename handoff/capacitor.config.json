@@ -1,6 +1,6 @@
 {
-  "appId": "rw.everydayjoe.app",
-  "appName": "Everyday Joe",
+  "appId": "rw.everyday.app",
+  "appName": "Everyday",
   "webDir": "www",
   "backgroundColor": "#0A0A0A",
   "ios": {

@@ -1,5 +1,5 @@
 // screens.jsx — Capital home, Venture feed, Detail, Checkout
-// Everyday Joe — low-fi swiss wireframes, pill-rounded geometry.
+// Everyday — low-fi swiss wireframes, pill-rounded geometry.
 
 // ────────────────────────────── SAVE HOME ──────────────────────────────
 // Savings is the hero behaviour. The screen answers, top to bottom:
@@ -24,7 +24,7 @@ function CapitalScreen({ accent, onMoney, onWallet, onProfile, onCredit, onGrowt
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ScreenHeader
-        left={<span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Everyday Joe</span>}
+        left={<span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Everyday</span>}
         right={<>
           <IconBtn onClick={onWallet}>
             <svg width="16" height="16" viewBox="0 0 16 16">
@@ -1073,7 +1073,7 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
   };
   const subByFilter = {
     funds:  'Optional — once you’re saving, put some to work in vetted funds.',
-    foryou: 'Businesses Everyday Joe is helping grow directly.',
+    foryou: 'Businesses Everyday is helping grow directly.',
   };
 
   const sortOptions = [
@@ -1636,7 +1636,7 @@ function DetailReviewBlock({ venture }) {
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst · Everyday Joe',
+    role: 'Senior Investment Analyst · Everyday',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -2150,10 +2150,10 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
   );
 }
 
-// Mandate step — choose Everyday Joe (in-house picks) OR a specific fund.
+// Mandate step — choose Everyday (in-house picks) OR a specific fund.
 function CheckoutMandate({ mandate, setMandate, venture }) {
   const options = [
-    { id: 'cc', label: 'Invest with Everyday Joe',
+    { id: 'cc', label: 'Invest with Everyday',
       sub: 'Our in-house team allocates your capital across the funds.',
       tag: 'Recommended' },
     ...CC_FUNDS_V2.map((f) => ({
@@ -2365,7 +2365,7 @@ function buildReceiptText(title, rows, reference) {
   lines.push('');
   rows.forEach(([k, v]) => { lines.push((k + ':').padEnd(14, ' ') + v); });
   lines.push('');
-  lines.push('Saved to your Everyday Joe account · everydayjoe.app');
+  lines.push('Saved to your Everyday account · everyday.app');
   return lines.join('\n');
 }
 
@@ -2444,7 +2444,7 @@ function CheckoutRecommendation({ venture }) {
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst · Everyday Joe',
+    role: 'Senior Investment Analyst · Everyday',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -2759,7 +2759,7 @@ function CheckoutSourceLegacy({ source, setSource, amount, venture }) {
 // Resolve the mandate id to a readable label.
 function mandateLabel(mandateId) {
   if (!mandateId) return null;
-  if (mandateId === 'cc') return 'Everyday Joe (house pick)';
+  if (mandateId === 'cc') return 'Everyday (house pick)';
   const fund = CC_FUNDS_V2.find((f) => f.id === mandateId);
   return fund ? fund.name + ' Fund' : mandateId;
 }
@@ -2810,7 +2810,7 @@ function CheckoutReview({ venture, amount, source, mandate, mode = 'fund' }) {
         borderRadius: 18, background: paperSoft,
         fontSize: 12, color: ink70, lineHeight: 1.55,
       }}>
-        By confirming you authorise Everyday Joe to allocate funds from
+        By confirming you authorise Everyday to allocate funds from
         your selected source. Capital is locked for the stated period. Projected
         yields are not guaranteed.
       </div>
@@ -2894,7 +2894,7 @@ function CheckoutDone({ venture, amount, source, mandate, mode = 'fund' }) {
       </div>
 
       <ReceiptActions
-        filename={`everyday-joe-receipt-${reference}.txt`}
+        filename={`everyday-receipt-${reference}.txt`}
         title="Investment receipt"
         rows={receiptRows}
         reference={reference} />
@@ -3490,7 +3490,7 @@ function FlowReview({ mode, cfg, amount, picks, pickerLabelFor }) {
         borderRadius: 18, background: paperSoft,
         fontSize: 12, color: ink70, lineHeight: 1.55,
       }}>
-        By confirming you authorise Everyday Joe to process this
+        By confirming you authorise Everyday to process this
         transaction on your behalf. A receipt will be sent to your inbox.
       </div>
     </div>
@@ -3570,7 +3570,7 @@ function FlowDone({ title, sub, mode, amount, picks, cfg, pickerLabelFor }) {
       </div>
 
       <ReceiptActions
-        filename={`everyday-joe-receipt-${reference}.txt`}
+        filename={`everyday-receipt-${reference}.txt`}
         title={`${modeLabel} receipt`}
         rows={receiptRows}
         reference={reference} />
@@ -3801,7 +3801,7 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
         fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
         color: ink40, textAlign: 'center', textTransform: 'uppercase',
       }}>
-        Everyday Joe · v0.4.0
+        Everyday · v0.4.0
       </div>
     </div>
   );

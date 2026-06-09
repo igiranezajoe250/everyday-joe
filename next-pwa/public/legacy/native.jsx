@@ -18,7 +18,14 @@ const PK_NATIVE = (() => {
     if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
     if (window.navigator.standalone === true) return true;
     const p = new URLSearchParams(location.search);
-    if (p.get('app') === '1') return true; // force full-screen layout for testing
+    if (p.get('app') === '1') return true;
+  } catch (e) {}
+  return false;
+})();
+
+const PK_WEB = (() => {
+  try {
+    return new URLSearchParams(location.search).get('layout') === 'web';
   } catch (e) {}
   return false;
 })();
@@ -85,7 +92,16 @@ function pkHaptic(kind) {
 // ─────────────────────────── app shell ───────────────────────────
 // Preview → centered iOS device frame. Native/standalone → fill the screen,
 // letting the inner top spacer + tab bar honour the safe-area insets.
-function AppShell({ native, fontStack, children }) {
+function AppShell({ native, web, fontStack, children }) {
+  if (web) {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: canvas, fontFamily: fontStack, color: ink,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>{children}</div>
+    );
+  }
   if (!native) {
     return (
       <div style={{
@@ -275,7 +291,7 @@ function Onboarding({ native, accent, onDone }) {
       mark: true,
       eyebrow: 'Welcome',
       title: 'Build wealth, one save at a time.',
-      body: 'Everyday Joe helps you grow your money through one simple habit — saving consistently, straight from your pocket.',
+      body: 'Everyday helps you grow your money through one simple habit — saving consistently, straight from your pocket.',
     },
     {
       eyebrow: 'Save · Grow · Access',

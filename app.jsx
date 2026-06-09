@@ -219,7 +219,7 @@ function App() {
     </AppShell>
 
       {!PK_NATIVE && (
-      <TweaksPanel title="Everyday Joe">
+      <TweaksPanel title="Everyday">
         <TweakSection label="Palette" />
         <TweakColor label="Accent"
           value={t.accentKey === 'teal'  ? '#2FAE9B' :
