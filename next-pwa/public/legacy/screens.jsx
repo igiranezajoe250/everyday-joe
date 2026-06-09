@@ -5,16 +5,18 @@
 // Vertical scroll-wheel picker. Single arrow top/bottom. Supports touch
 // swipe, mouse wheel, and click. "Everyday" label at top.
 
-function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
+function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onSettings }) {
   const hubBg = '#0A0A0A';
   const hubText = '#FAF6F1';
   const hubTextDim = 'rgba(250,246,241,0.25)';
   const hubTextMid = 'rgba(250,246,241,0.55)';
 
   const sections = [
-    { id: 'save',    label: 'Save',    action: onSave },
-    { id: 'plan',    label: 'Plan',    action: onPlan },
     { id: 'shop',    label: 'Shop',    action: onShop },
+    { id: 'save',    label: 'Save',    action: onSave },
+    { id: 'pay',     label: 'Pay',     action: onPay },
+    { id: 'plan',    label: 'Plan',    action: onPlan },
+    { id: 'listen',  label: 'Listen',  action: onListen },
     { id: 'commute', label: 'Commute', action: onCommute },
   ];
 
@@ -68,6 +70,104 @@ function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
 
   // ── Desktop / web layout ──
   if (web) {
+    return (
+      <div style={{
+        height: '100%', display: 'flex', flexDirection: 'column',
+        background: hubBg, userSelect: 'none', overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: '24px 48px 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ fontSize: 18, fontWeight: 650, color: hubTextMid }}>Everyday</div>
+          <button onClick={onSettings} aria-label="Settings" style={{
+            width: 40, height: 40, borderRadius: 12,
+            background: 'rgba(250,246,241,0.08)',
+            border: '1px solid rgba(250,246,241,0.10)',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hubTextMid} strokeWidth="1.5" strokeLinecap="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+            </svg>
+          </button>
+        </div>
+
+        <div ref={wheelRef} style={{
+          flex: 1, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          cursor: 'ns-resize', touchAction: 'none',
+        }}>
+          <button onClick={goUp} aria-label="Previous" style={{
+            background: 'transparent', border: 0, cursor: 'pointer',
+            padding: '14px 48px',
+          }}>
+            <svg width="34" height="20" viewBox="0 0 24 14" fill="none"
+              stroke={hubTextMid} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 11L12 3L20 11" />
+            </svg>
+          </button>
+
+          <div style={{
+            fontSize: 26, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
+            height: 42, lineHeight: '42px', cursor: 'pointer',
+          }} onClick={goUp}>
+            {prev2.label}
+          </div>
+
+          <div style={{
+            fontSize: 42, fontWeight: 300, color: hubTextDim,
+            height: 58, lineHeight: '58px', cursor: 'pointer',
+            transition: 'all 180ms ease',
+          }} onClick={goUp}>
+            {prev.label}
+          </div>
+
+          <button onClick={goOpen} style={{
+            background: 'transparent', border: 0, cursor: 'pointer',
+            fontFamily: 'inherit', padding: '18px 0', margin: '4px 0',
+          }}>
+            <div style={{
+              fontSize: 92, fontWeight: 700, letterSpacing: '-0.04em',
+              color: hubText, lineHeight: 0.95,
+            }}>
+              {current.label}
+            </div>
+          </button>
+
+          <div style={{
+            fontSize: 42, fontWeight: 300, color: hubTextDim,
+            height: 58, lineHeight: '58px', cursor: 'pointer',
+            transition: 'all 180ms ease',
+          }} onClick={goDown}>
+            {next.label}
+          </div>
+
+          <div style={{
+            fontSize: 26, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
+            height: 42, lineHeight: '42px', cursor: 'pointer',
+          }} onClick={goDown}>
+            {next2.label}
+          </div>
+
+          <button onClick={goDown} aria-label="Next" style={{
+            background: 'transparent', border: 0, cursor: 'pointer',
+            padding: '14px 48px',
+          }}>
+            <svg width="34" height="20" viewBox="0 0 24 14" fill="none"
+              stroke={hubTextMid} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 3L12 11L20 3" />
+            </svg>
+          </button>
+        </div>
+
+        <div style={{ padding: '0 48px 30px', textAlign: 'center', color: 'rgba(250,246,241,0.20)', fontSize: 12, fontWeight: 600 }}>
+          Click the selected function to open it.
+        </div>
+      </div>
+    );
+
     const webCards = [
       { ...sections[0], color: '#2FAE9B', icon: (
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -94,7 +194,57 @@ function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
         </svg>
       )},
     ];
-    const subs = { save: 'Grow your money', plan: 'Organise your day', shop: 'Browse & buy', commute: 'Get around' };
+    webCards[0].color = '#A37BF2';
+    webCards[1].color = '#2FAE9B';
+    webCards[2].color = '#C8102E';
+    webCards[3].color = '#E2941F';
+    webCards[0].icon = (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+        <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+      </svg>
+    );
+    webCards[1].icon = (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    );
+    webCards[2].icon = (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 10h18M7 15h4" />
+      </svg>
+    );
+    webCards[3].icon = (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M3 9h18M8 2v4M16 2v4M8 14h5M8 18h3" />
+      </svg>
+    );
+    webCards.push(
+      { ...sections[4], color: '#5B7CFA', icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 13a8 8 0 0 1 16 0" />
+          <rect x="3" y="13" width="4" height="7" rx="2" />
+          <rect x="17" y="13" width="4" height="7" rx="2" />
+        </svg>
+      )},
+      { ...sections[5], color: '#3B82F6', icon: (
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z" />
+          <path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8" />
+          <path d="M6 9h12" />
+        </svg>
+      )}
+    );
+    const subs = {
+      shop: 'Find trusted shops',
+      save: 'Save and grow',
+      pay: 'Schedule payments',
+      plan: 'Plan your day',
+      listen: 'Play podcasts',
+      commute: 'Book vetted rides',
+    };
 
     return (
       <div style={{
@@ -138,10 +288,11 @@ function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
           </div>
         </div>
 
-        {/* Cards row */}
+        {/* Function selector */}
         <div style={{
-          flex: 1, display: 'flex', alignItems: 'center',
-          padding: '0 48px', gap: 16,
+          flex: 1, display: 'grid', alignContent: 'center',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          padding: '0 48px', gap: 14,
         }}>
           {webCards.map((c) => (
             <button
@@ -149,7 +300,7 @@ function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
               onClick={c.action}
               className="pk-calm-action"
               style={{
-                flex: 1, height: 200,
+                minHeight: 170,
                 background: 'rgba(250,246,241,0.06)',
                 border: '1px solid rgba(250,246,241,0.10)',
                 borderRadius: 20,
@@ -324,12 +475,1285 @@ function EverydayHub({ web, onSave, onPlan, onShop, onCommute, onSettings }) {
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved · how much has it grown · how much can I access.
 
+function EverydayFunctionScreen({ mode, web, onBack }) {
+  const modes = {
+    shop: {
+      title: 'Shop',
+      intro: 'Find trusted shops.',
+      actions: ['Browse products', 'Saved shops', 'Follow merchants'],
+      items: ['Kigali essentials', 'Trusted services', 'Popular stores'],
+    },
+    pay: {
+      title: 'Pay',
+      intro: 'Schedule your payments.',
+      actions: ['Send Money', 'Schedule Payment', 'Set Automatic Payment'],
+      items: ['Rent due 30 Jun', 'School fees', 'Utilities'],
+    },
+    plan: {
+      title: 'Plan',
+      intro: 'Plan your day.',
+      actions: ['Daily plan', 'Weekly plan', 'Notes'],
+      items: ['Morning errands', 'Work block', 'Family follow-up'],
+    },
+    listen: {
+      title: 'Listen',
+      intro: 'Listen to your favorite podcasts.',
+      actions: ['Continue listening', 'Discover', 'Saved episodes'],
+      items: ['Business Rwanda', 'Daily briefing', 'Creator picks'],
+    },
+    commute: {
+      title: 'Commute',
+      intro: 'Book vetted rides.',
+      actions: ['Request ride', 'Book moto', 'Trip history'],
+      items: ['Clean vehicle', 'Preferred drivers', 'Safety checked'],
+    },
+  };
+  const m = modes[mode] || modes.shop;
+
+  if (mode === 'shop') {
+    return <ShopScreen web={web} onBack={onBack} />;
+  }
+  if (mode === 'plan') {
+    return <PlanScreen web={web} onBack={onBack} />;
+  }
+  if (mode === 'listen') {
+    return <ListenScreen web={web} onBack={onBack} />;
+  }
+  if (mode === 'commute') {
+    return <CommuteScreen web={web} onBack={onBack} />;
+  }
+  if (mode === 'pay') {
+    return <PayScreen web={web} onBack={onBack} />;
+  }
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>{m.title}</span>
+        </div>}
+      />
+
+      <div className="cc-scroll" style={{
+        flex: 1,
+        overflow: 'auto',
+        padding: web ? '34px 48px 42px' : '18px 20px 28px',
+      }}>
+        <div style={{ maxWidth: web ? 760 : 'none', margin: web ? '0 auto' : 0 }}>
+          <div style={{
+            fontSize: web ? 42 : 34,
+            fontWeight: 760,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            color: ink,
+          }}>{m.intro}</div>
+          <div style={{ marginTop: 12, fontSize: 15, lineHeight: 1.45, color: ink55, maxWidth: 520 }}>
+            Choose an action and keep moving. Everyday keeps this workspace focused on the task.
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: web ? 'repeat(3, minmax(0, 1fr))' : '1fr',
+            gap: 10,
+            marginTop: 28,
+          }}>
+            {m.actions.map((action, index) => (
+              <button key={action} className="pk-calm-action" style={{
+                minHeight: 74,
+                border: `1px solid ${ink12}`,
+                borderRadius: 14,
+                background: index === 0 ? ink : paper,
+                color: index === 0 ? paper : ink,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 14,
+                fontWeight: 700,
+                textAlign: 'left',
+                padding: '18px 16px',
+              }}>
+                {action}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 26, display: 'grid', gap: 10 }}>
+            {m.items.map((item) => (
+              <div key={item} style={{
+                minHeight: 58,
+                border: `1px solid ${ink12}`,
+                borderRadius: 14,
+                background: paper,
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 650, color: ink }}>{item}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: ink40 }}>Open</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionShell({ title, web, onBack, children }) {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>{title}</span>
+        </div>}
+      />
+      <div className="cc-scroll" style={{
+        flex: 1,
+        overflow: 'auto',
+        padding: web ? '28px 44px 38px' : '16px 18px 24px',
+      }}>
+        <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchSurface({ value, onChange, placeholder, modes = [] }) {
+  return (
+    <div style={{
+      borderRadius: 24,
+      background: 'rgba(255,255,255,0.68)',
+      boxShadow: '0 18px 44px rgba(10,10,10,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
+      padding: 10,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+    }}>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          minWidth: 0,
+          flex: 1,
+          height: 46,
+          border: 0,
+          background: 'transparent',
+          outline: 0,
+          color: ink,
+          fontFamily: 'inherit',
+          fontSize: 14,
+          fontWeight: 650,
+          padding: '0 8px',
+        }}
+      />
+      {modes.map((mode) => (
+        <button key={mode} title={mode} aria-label={mode} style={{
+          width: 38,
+          height: 38,
+          border: 0,
+          borderRadius: 14,
+          background: mode === 'Voice' ? ink : canvas,
+          color: mode === 'Voice' ? paper : ink55,
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          fontSize: 11,
+          fontWeight: 760,
+        }}>
+          {mode[0]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ShopScreen({ web, onBack }) {
+  const [query, setQuery] = React.useState('');
+  const categories = ['Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
+  const brands = [
+    'House of Tayo', 'Moshions', 'Haute Baso', 'Uzi Collections',
+    'Rwanda Clothing', 'Inzuki Designs', 'Kwanda Goods', 'Nyamirambo Studio',
+    'Azizi Life', 'Question Coffee', 'Kivu Noir', 'Kigali Home',
+    'Murukali', 'Ikirezi Bookshop', 'Bourbon Coffee', 'Kigali Farmers Market',
+    'Simba Supermarket', 'Amahoro Market'
+  ];
+
+  return (
+    <SectionShell title="Shop" web={web} onBack={onBack}>
+      <div style={{ display: 'grid', gap: 20 }}>
+        <div>
+          <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Find trusted shops.</div>
+          <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: ink55 }}>Search products, stores, links, voices, or images.</div>
+        </div>
+
+        <SearchSurface value={query} onChange={setQuery} placeholder="Search shops, products, or paste a link" modes={['Image', 'Voice', 'Link']} />
+
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+          {categories.map((category, index) => (
+            <button key={category} style={{
+              height: 38,
+              padding: '0 14px',
+              border: 0,
+              borderRadius: 999,
+              background: index === 0 ? ink : 'rgba(255,255,255,0.58)',
+              color: index === 0 ? paper : ink,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 12,
+              fontWeight: 760,
+              whiteSpace: 'nowrap',
+            }}>{category}</button>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: web ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 10 }}>
+          {brands.map((brand, index) => (
+            <div key={brand} style={{
+              minHeight: 92,
+              borderRadius: 20,
+              background: 'rgba(255,255,255,0.62)',
+              boxShadow: '0 14px 34px rgba(10,10,10,0.07)',
+              padding: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 820, color: ink }}>{brand}</div>
+              <div style={{ fontSize: 12, fontWeight: 650, color: ink40 }}>{index % 2 ? 'Fashion - trusted' : 'Local - verified'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SectionShell>
+  );
+}
+
+function PlanScreen({ web, onBack }) {
+  const [note, setNote] = React.useState('');
+  const [formatOpen, setFormatOpen] = React.useState(false);
+  const [formatPos, setFormatPos] = React.useState({ x: 24, y: 180 });
+  const longPressRef = React.useRef(null);
+  const insertText = (text) => {
+    setNote((value) => value ? `${value}${text}` : text.trimStart());
+    setFormatOpen(false);
+  };
+  const openFormat = (x, y) => {
+    setFormatPos({ x: Math.min(x, window.innerWidth - 164), y: Math.min(y, window.innerHeight - 260) });
+    setFormatOpen(true);
+  };
+  const clearLongPress = () => {
+    if (longPressRef.current) window.clearTimeout(longPressRef.current);
+    longPressRef.current = null;
+  };
+  const formatOptions = [
+    { label: 'New section', value: '\n\nNew section\n' },
+    { label: 'Header', value: '\n\n# Header\n' },
+    { label: 'Bold', value: '**bold**' },
+    { label: 'Italic', value: '*italic*' },
+    { label: 'Highlight', value: '==highlight==' },
+  ];
+
+  return (
+    <SectionShell title="Plan" web={web} onBack={onBack}>
+      <div style={{ position: 'relative', minHeight: web ? 520 : 460 }}>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            openFormat(e.clientX, e.clientY);
+          }}
+          onPointerDown={(e) => {
+            clearLongPress();
+            longPressRef.current = window.setTimeout(() => openFormat(e.clientX, e.clientY), 560);
+          }}
+          onPointerUp={clearLongPress}
+          onPointerLeave={clearLongPress}
+          onBlur={() => window.setTimeout(() => setFormatOpen(false), 140)}
+          placeholder="Start writing..."
+          style={{
+            width: '100%',
+            minHeight: web ? 500 : 430,
+            resize: 'vertical',
+            border: 0,
+            borderRadius: 0,
+            background: 'transparent',
+            boxShadow: 'none',
+            outline: 0,
+            color: ink,
+            padding: web ? '18px 8px' : '12px 2px',
+            fontFamily: 'inherit',
+            fontSize: web ? 21 : 19,
+            lineHeight: 1.62,
+            fontWeight: 560,
+          }}
+        />
+        {formatOpen && (
+          <div style={{
+            position: 'fixed',
+            left: formatPos.x,
+            top: formatPos.y,
+            zIndex: 50,
+            width: 148,
+            borderRadius: 18,
+            background: 'rgba(255,255,255,0.9)',
+            boxShadow: '0 18px 42px rgba(10,10,10,0.14), inset 0 0 0 1px rgba(10,10,10,0.06)',
+            padding: 6,
+            display: 'grid',
+            gap: 2,
+          }}>
+            {formatOptions.map((option) => (
+              <button key={option.label} onMouseDown={(e) => e.preventDefault()} onClick={() => insertText(option.value)} style={{
+                height: 34,
+                border: 0,
+                borderRadius: 12,
+                background: 'transparent',
+                color: ink,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: 12,
+                fontWeight: 760,
+                textAlign: 'left',
+                padding: '0 10px',
+              }}>{option.label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </SectionShell>
+  );
+}
+
+function ListenScreen({ web, onBack }) {
+  const [query, setQuery] = React.useState('');
+  const [openChannel, setOpenChannel] = React.useState(null);
+  const channels = [
+    { name: 'Everyday Briefing', meta: 'Continue listening', episodes: ['Morning in Kigali', 'What to know before noon', 'Evening recap'] },
+    { name: 'Kigali Business', meta: 'New episode today', episodes: ['Retail moves this week', 'Founder notes', 'Markets in 10 minutes'] },
+    { name: 'Creator Talks', meta: 'Fresh conversations', episodes: ['Building a loyal audience', 'Studio routines', 'Pricing your work'] },
+    { name: 'Money Habits', meta: 'Saved for you', episodes: ['Small savings that compound', 'Borrowing with care', 'Planning school fees'] },
+    { name: 'Morning Focus', meta: 'Daily reset', episodes: ['A calm start', 'Deep work block', 'Five minute reflection'] },
+    { name: 'Rwanda Culture', meta: 'Popular nearby', episodes: ['Stories from Nyamirambo', 'Food, music, memory', 'Weekend guide'] },
+  ];
+
+  return (
+    <SectionShell title="Listen" web={web} onBack={onBack}>
+      <div style={{ display: 'grid', gap: 20 }}>
+        <div>
+          <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Find what to listen to.</div>
+          <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: ink55 }}>Search channels, episodes, creators, or use voice.</div>
+        </div>
+        <SearchSurface value={query} onChange={setQuery} placeholder="Search podcasts or channels" modes={['Voice']} />
+        <div style={{ display: 'grid', gap: 10 }}>
+          {channels.map((channel, index) => (
+            <div key={channel.name} style={{
+              borderRadius: 20,
+              background: 'rgba(255,255,255,0.62)',
+              boxShadow: '0 14px 34px rgba(10,10,10,0.07)',
+              padding: '10px 12px',
+            }}>
+              <button onClick={() => setOpenChannel(openChannel === channel.name ? null : channel.name)} style={{
+                width: '100%',
+                minHeight: 52,
+                border: 0,
+                background: 'transparent',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 14,
+                padding: 0,
+                fontFamily: 'inherit',
+              }}>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 15, fontWeight: 820, color: ink }}>{channel.name}</div>
+                  <div style={{ marginTop: 4, fontSize: 12, fontWeight: 650, color: ink40 }}>{channel.meta}</div>
+                </div>
+                <div style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: openChannel === channel.name || index === 0 ? ink : canvas,
+                  color: openChannel === channel.name || index === 0 ? paper : ink,
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}>
+                  {openChannel === channel.name ? (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M3 8.5L7 4.5L11 8.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                      <path d="M4 2.5v9l7-4.5-7-4.5z" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+              {openChannel === channel.name && (
+                <div style={{
+                  marginTop: 8,
+                  padding: '8px 4px 2px',
+                  display: 'grid',
+                  gap: 6,
+                }}>
+                  {channel.episodes.map((episode, episodeIndex) => (
+                    <button key={episode} style={{
+                      minHeight: 38,
+                      border: 0,
+                      borderRadius: 14,
+                      background: episodeIndex === 0 ? 'rgba(10,10,10,0.06)' : 'transparent',
+                      color: ink,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      padding: '0 10px',
+                    }}>
+                      <span style={{ fontSize: 13, fontWeight: 760 }}>{episode}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: ink40 }}>{episodeIndex === 0 ? 'Play' : `${18 + episodeIndex * 5} min`}</span>
+                    </button>
+                  ))}
+                  <button onClick={() => setOpenChannel(null)} style={{
+                    justifySelf: 'end',
+                    height: 28,
+                    border: 0,
+                    background: 'transparent',
+                    color: ink40,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: 12,
+                    fontWeight: 760,
+                    padding: '0 8px',
+                  }}>Close</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </SectionShell>
+  );
+}
+
+function PayScreen({ web, onBack }) {
+  const contacts = [
+    { id: 'aline', name: 'Aline Niyonsaba', phone: '+250 788 120 441' },
+    { id: 'eric', name: 'Eric Kwizera', phone: '+250 782 441 009' },
+    { id: 'school', name: 'Green Hills School', phone: 'School fees' },
+  ];
+  const [amount, setAmount] = React.useState('');
+  const [recipientText, setRecipientText] = React.useState('');
+  const [recipient, setRecipient] = React.useState(null);
+  const [contactOpen, setContactOpen] = React.useState(false);
+  const [paidReceipt, setPaidReceipt] = React.useState(null);
+  const currencies = [
+    { code: 'RWF', label: 'Rwandan franc' },
+    { code: 'USD', label: 'US dollar' },
+    { code: 'GBP', label: 'British pound' },
+    { code: 'KES', label: 'Kenyan shilling' },
+    { code: 'UGX', label: 'Ugandan shilling' },
+    { code: 'TZS', label: 'Tanzanian shilling' },
+  ];
+  const [currencyIndex, setCurrencyIndex] = React.useState(0);
+  const currency = currencies[currencyIndex];
+  const shiftCurrency = (dir) => {
+    setCurrencyIndex((i) => (i + dir + currencies.length) % currencies.length);
+  };
+  const matches = contacts.filter((c) => {
+    const q = recipientText.trim().toLowerCase();
+    if (!q) return true;
+    return c.name.toLowerCase().includes(q) || c.phone.toLowerCase().includes(q);
+  });
+  const canPay = amount.trim() && (recipient || recipientText.trim());
+
+  const pickRecipient = (contact) => {
+    setRecipient(contact);
+    setRecipientText(contact.name);
+    setContactOpen(false);
+  };
+  const submitPayment = () => {
+    if (!canPay) return;
+    setPaidReceipt({
+      amount,
+      currency: currency.code,
+      recipient: recipient ? recipient.name : recipientText.trim(),
+      time: 'Just now',
+      id: 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+    });
+  };
+  const resetPayment = () => {
+    setAmount('');
+    setRecipientText('');
+    setRecipient(null);
+    setContactOpen(false);
+    setPaidReceipt(null);
+  };
+
+  if (paidReceipt) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        <ScreenHeader
+          left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconBtn onClick={onBack}>
+              <svg width="16" height="16" viewBox="0 0 16 16">
+                <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </IconBtn>
+            <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Pay</span>
+          </div>}
+        />
+
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: web ? '36px 48px 44px' : '18px 18px 26px',
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: 460,
+            borderRadius: 30,
+            background: 'rgba(47,174,155,0.12)',
+            border: '1px solid rgba(47,174,155,0.22)',
+            padding: web ? 34 : 24,
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: 72,
+              height: 72,
+              borderRadius: '50%',
+              background: '#2FAE9B',
+              color: paper,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              boxShadow: '0 18px 44px rgba(47,174,155,0.26)',
+            }}>
+              <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                <path d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <div style={{ marginTop: 20, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.05em', color: ink }}>
+              Payment sent.
+            </div>
+            <div style={{ marginTop: 8, fontSize: 14, fontWeight: 650, color: ink55 }}>
+              Your receipt is ready.
+            </div>
+
+            <div style={{
+              marginTop: 24,
+              borderRadius: 22,
+              background: 'rgba(255,255,255,0.72)',
+              padding: 18,
+              display: 'grid',
+              gap: 10,
+              textAlign: 'left',
+            }}>
+              <ReceiptRow label="Amount" value={(paidReceipt.currency || 'RWF') + ' ' + Number(paidReceipt.amount || 0).toLocaleString('en-US')} />
+              <ReceiptRow label="To" value={paidReceipt.recipient} />
+              <ReceiptRow label="Status" value="Confirmed" green />
+              <ReceiptRow label="Receipt" value={paidReceipt.id} />
+            </div>
+
+            <button onClick={resetPayment} style={{
+              marginTop: 22,
+              width: '100%',
+              height: 54,
+              border: 0,
+              borderRadius: 18,
+              background: ink,
+              color: paper,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 15,
+              fontWeight: 820,
+              boxShadow: '0 18px 42px rgba(10,10,10,0.18)',
+            }}>
+              New payment
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Pay</span>
+        </div>}
+      />
+
+      <div className="cc-scroll" style={{
+        flex: 1,
+        overflow: 'auto',
+        display: 'flex',
+        justifyContent: 'center',
+        padding: web ? '36px 48px 44px' : '18px 18px 26px',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: web ? 520 : 420,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 18,
+        }}>
+          <div>
+            <div style={{ fontSize: web ? 42 : 34, fontWeight: 820, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>
+              Send money.
+            </div>
+            <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.45, fontWeight: 600, color: ink55 }}>
+              Enter an amount, choose a contact, then pay.
+            </div>
+          </div>
+
+          <div style={{
+            borderRadius: 28,
+            background: 'rgba(255,255,255,0.70)',
+            boxShadow: '0 24px 58px rgba(10,10,10,0.09), inset 0 1px 0 rgba(255,255,255,0.9)',
+            padding: web ? 26 : 20,
+            display: 'grid',
+            gap: 18,
+          }}>
+            <label style={{ display: 'grid', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>Amount</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <CurrencyPicker
+                  currency={currency}
+                  prev={currencies[(currencyIndex - 1 + currencies.length) % currencies.length]}
+                  next={currencies[(currencyIndex + 1) % currencies.length]}
+                  onUp={() => shiftCurrency(-1)}
+                  onDown={() => shiftCurrency(1)}
+                />
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
+                  inputMode="numeric"
+                  placeholder="0"
+                  style={{
+                    width: '100%',
+                    border: 0,
+                    background: 'transparent',
+                    color: ink,
+                    outline: 0,
+                    fontFamily: 'inherit',
+                    fontSize: web ? 56 : 44,
+                    fontWeight: 850,
+                    letterSpacing: '-0.06em',
+                    lineHeight: 1,
+                  }}
+                />
+              </div>
+            </label>
+
+            <div style={{ height: 1, background: ink06 }} />
+
+            <label style={{ display: 'grid', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>Recipient</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={recipientText}
+                  onChange={(e) => { setRecipientText(e.target.value); setRecipient(null); setContactOpen(true); }}
+                  onFocus={() => setContactOpen(true)}
+                  placeholder="Name or phone number"
+                  style={{
+                    minWidth: 0,
+                    flex: 1,
+                    height: 50,
+                    border: `1px solid ${ink12}`,
+                    borderRadius: 16,
+                    background: canvas,
+                    color: ink,
+                    outline: 0,
+                    padding: '0 15px',
+                    fontFamily: 'inherit',
+                    fontSize: 14,
+                    fontWeight: 650,
+                  }}
+                />
+                <button onClick={() => setContactOpen((open) => !open)} style={{
+                  width: 52,
+                  border: 0,
+                  borderRadius: 16,
+                  background: ink,
+                  color: paper,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }} aria-label="Open contacts">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M6.5 8.2a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8ZM2.5 14.5c.5-2.4 2-3.6 4-3.6s3.5 1.2 4 3.6M12.5 5h3M14 3.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </label>
+
+            {contactOpen && (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {matches.slice(0, 3).map((contact) => (
+                  <button key={contact.id} onClick={() => pickRecipient(contact)} style={{
+                    minHeight: 54,
+                    border: 0,
+                    borderRadius: 16,
+                    background: recipient && recipient.id === contact.id ? ink : 'transparent',
+                    color: recipient && recipient.id === contact.id ? paper : ink,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    padding: '10px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    textAlign: 'left',
+                  }}>
+                    <span>
+                      <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{contact.name}</span>
+                      <span style={{ display: 'block', marginTop: 3, fontSize: 11.5, fontWeight: 650, color: recipient && recipient.id === contact.id ? 'rgba(255,255,255,0.62)' : ink40 }}>{contact.phone}</span>
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 760, color: recipient && recipient.id === contact.id ? 'rgba(255,255,255,0.62)' : ink40 }}>Select</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button disabled={!canPay} onClick={submitPayment} style={{
+              height: 54,
+              border: 0,
+              borderRadius: 18,
+              background: canPay ? ink : 'rgba(10,10,10,0.12)',
+              color: canPay ? paper : ink40,
+              cursor: canPay ? 'pointer' : 'default',
+              fontFamily: 'inherit',
+              fontSize: 15,
+              fontWeight: 820,
+              boxShadow: canPay ? '0 18px 42px rgba(10,10,10,0.18)' : 'none',
+            }}>
+              Pay
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReceiptRow({ label, value, green = false }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <span style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 820, color: green ? '#2FAE9B' : ink, textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+}
+
+function CurrencyPicker({ currency, prev, next, onUp, onDown }) {
+  return (
+    <div style={{
+      width: 72,
+      flexShrink: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      userSelect: 'none',
+    }}>
+      <button onClick={onUp} aria-label="Previous currency" style={{
+        width: 42,
+        height: 20,
+        border: 0,
+        background: 'transparent',
+        color: ink40,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+          <path d="M3 8L9 2L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      <div style={{ fontSize: 9.5, fontWeight: 760, color: ink25, height: 13, lineHeight: '13px' }}>{prev.code}</div>
+      <button title={currency.label} style={{
+        minWidth: 64,
+        height: 34,
+        border: 0,
+        borderRadius: 14,
+        background: ink,
+        color: paper,
+        cursor: 'default',
+        fontFamily: 'inherit',
+        fontSize: 13,
+        fontWeight: 820,
+        letterSpacing: '-0.01em',
+      }}>
+        {currency.code}
+      </button>
+      <div style={{ fontSize: 9.5, fontWeight: 760, color: ink25, height: 13, lineHeight: '13px', marginTop: 1 }}>{next.code}</div>
+      <button onClick={onDown} aria-label="Next currency" style={{
+        width: 42,
+        height: 20,
+        border: 0,
+        background: 'transparent',
+        color: ink40,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+          <path d="M3 2L9 8L15 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function CommuteScreen({ web, onBack }) {
+  const [query, setQuery] = React.useState('');
+  const [destination, setDestination] = React.useState('Kigali Heights');
+  const [origin, setOrigin] = React.useState('Current location');
+  const [tracking, setTracking] = React.useState(false);
+  const [contactNumber, setContactNumber] = React.useState('');
+  const [linkedContact, setLinkedContact] = React.useState(null);
+  const [connectionOpen, setConnectionOpen] = React.useState(false);
+  const [selectedMoto, setSelectedMoto] = React.useState('aline');
+  const suggestions = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium'];
+  const motos = [
+    { id: 'aline', name: 'Aline N.', rating: '4.9', vehicle: 'Clean moto', eta: '3 min' },
+    { id: 'eric', name: 'Eric K.', rating: '4.8', vehicle: 'Helmet ready', eta: '5 min' },
+  ];
+  const selectedMotoProfile = motos.find((m) => m.id === selectedMoto) || motos[0];
+  const routeLabel = destination || 'Choose destination';
+
+  const chooseDestination = (value) => {
+    setDestination(value);
+    setQuery(value);
+  };
+  const trackLocation = () => {
+    setTracking(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => { setOrigin('Your live location'); setTracking(false); },
+        () => { setOrigin('Kigali current location'); setTracking(false); },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      setOrigin('Kigali current location');
+      setTracking(false);
+    }
+  };
+  const linkContact = () => {
+    const clean = contactNumber.trim();
+    if (!clean) return;
+    setLinkedContact(clean);
+    setConnectionOpen(true);
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Commute</span>
+        </div>}
+      />
+
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        padding: web ? '16px 32px 32px' : '8px 14px 18px',
+        display: 'grid',
+        gridTemplateColumns: web ? 'minmax(0, 1.35fr) minmax(320px, 0.65fr)' : '1fr',
+        gridTemplateRows: web ? '1fr' : 'minmax(330px, 1fr) auto',
+        gap: web ? 18 : 12,
+      }}>
+        <div style={{
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: web ? 0 : 330,
+          borderRadius: web ? 28 : 24,
+          background:
+            'linear-gradient(90deg, rgba(10,10,10,0.045) 1px, transparent 1px), linear-gradient(0deg, rgba(10,10,10,0.045) 1px, transparent 1px), #ECE8E0',
+          backgroundSize: '58px 58px',
+          boxShadow: 'inset 0 0 0 1px rgba(10,10,10,0.08)',
+        }}>
+          <svg viewBox="0 0 900 760" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+            <path d="M-30 560 C160 492 235 430 354 394 C478 356 542 304 622 210 C693 126 770 88 930 72" fill="none" stroke="rgba(255,255,255,0.72)" strokeWidth="64" strokeLinecap="round"/>
+            <path d="M-30 560 C160 492 235 430 354 394 C478 356 542 304 622 210 C693 126 770 88 930 72" fill="none" stroke="rgba(10,10,10,0.20)" strokeWidth="2" strokeDasharray="10 16"/>
+            <path d="M92 -30 C158 144 242 244 352 324 C485 420 606 489 804 790" fill="none" stroke="rgba(255,255,255,0.58)" strokeWidth="42" strokeLinecap="round"/>
+            <path d="M92 -30 C158 144 242 244 352 324 C485 420 606 489 804 790" fill="none" stroke="rgba(10,10,10,0.16)" strokeWidth="2" strokeDasharray="8 14"/>
+            <path d="M210 704 C252 590 319 520 430 475 C548 426 612 385 716 282" fill="none" stroke="#0A0A0A" strokeWidth="8" strokeLinecap="round"/>
+            <path d="M210 704 C252 590 319 520 430 475 C548 426 612 385 716 282" fill="none" stroke="#FAF6F1" strokeWidth="3" strokeLinecap="round"/>
+          </svg>
+
+          <div style={{
+            position: 'absolute',
+            left: '22%',
+            bottom: '12%',
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            background: ink,
+            border: '4px solid #FAF6F1',
+            boxShadow: '0 8px 24px rgba(10,10,10,0.24)',
+          }} />
+          <div style={{
+            position: 'absolute',
+            left: '34%',
+            top: '42%',
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            background: linkedContact ? '#5B7CFA' : 'rgba(10,10,10,0.28)',
+            border: '4px solid #FAF6F1',
+            boxShadow: '0 8px 24px rgba(10,10,10,0.18)',
+            opacity: linkedContact ? 1 : 0.4,
+          }} />
+          <div style={{
+            position: 'absolute',
+            left: '54%',
+            bottom: '31%',
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: ink,
+            color: paper,
+            border: '4px solid #FAF6F1',
+            boxShadow: '0 8px 24px rgba(10,10,10,0.24)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            fontWeight: 800,
+          }}>M</div>
+          <div style={{
+            position: 'absolute',
+            right: '19%',
+            top: '30%',
+            width: 26,
+            height: 26,
+            borderRadius: '50% 50% 50% 4px',
+            transform: 'rotate(-45deg)',
+            background: '#2FAE9B',
+            border: '4px solid #FAF6F1',
+            boxShadow: '0 8px 24px rgba(10,10,10,0.22)',
+          }} />
+
+          <div style={{
+            position: 'absolute',
+            left: web ? 22 : 16,
+            top: web ? 22 : 16,
+            right: web ? 'auto' : 16,
+            borderRadius: 18,
+            background: 'rgba(250,246,241,0.82)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            boxShadow: '0 18px 44px rgba(10,10,10,0.10)',
+            padding: '14px 16px',
+            minWidth: web ? 260 : 0,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 760, color: ink40 }}>Route</div>
+            <div style={{ marginTop: 5, fontSize: 15, fontWeight: 820, color: ink }}>{routeLabel}</div>
+            <div style={{ marginTop: 4, fontSize: 12, fontWeight: 650, color: ink55 }}>{origin} · {selectedMotoProfile.name} · {linkedContact ? 'contact linked' : '12 min'}</div>
+          </div>
+        </div>
+
+        <div style={{
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: web ? 'center' : 'flex-start',
+          gap: 14,
+        }}>
+          <div style={{
+            borderRadius: 24,
+            background: paper,
+            boxShadow: '0 22px 50px rgba(10,10,10,0.10), inset 0 1px 0 rgba(255,255,255,0.88)',
+            padding: web ? 22 : 18,
+          }}>
+            <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 820, letterSpacing: '-0.04em', color: ink }}>
+              Where are you going?
+            </div>
+            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.45, fontWeight: 600, color: ink55 }}>
+              Enter an address or landmark. Everyday will find a clean, vetted ride.
+            </div>
+
+            <button onClick={trackLocation} style={{
+              marginTop: 16,
+              width: '100%',
+              minHeight: 46,
+              border: `1px solid ${ink12}`,
+              borderRadius: 15,
+              background: origin === 'Current location' ? 'transparent' : ink,
+              color: origin === 'Current location' ? ink : paper,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: 760,
+              textAlign: 'left',
+              padding: '0 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}>
+              <span>{tracking ? 'Finding your location...' : origin}</span>
+              <span style={{ color: origin === 'Current location' ? ink40 : 'rgba(255,255,255,0.62)', fontSize: 12 }}>Track</span>
+            </button>
+
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && query.trim()) setDestination(query.trim()); }}
+                placeholder="Search destination"
+                style={{
+                  width: '100%',
+                  height: 48,
+                  border: `1px solid ${ink12}`,
+                  borderRadius: 16,
+                  background: canvas,
+                  color: ink,
+                  outline: 0,
+                  padding: '0 15px',
+                  fontFamily: 'inherit',
+                  fontSize: 14,
+                  fontWeight: 650,
+                }}
+              />
+            </div>
+
+            <div style={{ marginTop: 14, display: 'grid', gap: 8 }}>
+              {suggestions.map((item) => (
+                <button key={item} onClick={() => chooseDestination(item)} style={{
+                  height: 44,
+                  border: 0,
+                  borderRadius: 14,
+                  background: item === destination ? ink : 'transparent',
+                  color: item === destination ? paper : ink,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  fontSize: 13,
+                  fontWeight: 720,
+                  textAlign: 'left',
+                  padding: '0 12px',
+                }}>
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div style={{
+              marginTop: 16,
+              borderTop: `1px solid ${ink06}`,
+              paddingTop: 14,
+              display: 'grid',
+              gap: 10,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>Link someone else's address</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  placeholder="Phone number from contacts"
+                  style={{
+                    minWidth: 0,
+                    flex: 1,
+                    height: 44,
+                    border: `1px solid ${ink12}`,
+                    borderRadius: 14,
+                    background: canvas,
+                    color: ink,
+                    outline: 0,
+                    padding: '0 13px',
+                    fontFamily: 'inherit',
+                    fontSize: 13,
+                    fontWeight: 650,
+                  }}
+                />
+                <button onClick={linkContact} style={{
+                  width: 76,
+                  border: 0,
+                  borderRadius: 14,
+                  background: ink,
+                  color: paper,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  fontSize: 12,
+                  fontWeight: 760,
+                }}>Link</button>
+              </div>
+              <div style={{ fontSize: 11.5, lineHeight: 1.35, fontWeight: 600, color: ink40 }}>
+                Works when that person has allowed Everyday to share their destination.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
+            {motos.map((moto) => (
+              <CommuteOption
+                key={moto.id}
+                title={moto.name}
+                meta={`${moto.vehicle} · ${moto.eta} · ${moto.rating}`}
+                price="Profile"
+                active={moto.id === selectedMoto}
+                onClick={() => setSelectedMoto(moto.id)}
+              />
+            ))}
+            <button onClick={() => setConnectionOpen((open) => !open)} style={{
+              minHeight: 48,
+              border: 0,
+              borderRadius: 16,
+              background: connectionOpen ? ink : 'transparent',
+              color: connectionOpen ? paper : ink,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 13,
+              fontWeight: 760,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 14px',
+            }}>
+              <span>Connections</span>
+              <span style={{ letterSpacing: 2 }}>•••</span>
+            </button>
+            {connectionOpen && (
+              <div style={{
+                borderRadius: 18,
+                background: 'rgba(255,255,255,0.78)',
+                boxShadow: '0 16px 36px rgba(10,10,10,0.08)',
+                padding: 14,
+                display: 'grid',
+                gap: 8,
+              }}>
+                <ConnectionRow label="Your location" value={origin} />
+                <ConnectionRow label="Moto profile" value={selectedMotoProfile.name} />
+                <ConnectionRow label="Destination" value={routeLabel} />
+                <ConnectionRow label="Linked number" value={linkedContact || 'Not linked'} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConnectionRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <span style={{ fontSize: 11.5, fontWeight: 760, color: ink40 }}>{label}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 760, color: ink, textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+}
+
+function CommuteOption({ title, meta, price, active = false, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      minHeight: 74,
+      border: '1px solid transparent',
+      borderRadius: 18,
+      background: active ? ink : 'rgba(255,255,255,0.74)',
+      color: active ? paper : ink,
+      boxShadow: active ? '0 18px 42px rgba(10,10,10,0.18)' : '0 16px 36px rgba(10,10,10,0.08)',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      padding: '14px 15px',
+      textAlign: 'left',
+    }}>
+      <div style={{ fontSize: 15, fontWeight: 820 }}>{title}</div>
+      <div style={{ marginTop: 4, fontSize: 11.5, fontWeight: 650, color: active ? 'rgba(255,255,255,0.62)' : ink40 }}>{meta} · {price}</div>
+    </button>
+  );
+}
+
+function SaveMetric({ label, value, accent = false, compact = false }) {
+  return (
+    <div style={{
+      minHeight: compact ? 36 : 44,
+      borderBottom: `1px solid ${ink06}`,
+      padding: compact ? '5px 0' : '8px 0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 14,
+    }}>
+      <span style={{ fontSize: compact ? 11 : 12, fontWeight: 750, color: ink40 }}>{label}</span>
+      <span style={{ fontSize: compact ? 13.5 : 16, fontWeight: 820, letterSpacing: '-0.02em', color: accent ? '#2FAE9B' : ink, textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+}
+
+function SaveAction({ label, sub, onClick, selected = false, compact = false }) {
+  const [hovered, setHovered] = React.useState(false);
+  const active = selected || hovered;
+  return (
+    <button onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className="pk-calm-action" style={{
+      minHeight: compact ? 62 : 78,
+      border: '1px solid transparent',
+      borderRadius: 16,
+      background: active ? ink : 'transparent',
+      color: active ? paper : ink,
+      boxShadow: active ? '0 18px 40px rgba(10,10,10,0.18)' : 'none',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      textAlign: 'left',
+      padding: compact ? '12px 12px' : '16px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      gap: 4,
+    }}>
+      <span style={{ fontSize: compact ? 13.5 : 15, fontWeight: 820, letterSpacing: '-0.01em' }}>{label}</span>
+      <span style={{ fontSize: compact ? 10.5 : 11.5, fontWeight: 650, color: active ? 'rgba(255,255,255,0.62)' : ink40 }}>{sub}</span>
+    </button>
+  );
+}
+
 function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, onGrowth, onBack }) {
   const p = CC_PORTFOLIO;
   const s = CC_SAVINGS;
   const c = CC_CREDIT;
   const millions = (s.balance / 1000000).toFixed(2);
   const [hidden, setHidden] = React.useState(false);
+  const [selectedSaveAction, setSelectedSaveAction] = React.useState('add');
   const [nextTarget, setNextTarget] = React.useState(600000);
   const saveMonths = [
     { label: 'June', saved: s.savedThisMonth, historyStart: s.historyStartLabel, history: s.history },
@@ -338,6 +1762,161 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
   ];
   const [saveMonthKey, setSaveMonthKey] = React.useState(saveMonths[0].label);
   const saveMonth = saveMonths.find((m) => m.label === saveMonthKey) || saveMonths[0];
+  const showMoney = (value) => hidden ? 'Hidden' : fmtRWF(value);
+  const limit = c.capacity;
+  const left = Math.max(0, c.available);
+  const standingGood = /good/i.test(c.status || '');
+  const compactSave = !web && typeof window !== 'undefined' && window.innerHeight < 740;
+  const ringSize = web ? 340 : (compactSave ? 230 : 264);
+  const ringStroke = web ? 22 : (compactSave ? 15 : 17);
+  const ringRadius = (ringSize - ringStroke) / 2;
+  const ringCirc = 2 * Math.PI * ringRadius;
+  const leftPct = Math.max(0, Math.min(100, Math.round((left / limit) * 100)));
+  const leftDash = ringCirc * (leftPct / 100);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onBack && <IconBtn onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconBtn>}
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
+        </div>}
+      />
+
+      <div className="cc-scroll" style={{
+        flex: 1,
+        overflow: 'auto',
+        display: 'flex',
+        justifyContent: 'center',
+        padding: web ? '18px 48px 36px' : compactSave ? '4px 16px 18px' : '8px 18px 22px',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: web ? 780 : 420,
+          minHeight: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: web ? 'center' : 'flex-start',
+          gap: web ? 20 : (compactSave ? 10 : 14),
+        }}>
+          <div style={{
+            background: 'transparent',
+            border: '0',
+            borderRadius: 0,
+            padding: web ? '14px 10px' : compactSave ? '2px 0' : '6px 2px',
+            display: 'flex',
+            flexDirection: web ? 'row' : 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: web ? 34 : (compactSave ? 8 : 14),
+          }}>
+            <div style={{ position: 'relative', width: ringSize, height: ringSize, flexShrink: 0 }}>
+              <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} style={{ transform: 'rotate(-90deg)' }}>
+                <circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="rgba(10,10,10,0.08)" strokeWidth={ringStroke} />
+                <circle
+                  cx={ringSize / 2}
+                  cy={ringSize / 2}
+                  r={ringRadius}
+                  fill="none"
+                  stroke={standingGood ? '#2FAE9B' : '#C8102E'}
+                  strokeWidth={ringStroke}
+                  strokeLinecap="round"
+                  strokeDasharray={`${leftDash} ${ringCirc - leftDash}`}
+                />
+              </svg>
+              <div style={{
+                position: 'absolute',
+                inset: ringStroke + (compactSave ? 12 : 16),
+                borderRadius: '50%',
+                background: 'rgba(250,246,241,0.72)',
+                boxShadow: 'inset 0 1px 8px rgba(10,10,10,0.04)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: compactSave ? 12 : 16,
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ink40 }}>Saved</div>
+                <div style={{
+                  marginTop: 6,
+                  fontSize: web ? 30 : (compactSave ? 20 : 23),
+                  fontWeight: 850,
+                  letterSpacing: '-0.04em',
+                  color: ink,
+                  lineHeight: 1,
+                }}>{showMoney(s.balance)}</div>
+                <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: ink55 }}>
+                  {leftPct}% available
+                </div>
+              </div>
+            </div>
+
+            <div style={{ width: '100%', display: 'grid', gap: 10 }}>
+              <div style={{ fontSize: web ? 30 : (compactSave ? 20 : 23), fontWeight: 820, letterSpacing: '-0.04em', color: ink }}>
+                Build wealth one save at a time.
+              </div>
+              <div style={{ display: 'grid', gap: compactSave ? 4 : 7, marginTop: compactSave ? 0 : 4 }}>
+                <SaveMetric label="Left" value={showMoney(left)} compact={compactSave} />
+                <SaveMetric label="Limit" value={showMoney(limit)} compact={compactSave} />
+                <SaveMetric label="Interest earned" value={showMoney(s.returnsEarned)} accent compact={compactSave} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'transparent',
+            border: 0,
+            borderTop: `1px solid ${ink06}`,
+            borderBottom: `1px solid ${ink06}`,
+            borderRadius: 0,
+            padding: compactSave ? '10px 0' : '14px 0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+          }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 750, color: ink40 }}>Standing</div>
+              <div style={{ marginTop: 4, fontSize: 18, fontWeight: 800, color: ink }}>{c.status}</div>
+            </div>
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: standingGood ? '#2FAE9B' : '#C8102E',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: paper,
+              flexShrink: 0,
+            }}>
+              {standingGood ? (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M4 10.5l4 4L16 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 4v7M10 15h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+                </svg>
+              )}
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: web ? 'repeat(4, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))',
+            gap: web ? 12 : 10,
+          }}>
+            <SaveAction label="Save" sub="Top up wallet" selected={selectedSaveAction === 'add'} onClick={() => { setSelectedSaveAction('add'); onMoney('add'); }} compact={compactSave} />
+            <SaveAction label="Borrow" sub="Against income" selected={selectedSaveAction === 'borrow'} onClick={() => { setSelectedSaveAction('borrow'); onMoney('borrow'); }} compact={compactSave} />
+            <SaveAction label="Repay" sub="What you owe" selected={selectedSaveAction === 'repay'} onClick={() => { setSelectedSaveAction('repay'); onMoney('repay'); }} compact={compactSave} />
+            <SaveAction label="Withdraw" sub="Take money out" selected={selectedSaveAction === 'withdraw'} onClick={() => { setSelectedSaveAction('withdraw'); onMoney('withdraw'); }} compact={compactSave} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   const mask = (v) => (hidden ? '••••••' : v);
 
   return (

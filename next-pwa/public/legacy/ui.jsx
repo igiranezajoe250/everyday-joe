@@ -391,8 +391,12 @@ function ProgressBar({ percent = 0, accent, track = ink12, height = 4 }) {
 // Bottom tab bar — only 2 tabs, very minimal
 function TabBar({ active, onChange, accent, native }) {
   const tabs = [
+    { id: 'shop',     label: 'Shop'    },
     { id: 'capital',  label: 'Save'    },
-    { id: 'credit',   label: 'Credit'  },
+    { id: 'pay',      label: 'Pay'     },
+    { id: 'plan',     label: 'Plan'    },
+    { id: 'listen',   label: 'Listen'  },
+    { id: 'commute',  label: 'Commute' },
   ];
   return (
     <div style={{
@@ -413,7 +417,7 @@ function TabBar({ active, onChange, accent, native }) {
                 fontFamily: 'inherit',
               }}>
               <div style={{
-                fontSize: 13, fontWeight: 500, letterSpacing: '0.02em',
+                fontSize: 11.5, fontWeight: 600, letterSpacing: '0.01em',
                 color: on ? ink : ink40,
               }}>{t.label}</div>
               <div style={{
