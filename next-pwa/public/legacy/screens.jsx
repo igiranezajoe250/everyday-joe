@@ -631,6 +631,32 @@ function SectionShell({ title, web, onBack, children }) {
   );
 }
 
+// Minimal monoline glyphs for the search input modes. Drawn at 24×24 and
+// scaled into the 38px control, so each mode reads as an icon rather than a
+// bare letter.
+const SEARCH_MODE_ICONS = {
+  Image: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M4.5 17.5l4.5-4 3.5 3 3-2.5 4 3.5" />
+    </g>
+  ),
+  Voice: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="3" width="6" height="10" rx="3" />
+      <path d="M6 11a6 6 0 0 0 12 0M12 17v3.5M9.5 20.5h5" />
+    </g>
+  ),
+  Link: (
+    <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 14.5l5-5" />
+      <path d="M11 7.5l1.2-1.2a3.5 3.5 0 0 1 5 5L16 12.5" />
+      <path d="M13 16.5l-1.2 1.2a3.5 3.5 0 0 1-5-5L8 11.5" />
+    </g>
+  ),
+};
+
 function SearchSurface({ value, onChange, placeholder, modes = [] }) {
   return (
     <div style={{
@@ -664,16 +690,19 @@ function SearchSurface({ value, onChange, placeholder, modes = [] }) {
         <button key={mode} title={mode} aria-label={mode} style={{
           width: 38,
           height: 38,
+          flexShrink: 0,
           border: 0,
           borderRadius: 14,
           background: mode === 'Voice' ? ink : canvas,
           color: mode === 'Voice' ? paper : ink55,
           cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: 11,
-          fontWeight: 760,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          {mode[0]}
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            {SEARCH_MODE_ICONS[mode] || SEARCH_MODE_ICONS.Image}
+          </svg>
         </button>
       ))}
     </div>
