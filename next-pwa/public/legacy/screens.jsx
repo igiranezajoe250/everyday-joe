@@ -711,14 +711,32 @@ function SearchSurface({ value, onChange, placeholder, modes = [] }) {
 
 function ShopScreen({ web, onBack }) {
   const [query, setQuery] = React.useState('');
-  const categories = ['Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
+  const [category, setCategory] = React.useState('All');
+  const categories = ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
   const brands = [
-    'House of Tayo', 'Moshions', 'Haute Baso', 'Uzi Collections',
-    'Rwanda Clothing', 'Inzuki Designs', 'Kwanda Goods', 'Nyamirambo Studio',
-    'Azizi Life', 'Question Coffee', 'Kivu Noir', 'Kigali Home',
-    'Murukali', 'Ikirezi Bookshop', 'Bourbon Coffee', 'Kigali Farmers Market',
-    'Simba Supermarket', 'Amahoro Market'
+    { name: 'House of Tayo', cat: 'Women' },
+    { name: 'Moshions', cat: 'Men' },
+    { name: 'Haute Baso', cat: 'Women' },
+    { name: 'Uzi Collections', cat: 'Women' },
+    { name: 'Rwanda Clothing', cat: 'Unisex' },
+    { name: 'Inzuki Designs', cat: 'Cosmetics' },
+    { name: 'Kwanda Goods', cat: 'Home decor' },
+    { name: 'Nyamirambo Studio', cat: 'Women' },
+    { name: 'Azizi Life', cat: 'Home decor' },
+    { name: 'Question Coffee', cat: 'Home decor' },
+    { name: 'Kivu Noir', cat: 'Cosmetics' },
+    { name: 'Kigali Home', cat: 'Home decor' },
+    { name: 'Murukali', cat: 'Unisex' },
+    { name: 'Ikirezi Bookshop', cat: 'Kids' },
+    { name: 'Bourbon Coffee', cat: 'Home decor' },
+    { name: 'Kigali Farmers Market', cat: 'Home decor' },
+    { name: 'Simba Supermarket', cat: 'Home decor' },
+    { name: 'Amahoro Market', cat: 'Unisex' },
   ];
+  const q = query.trim().toLowerCase();
+  const visible = brands.filter((b) =>
+    (category === 'All' || b.cat === category) &&
+    (!q || b.name.toLowerCase().includes(q)));
 
   return (
     <SectionShell title="Shop" web={web} onBack={onBack}>
@@ -731,26 +749,34 @@ function ShopScreen({ web, onBack }) {
         <SearchSurface value={query} onChange={setQuery} placeholder="Search shops, products, or paste a link" modes={['Image', 'Voice', 'Link']} />
 
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-          {categories.map((category, index) => (
-            <button key={category} style={{
+          {categories.map((cat) => {
+            const on = cat === category;
+            return (
+            <button key={cat} onClick={() => setCategory(cat)} style={{
               height: 38,
               padding: '0 14px',
               border: 0,
               borderRadius: 999,
-              background: index === 0 ? ink : 'rgba(255,255,255,0.58)',
-              color: index === 0 ? paper : ink,
+              background: on ? ink : 'rgba(255,255,255,0.58)',
+              color: on ? paper : ink,
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 12,
               fontWeight: 760,
               whiteSpace: 'nowrap',
-            }}>{category}</button>
-          ))}
+            }}>{cat}</button>
+            );
+          })}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: web ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 10 }}>
-          {brands.map((brand, index) => (
-            <div key={brand} style={{
+          {visible.length === 0 && (
+            <div style={{ padding: '20px 4px', fontSize: 13, color: ink55 }}>
+              No shops match your search.
+            </div>
+          )}
+          {visible.map((brand, index) => (
+            <div key={brand.name} style={{
               minHeight: 92,
               borderRadius: 20,
               background: 'rgba(255,255,255,0.62)',
@@ -760,7 +786,7 @@ function ShopScreen({ web, onBack }) {
               flexDirection: 'column',
               justifyContent: 'space-between',
             }}>
-              <div style={{ fontSize: 15, fontWeight: 820, color: ink }}>{brand}</div>
+              <div style={{ fontSize: 15, fontWeight: 820, color: ink }}>{brand.name}</div>
               <div style={{ fontSize: 12, fontWeight: 650, color: ink40 }}>{index % 2 ? 'Fashion - trusted' : 'Local - verified'}</div>
             </div>
           ))}
@@ -877,6 +903,13 @@ function ListenScreen({ web, onBack }) {
     { name: 'Morning Focus', meta: 'Daily reset', episodes: ['A calm start', 'Deep work block', 'Five minute reflection'] },
     { name: 'Rwanda Culture', meta: 'Popular nearby', episodes: ['Stories from Nyamirambo', 'Food, music, memory', 'Weekend guide'] },
   ];
+  const q = query.trim().toLowerCase();
+  const visible = q
+    ? channels.filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.meta.toLowerCase().includes(q) ||
+        c.episodes.some((e) => e.toLowerCase().includes(q)))
+    : channels;
 
   return (
     <SectionShell title="Listen" web={web} onBack={onBack}>
@@ -887,7 +920,12 @@ function ListenScreen({ web, onBack }) {
         </div>
         <SearchSurface value={query} onChange={setQuery} placeholder="Search podcasts or channels" modes={['Voice']} />
         <div style={{ display: 'grid', gap: 10 }}>
-          {channels.map((channel, index) => (
+          {visible.length === 0 && (
+            <div style={{ padding: '20px 4px', fontSize: 13, color: ink55 }}>
+              No channels match “{query}”.
+            </div>
+          )}
+          {visible.map((channel, index) => (
             <div key={channel.name} style={{
               borderRadius: 20,
               background: 'rgba(255,255,255,0.62)',
@@ -1814,6 +1852,20 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
           </IconBtn>}
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
         </div>}
+        right={<>
+          <IconBtn onClick={onWallet}>
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <rect x="2" y="4" width="12" height="9" rx="1.5" stroke={ink} strokeWidth="1.3" fill="none"/>
+              <path d="M2 7h12" stroke={ink} strokeWidth="1.3"/>
+              <circle cx="11" cy="10" r="1" fill={ink}/>
+            </svg>
+          </IconBtn>
+          <button onClick={onProfile} aria-label="Profile" style={{
+            background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
+          }}>
+            <Avatar initials={p.user.initials} size={36} />
+          </button>
+        </>}
       />
 
       <div className="cc-scroll" style={{
@@ -5800,6 +5852,13 @@ function ActivityGlyph({ kind }) {
 
 function ActivityScreen({ accent, onBack }) {
   const items = CC_ACTIVITY;
+  const [filter, setFilter] = React.useState('all');
+  const filters = [
+    { id: 'all', label: 'All' },
+    { id: 'in', label: 'Money in' },
+    { id: 'out', label: 'Money out' },
+  ];
+  const filtered = filter === 'all' ? items : items.filter((it) => it.dir === filter);
   return (
     <div style={{ paddingBottom: 28 }}>
       <ScreenHeader
@@ -5816,13 +5875,31 @@ function ActivityScreen({ accent, onBack }) {
         </div>
       </div>
 
+      <div style={{ padding: '0 24px 14px', display: 'flex', gap: 8 }}>
+        {filters.map((f) => {
+          const on = filter === f.id;
+          return (
+            <button key={f.id} onClick={() => setFilter(f.id)} style={{
+              height: 34, padding: '0 14px', border: 0, borderRadius: 999,
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 760,
+              background: on ? ink : 'rgba(255,255,255,0.6)', color: on ? paper : ink,
+            }}>{f.label}</button>
+          );
+        })}
+      </div>
+
       <div style={{ padding: '0 20px' }}>
         <RoundedCard padding={0} radius={20}>
-          {items.map((it, i) => (
+          {filtered.length === 0 && (
+            <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: 13, color: ink55 }}>
+              Nothing here yet.
+            </div>
+          )}
+          {filtered.map((it, i) => (
             <div key={it.id} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               padding: '14px 18px',
-              borderBottom: i < items.length - 1 ? `1px solid ${ink12}` : 'none',
+              borderBottom: i < filtered.length - 1 ? `1px solid ${ink12}` : 'none',
             }}>
               <ActivityGlyph kind={it.kind} />
               <div style={{ flex: 1, minWidth: 0 }}>
