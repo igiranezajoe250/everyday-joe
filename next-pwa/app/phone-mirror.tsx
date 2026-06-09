@@ -9,7 +9,6 @@ type PhoneMirrorProps = {
 export function PhoneMirror({ appUrl }: PhoneMirrorProps) {
   const [viewMode, setViewMode] = useState<"auto" | "mobile" | "web">("auto");
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [frameReady, setFrameReady] = useState(false);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -48,11 +47,6 @@ export function PhoneMirror({ appUrl }: PhoneMirrorProps) {
   const webUrl = `${appUrl}${sep}layout=web`;
   const frameSrc = showMobile ? mobileUrl : webUrl;
 
-  // Re-arm the fade when the embedded layout swaps, so the new view eases in.
-  useEffect(() => {
-    setFrameReady(false);
-  }, [frameSrc]);
-
   return (
     <>
       <main className={showMobile ? "portal-shell portal-mobile" : "portal-shell portal-web"}>
@@ -61,11 +55,6 @@ export function PhoneMirror({ appUrl }: PhoneMirrorProps) {
           src={frameSrc}
           className="app-frame"
           allow="clipboard-read; clipboard-write"
-          onLoad={() => setFrameReady(true)}
-          style={{
-            opacity: frameReady ? 1 : 0,
-            transition: "opacity 320ms ease",
-          }}
         />
       </main>
 
