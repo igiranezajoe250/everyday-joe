@@ -1,4 +1,4 @@
-const CACHE = "everyday-next-pwa-v2";
+const CACHE = "everyday-next-pwa-v3";
 
 const SHELL = [
   "/manifest.webmanifest",
@@ -13,14 +13,16 @@ const SHELL = [
   "/legacy/native.jsx",
   "/legacy/app.jsx",
   "/legacy/icons/icon-192.png",
-  "/legacy/icons/icon-512.png"
+  "/legacy/icons/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => Promise.all(SHELL.map((url) => cache.add(url).catch(() => null))))
+      .then((cache) =>
+        Promise.all(SHELL.map((url) => cache.add(url).catch(() => null)))
+      )
       .then(() => self.skipWaiting())
   );
 });
@@ -29,7 +31,11 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
@@ -41,8 +47,17 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  if (request.mode === "navigate" || url.pathname.startsWith("/_next/")) {
+  if (url.pathname.startsWith("/_next/")) {
     event.respondWith(fetch(request));
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() =>
+        caches.match("/legacy/Poketee.html?app=1").then((hit) => hit || fetch(request))
+      )
+    );
     return;
   }
 
@@ -51,15 +66,15 @@ self.addEventListener("fetch", (event) => {
       .then((response) => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+          caches
+            .open(CACHE)
+            .then((cache) => cache.put(request, copy))
+            .catch(() => {});
         }
         return response;
       })
       .catch(() =>
-        caches.match(request).then((hit) => {
-          if (hit) return hit;
-          return Response.error();
-        })
+        caches.match(request).then((hit) => hit || Response.error())
       )
   );
 });

@@ -1,7 +1,7 @@
 // service-worker.js — offline support for Poketee
 // Network-first for app code (so updates land when online), falling back to
 // cache when offline. Bump CACHE to force a clean slate.
-const CACHE = 'poketee-v2';
+const CACHE = 'poketee-v3';
 
 const SHELL = [
   './',
@@ -18,9 +18,8 @@ const SHELL = [
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  // CDN libraries (opaque cross-origin responses are cacheable)
-  'https://unpkg.com/react@18.3.1/umd/react.development.js',
-  'https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js',
+  'https://unpkg.com/react@18.3.1/umd/react.production.min.js',
+  'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone@7.29.0/babel.min.js',
 ];
 
