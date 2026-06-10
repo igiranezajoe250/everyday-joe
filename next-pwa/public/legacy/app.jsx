@@ -273,6 +273,7 @@ function App() {
               variant="fab"
               functions={pkSelectedFunctions()}
               onSelect={openFunctionById}
+              bottomOffset={route === 'pay' || route === 'plan' ? 92 : route === 'shop' ? 80 : 22}
             />
           )}
 

@@ -37,7 +37,7 @@ function pkSelectedFunctions() {
 // The "+" launcher + the function card it reveals. variant 'hero' centres a
 // large button (home screen); 'fab' pins a smaller one bottom-centre (used on
 // the function pages so the user can hop between them).
-function FunctionLauncher({ functions, onSelect, variant = 'hero' }) {
+function FunctionLauncher({ functions, onSelect, variant = 'hero', bottomOffset = 22 }) {
   // Two-phase open/close: `open` mounts the sheet, `shown` drives the
   // transforms a frame later so the slide-up (and slide-down) animate smoothly.
   const [open, setOpen] = React.useState(false);
@@ -121,12 +121,11 @@ function FunctionLauncher({ functions, onSelect, variant = 'hero' }) {
   ) : null;
 
   if (variant === 'fab') {
-    // Top-right, aligned with the screen header — never collides with a
-    // screen's own full-width primary action or the bottom safe area.
+    // Bottom-centre. bottomOffset lifts it clear of a screen's own bottom bar.
     return (
       <React.Fragment>
-        <div style={{ position: 'absolute', top: PK_NATIVE ? 'calc(max(16px, env(safe-area-inset-top, 16px)) + 8px)' : 62, right: 20, zIndex: 50 }}>
-          {plusBtn}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom, 0px))`, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
+          <div style={{ pointerEvents: 'auto' }}>{plusBtn}</div>
         </div>
         {overlay}
       </React.Fragment>
@@ -240,7 +239,7 @@ function EverydayFunctionScreen({ mode, web, onBack }) {
         left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <IconBtn onClick={onBack}>
             <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </IconBtn>
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>{m.title}</span>
@@ -320,7 +319,7 @@ function SectionShell({ title, web, onBack, children }) {
         left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <IconBtn onClick={onBack}>
             <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </IconBtn>
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>{title}</span>
@@ -420,8 +419,9 @@ function SearchSurface({ value, onChange, placeholder, modes = [] }) {
 function ShopScreen({ web, onBack }) {
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState('All');
-  const [showAll, setShowAll] = React.useState(false);
-  const SHOP_LIMIT = web ? 9 : 6;
+  const [catOpen, setCatOpen] = React.useState(false);
+  const [shopCount, setShopCount] = React.useState(5);
+  const [focus, setFocus] = React.useState(false);
   const categories = ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
   const brands = [
     { name: 'House of Tayo', cat: 'Women' },
@@ -447,85 +447,78 @@ function ShopScreen({ web, onBack }) {
   const visible = brands.filter((b) =>
     (category === 'All' || b.cat === category) &&
     (!q || b.name.toLowerCase().includes(q)));
+  const shown = visible.slice(0, shopCount);
+  const catShown = catOpen ? categories : categories.slice(0, 4);
+  const selectCat = (c) => { pkHaptic('select'); setCategory(c); setShopCount(5); };
+  const onSearch = (v) => { setQuery(v); setShopCount(5); };
 
   return (
-    <SectionShell title="Shop" web={web} onBack={onBack}>
-      <div style={{ display: 'grid', gap: 20 }}>
-        <div>
-          <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Find trusted shops.</div>
-        </div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Shop</span>
+      </div>} />
 
-        <DashField
-          value={query}
-          onChange={setQuery}
-          placeholder="Search shops, products, or paste a link"
-          suffix={(
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '14px 18px 96px' }}>
+        <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
+          <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Find trusted shops.</div>
+
+          {/* Categories — expandable with a + */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
+            {catShown.map((cat) => {
+              const on = cat === category;
+              return (
+                <button key={cat} onClick={() => selectCat(cat)} style={{ height: 36, padding: '0 14px', borderRadius: 999, border: on ? '0' : `1px solid ${ink12}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{cat}</button>
+              );
+            })}
+            {categories.length > 4 && (
+              <button onClick={() => setCatOpen((o) => !o)} aria-label={catOpen ? 'Fewer categories' : 'More categories'} style={{ height: 36, width: 36, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: catOpen ? 'rotate(45deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            )}
+          </div>
+
+          {/* Stores — five at a time */}
+          <div style={{ marginTop: 22 }}>
+            {visible.length === 0 && (<div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No shops match your search.</div>)}
+            {shown.map((brand, index) => (
+              <button key={brand.name} style={{ width: '100%', border: 0, borderTop: index === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{brand.name}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{index % 2 ? 'Fashion · trusted' : 'Local · verified'}</span>
+                </span>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+              </button>
+            ))}
+            {shopCount < visible.length && (
+              <button onClick={() => { pkHaptic('select'); setShopCount((c) => c + 5); }} style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </span>
+                See more
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Search — pinned to the bottom */}
+      <div style={{ flexShrink: 0, padding: web ? '12px 44px 16px' : '10px 18px max(12px, env(safe-area-inset-bottom, 12px))', borderTop: `1px dashed ${DASH}`, background: canvas }}>
+        <div className="pk-field" style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 8, borderBottom: `2px ${focus ? 'solid' : 'dashed'} ${focus ? ink : ink25}`, transition: 'border-color 200ms ease' }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input value={query} onChange={(e) => onSearch(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} placeholder="Search shops or products" style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15, fontWeight: 600, padding: 0 }} />
             <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
               {['Image', 'Voice', 'Link'].map((mode) => (
-                <span key={mode} title={mode} aria-label={mode} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink40 }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">{SEARCH_MODE_ICONS[mode]}</svg>
+                <span key={mode} title={mode} aria-label={mode} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink40 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">{SEARCH_MODE_ICONS[mode]}</svg>
                 </span>
               ))}
             </span>
-          )}
-        />
-
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-          {categories.map((cat) => {
-            const on = cat === category;
-            return (
-            <button key={cat} onClick={() => setCategory(cat)} style={{
-              height: 36,
-              padding: '0 14px',
-              borderRadius: 999,
-              border: on ? '0' : `1px solid ${ink12}`,
-              background: on ? ink : 'transparent',
-              color: on ? paper : ink55,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 12.5,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-            }}>{cat}</button>
-            );
-          })}
-        </div>
-
-        <div>
-          {visible.length === 0 && (
-            <div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>
-              No shops match your search.
-            </div>
-          )}
-          {(showAll ? visible : visible.slice(0, SHOP_LIMIT)).map((brand, index) => (
-            <button key={brand.name} style={{
-              width: '100%', border: 0, borderTop: index === 0 ? 'none' : `1px dashed ${DASH}`,
-              background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-              padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
-            }}>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{brand.name}</span>
-                <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{index % 2 ? 'Fashion · trusted' : 'Local · verified'}</span>
-              </span>
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-            </button>
-          ))}
-          {!showAll && visible.length > SHOP_LIMIT && (
-            <button onClick={() => { pkHaptic('select'); setShowAll(true); }} style={{
-              width: '100%', marginTop: 12, height: 44, borderRadius: 999,
-              border: `1px dashed ${DASH}`, background: 'transparent', color: ink,
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              </span>
-              See {visible.length - SHOP_LIMIT} more
-            </button>
-          )}
+          </div>
         </div>
       </div>
-    </SectionShell>
+    </div>
   );
 }
 
@@ -573,7 +566,7 @@ function PlanScreen({ web, onBack }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
       <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
         <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Plan</span>
       </div>} />
 
@@ -661,18 +654,55 @@ function ListenScreen({ web, onBack }) {
     { name: 'Rwanda Culture', meta: 'Popular nearby', episodes: ['Stories from Nyamirambo', 'Food, music, memory', 'Weekend guide'] },
   ];
   const [activeIdx, setActiveIdx] = React.useState(0);
-  const [playing, setPlaying] = React.useState(null);
   const [railOpen, setRailOpen] = React.useState(true);
+  const [playing, setPlaying] = React.useState(null);   // episode index within channel
+  const [paused, setPaused] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);     // 0..1
+  const [speed, setSpeed] = React.useState(1);
+  const [subscribed, setSubscribed] = React.useState(false);
   const channel = channels[activeIdx];
+  const epDuration = (idx) => (18 + idx * 5) * 60;       // seconds
+
+  // Advance playback while playing.
+  React.useEffect(() => {
+    if (playing == null || paused) return;
+    const dur = epDuration(playing);
+    const id = setInterval(() => {
+      setProgress((p) => {
+        const np = p + speed / dur;
+        if (np >= 1) { setPaused(true); return 1; }
+        return np;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [playing, paused, speed, activeIdx]);
+
+  const playEpisode = (idx) => {
+    pkHaptic('select');
+    if (playing === idx) { setPaused((x) => !x); return; }
+    setPlaying(idx); setProgress(0); setPaused(false);
+  };
+  const seek = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setProgress(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)));
+  };
+  const skip = (sec) => {
+    if (playing == null) return;
+    const dur = epDuration(playing);
+    setProgress((p) => Math.max(0, Math.min(1, p + sec / dur)));
+  };
+  const fmt = (s) => { s = Math.floor(s); const m = Math.floor(s / 60); const ss = String(s % 60).padStart(2, '0'); return `${m}:${ss}`; };
 
   const PlayIcon = ({ on }) => (on
     ? (<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2.5" width="2.6" height="9" rx="1"/><rect x="8.4" y="2.5" width="2.6" height="9" rx="1"/></svg>)
     : (<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M4 2.5v9l7-4.5-7-4.5z"/></svg>));
 
+  const nowDur = playing != null ? epDuration(playing) : 0;
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
       <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
         <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Listen</span>
       </div>} />
 
@@ -709,23 +739,71 @@ function ListenScreen({ web, onBack }) {
           )}
         </div>
 
-        {/* Main — episodes of the selected channel */}
-        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: web ? 30 : 24, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>{channel.name}</div>
-          <div style={{ marginTop: 6, fontSize: 13.5, color: ink55 }}>{channel.meta}</div>
+        {/* Main */}
+        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: 80 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: web ? 30 : 24, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>{channel.name}</div>
+              <div style={{ marginTop: 6, fontSize: 13.5, color: ink55 }}>{channel.meta}</div>
+            </div>
+            <button onClick={() => { pkHaptic('select'); setSubscribed((s) => !s); }} style={{ flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 999, border: subscribed ? '0' : `1px dashed ${DASH}`, background: subscribed ? ink : 'transparent', color: subscribed ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>{subscribed ? 'Following' : 'Follow'}</button>
+          </div>
 
-          <div style={{ marginTop: 22 }}>
+          {/* Now playing */}
+          {playing != null && (
+            <div className="pk-rise" style={{ marginTop: 20, paddingBottom: 20, borderBottom: `1px dashed ${DASH}` }}>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Now playing</div>
+              <div style={{ marginTop: 8, fontSize: 18, fontWeight: 760, letterSpacing: '-0.02em', color: ink }}>{channel.episodes[playing]}</div>
+
+              {/* Scrubber */}
+              <div onClick={seek} style={{ marginTop: 16, height: 14, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ position: 'relative', width: '100%', height: 3, background: ink12, borderRadius: 999 }}>
+                  <div style={{ position: 'absolute', insetBlock: 0, left: 0, width: `${progress * 100}%`, background: ink, borderRadius: 999 }} />
+                  <div style={{ position: 'absolute', top: '50%', left: `${progress * 100}%`, width: 11, height: 11, borderRadius: '50%', background: ink, transform: 'translate(-50%, -50%)' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontFamily: CC_MONO, fontSize: 11, color: ink40 }}>
+                <span>{fmt(progress * nowDur)}</span>
+                <span>-{fmt(nowDur - progress * nowDur)}</span>
+              </div>
+
+              {/* Transport */}
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 26 }}>
+                <button onClick={() => skip(-15)} aria-label="Back 15 seconds" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8a8 8 0 1 1-1 4"/><path d="M4 4v4h4"/></svg>
+                  <span style={{ fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, color: ink55 }}>15</span>
+                </button>
+                <button onClick={() => playEpisode(playing)} aria-label={paused ? 'Play' : 'Pause'} style={{ width: 58, height: 58, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px rgba(10,10,10,0.22)' }}>
+                  {paused
+                    ? (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>)
+                    : (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>)}
+                </button>
+                <button onClick={() => skip(30)} aria-label="Forward 30 seconds" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 8a8 8 0 1 0 1 4"/><path d="M20 4v4h-4"/></svg>
+                  <span style={{ fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, color: ink55 }}>30</span>
+                </button>
+              </div>
+
+              {/* Speed */}
+              <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+                <button onClick={() => setSpeed((s) => (s >= 2 ? 1 : s === 1 ? 1.5 : 2))} style={{ border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: CC_MONO, fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 999 }}>{speed}x speed</button>
+              </div>
+            </div>
+          )}
+
+          {/* Episodes */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Episodes</div>
             {channel.episodes.map((ep, idx) => {
-              const id = activeIdx + '-' + idx;
-              const on = playing === id;
+              const isCur = playing === idx;
               return (
-                <button key={ep} onClick={() => { pkHaptic('select'); setPlaying(on ? null : id); }} style={{ width: '100%', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1px dashed ${DASH}`, color: on ? paper : ink }}>
-                    <PlayIcon on={on} />
+                <button key={ep} onClick={() => playEpisode(idx)} style={{ width: '100%', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCur && !paused ? ink : 'transparent', border: isCur && !paused ? '0' : `1px dashed ${DASH}`, color: isCur && !paused ? paper : ink }}>
+                    <PlayIcon on={isCur && !paused} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 15, fontWeight: 650, color: ink, letterSpacing: '-0.01em' }}>{ep}</span>
-                    <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{on ? 'Now playing' : `${18 + idx * 5} min`}</span>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: isCur ? 760 : 650, color: ink, letterSpacing: '-0.01em' }}>{ep}</span>
+                    <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{isCur ? (paused ? 'Paused' : 'Now playing') : `${18 + idx * 5} min`}</span>
                   </span>
                 </button>
               );
@@ -773,7 +851,7 @@ function PayScreen({ web, onBack }) {
   const header = (
     <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <IconBtn onClick={onBack}>
-        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </IconBtn>
       <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Pay</span>
     </div>} />
@@ -915,11 +993,13 @@ function ReceiptRow({ label, value, green = false, last = false }) {
 function CommuteScreen({ web, onBack }) {
   const [query, setQuery] = React.useState('');
   const [destination, setDestination] = React.useState('Kigali Heights');
-  const [origin, setOrigin] = React.useState('Current location');
+  const [origin, setOrigin] = React.useState('');
   const [tracking, setTracking] = React.useState(false);
   const [contactNumber, setContactNumber] = React.useState('');
   const [linkedContact, setLinkedContact] = React.useState(null);
   const [connectionOpen, setConnectionOpen] = React.useState(false);
+  const [profilesOpen, setProfilesOpen] = React.useState(false);
+  const [destsOpen, setDestsOpen] = React.useState(false);
   const [selectedMoto, setSelectedMoto] = React.useState('aline');
   const suggestions = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium'];
   const motos = [
@@ -959,7 +1039,7 @@ function CommuteScreen({ web, onBack }) {
         left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <IconBtn onClick={onBack}>
             <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </IconBtn>
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Commute</span>
@@ -1063,7 +1143,7 @@ function CommuteScreen({ web, onBack }) {
           }}>
             <div style={{ fontSize: 11, fontWeight: 760, color: ink40 }}>Route</div>
             <div style={{ marginTop: 5, fontSize: 15, fontWeight: 820, color: ink }}>{routeLabel}</div>
-            <div style={{ marginTop: 4, fontSize: 12, fontWeight: 650, color: ink55 }}>{origin} · {selectedMotoProfile.name} · {linkedContact ? 'contact linked' : '12 min'}</div>
+            <div style={{ marginTop: 4, fontSize: 12, fontWeight: 650, color: ink55 }}>{origin || 'Current location'} · {selectedMotoProfile.name} · {linkedContact ? 'contact linked' : '12 min'}</div>
           </div>
         </div>
 
@@ -1075,35 +1155,41 @@ function CommuteScreen({ web, onBack }) {
           gap: 14,
         }}>
           <div style={{ padding: web ? '4px 2px' : '0' }}>
-            <div style={{ fontSize: web ? 30 : 26, lineHeight: 1.04, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>
-              Where to?
-            </div>
-
-            {/* Destination — map icon = current location (left), send to commit (right) */}
-            <div style={{ marginTop: 20 }}>
-              <DashField
-                value={query}
-                onChange={setQuery}
-                placeholder="Search destination"
-                prefix={(
-                  <button onClick={trackLocation} aria-label="Use current location" title="Current location" style={{ border: 0, background: 'transparent', cursor: 'pointer', color: tracking ? '#2FAE9B' : ink55, padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-                  </button>
-                )}
-                suffix={(
-                  <button onClick={() => { const v = query.trim(); if (v) chooseDestination(v); }} aria-label="Search destination" disabled={!query.trim()} style={{ border: 0, background: query.trim() ? ink : 'transparent', color: query.trim() ? paper : ink25, cursor: query.trim() ? 'pointer' : 'default', width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 180ms ease' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                  </button>
-                )}
-              />
-              {(tracking || origin !== 'Current location') && (
-                <div style={{ marginTop: 8, fontSize: 12, color: ink40 }}>{tracking ? 'Finding your location…' : origin}</div>
+            {/* Where from — type, or tap the map icon for your live location */}
+            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Where from?</div>
+            <DashField
+              value={origin}
+              onChange={setOrigin}
+              placeholder="Current location or address"
+              prefix={(
+                <button onClick={trackLocation} aria-label="Use current location" title="Use current location" style={{ border: 0, background: 'transparent', cursor: 'pointer', color: tracking ? '#2FAE9B' : ink55, padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                </button>
               )}
-            </div>
+            />
+            {tracking && (<div style={{ marginTop: 8, fontSize: 12, color: ink40 }}>Finding your location…</div>)}
+
+            {/* Where to — name or search a destination, send to commit */}
+            <div style={{ marginTop: 22, fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Where to?</div>
+            <DashField
+              value={query}
+              onChange={setQuery}
+              placeholder="Search or name a destination"
+              prefix={(
+                <span style={{ color: ink40, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                </span>
+              )}
+              suffix={(
+                <button onClick={() => { const v = query.trim(); if (v) chooseDestination(v); }} aria-label="Search destination" disabled={!query.trim()} style={{ border: 0, background: query.trim() ? ink : 'transparent', color: query.trim() ? paper : ink25, cursor: query.trim() ? 'pointer' : 'default', width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 180ms ease' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </button>
+              )}
+            />
 
             {query.trim() ? (
-              /* Suggestions — revealed only while typing */
-              <div style={{ marginTop: 16 }}>
+              /* Live suggestions — only while typing */
+              <div style={{ marginTop: 14 }}>
                 {suggestions.filter((s) => s.toLowerCase().includes(query.trim().toLowerCase())).map((item, sidx) => (
                   <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: ink70 }}>{item}</span>
@@ -1112,50 +1198,46 @@ function CommuteScreen({ web, onBack }) {
                 ))}
               </div>
             ) : (
-              /* Recent profiles & destinations */
+              /* Collapsible recents — hidden until opened */
               <div style={{ marginTop: 18 }}>
-                <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Recent profiles</div>
-                {motos.map((moto, midx) => {
-                  const on = moto.id === selectedMoto;
-                  return (
-                    <button key={moto.id} onClick={() => setSelectedMoto(moto.id)} style={{ width: '100%', border: 0, borderTop: midx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1px dashed ${DASH}`, color: on ? paper : ink55, fontSize: 11, fontWeight: 800, fontFamily: CC_MONO }}>{moto.name.charAt(0)}</span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{moto.name}</span>
-                        <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 1 }}>{moto.vehicle} · {moto.eta}</span>
-                      </span>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Chosen' : 'Choose'}</span>
-                    </button>
-                  );
-                })}
-                <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, padding: '16px 0 4px' }}>Recent destinations</div>
-                {suggestions.map((item, sidx) => {
-                  const on = item === destination;
-                  return (
-                    <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <span style={{ fontSize: 14, fontWeight: on ? 760 : 600, color: on ? ink : ink70 }}>{item}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Set'}</span>
-                    </button>
-                  );
-                })}
+                <RecentSection title="Recent profiles" count={motos.length} open={profilesOpen} onToggle={() => setProfilesOpen((o) => !o)}>
+                  {motos.map((moto, midx) => {
+                    const on = moto.id === selectedMoto;
+                    return (
+                      <button key={moto.id} onClick={() => setSelectedMoto(moto.id)} style={{ width: '100%', border: 0, borderTop: midx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1px dashed ${DASH}`, color: on ? paper : ink55, fontSize: 11, fontWeight: 800, fontFamily: CC_MONO }}>{moto.name.charAt(0)}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{moto.name}</span>
+                          <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 1 }}>{moto.vehicle} · {moto.eta}</span>
+                        </span>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Chosen' : 'Choose'}</span>
+                      </button>
+                    );
+                  })}
+                </RecentSection>
+                <RecentSection title="Recent destinations" count={suggestions.length} open={destsOpen} onToggle={() => setDestsOpen((o) => !o)}>
+                  {suggestions.map((item, sidx) => {
+                    const on = item === destination;
+                    return (
+                      <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <span style={{ fontSize: 14, fontWeight: on ? 760 : 600, color: on ? ink : ink70 }}>{item}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Set'}</span>
+                      </button>
+                    );
+                  })}
+                </RecentSection>
               </div>
             )}
 
-            {/* Link a contact — plain phone over a dashed line, minimal Link */}
+            {/* Call someone on Everyday — a moto or a saved contact */}
             <div style={{ marginTop: 22, borderTop: `1px dashed ${DASH}`, paddingTop: 18 }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <DashField
-                    label="Phone number from contacts"
-                    value={contactNumber}
-                    onChange={setContactNumber}
-                    placeholder="07xx xxx xxx"
-                    inputMode="tel"
-                  />
+                  <DashField label="Phone number from contacts" value={contactNumber} onChange={setContactNumber} placeholder="Their number on Everyday" inputMode="tel" />
                 </div>
                 <button onClick={linkContact} disabled={!contactNumber.trim()} style={{ flexShrink: 0, border: 0, background: 'transparent', color: contactNumber.trim() ? ink : ink25, cursor: contactNumber.trim() ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, padding: '8px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Link
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                  Call
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
                 </button>
               </div>
             </div>
@@ -1175,7 +1257,7 @@ function CommuteScreen({ web, onBack }) {
             </button>
             {connectionOpen && (
               <div className="pk-rise" style={{ padding: '6px 2px 2px' }}>
-                <ConnectionRow label="Your location" value={origin} />
+                <ConnectionRow label="Your location" value={origin || 'Current location'} />
                 <ConnectionRow label="Moto profile" value={selectedMotoProfile.name} />
                 <ConnectionRow label="Destination" value={routeLabel} />
                 <ConnectionRow label="Linked number" value={linkedContact || 'Not linked'} last />
@@ -1184,6 +1266,19 @@ function CommuteScreen({ web, onBack }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Collapsible recents section — header toggles a dashed-divided list open.
+function RecentSection({ title, count, open, onToggle, children }) {
+  return (
+    <div style={{ borderTop: `1px dashed ${DASH}` }}>
+      <button onClick={onToggle} aria-expanded={open} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>{title}{count != null ? ` · ${count}` : ''}</span>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M6 3l5 5-5 5"/></svg>
+      </button>
+      {open && <div className="pk-rise" style={{ paddingBottom: 8 }}>{children}</div>}
     </div>
   );
 }
@@ -1295,7 +1390,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
         left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {onBack && <IconBtn onClick={onBack}>
             <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </IconBtn>}
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
@@ -1456,7 +1551,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
         left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {onBack && <IconBtn onClick={onBack}>
             <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </IconBtn>}
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
@@ -1923,7 +2018,7 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
         left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {onBack && <IconBtn onClick={onBack}>
             <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </IconBtn>}
           <Eyebrow>Credit</Eyebrow>
@@ -4531,6 +4626,19 @@ const CC_FLOW_CONFIGS = {
   },
 };
 
+// The add / withdraw flows reference these specialised pickers, which were
+// never implemented (top-up and withdraw crashed). Provide them as thin
+// FlowPicker wrappers over the relevant option lists.
+function FlowTopUpSource({ amount, value, onPick }) {
+  return <FlowPicker label="Funding source" amount={amount} options={CC_DEPOSIT_SOURCES} value={value} onPick={onPick} />;
+}
+function FlowTopUpAllocate({ amount, value, onPick }) {
+  return <FlowPicker label="Allocate to" amount={amount} options={CC_FUNDS_PICKER} value={value} onPick={onPick} />;
+}
+function FlowWithdrawDestination({ amount, value, onPick }) {
+  return <FlowPicker label="Destination" amount={amount} options={CC_DESTINATIONS} value={value} onPick={onPick} />;
+}
+
 function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
   const cfg = CC_FLOW_CONFIGS[mode];
   const [step, setStep] = React.useState(0);
@@ -4654,10 +4762,10 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer — de-carded: canvas, dashed top, rounded-rect buttons */}
       <div style={{
-        background: paper, borderTop: `1px solid ${ink12}`,
-        padding: '14px 16px',
+        background: canvas, borderTop: `1px dashed ${DASH}`,
+        padding: '14px 16px max(14px, env(safe-area-inset-bottom, 14px))',
       }}>
         {(() => {
           const stepName = cfg.steps[step];
@@ -4669,13 +4777,11 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
           const onTap = isReview ? confirm : onPrimary;
           if (isDone) {
             return (
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <CCButton variant="solid" accent={accent}
-                  onClick={onTap}
-                  style={{ minWidth: 240, padding: '0 32px' }}>
-                  {cta()}
-                </CCButton>
-              </div>
+              <CCButton variant="solid" accent={accent} fullWidth
+                onClick={onTap}
+                style={{ height: 54, borderRadius: 16, fontWeight: 760 }}>
+                {cta()}
+              </CCButton>
             );
           }
           return (
@@ -4686,22 +4792,22 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
               <button onClick={back}
                 aria-label={step === 0 ? 'Close' : 'Back'}
                 style={{
-                  height: 52, padding: '0 18px', minWidth: 96,
-                  borderRadius: 999,
-                  background: paper, border: `1px solid ${ink12}`,
+                  height: 54, padding: '0 22px',
+                  borderRadius: 16,
+                  background: 'transparent', border: `1.5px solid ${ink12}`,
                   cursor: 'pointer', fontFamily: 'inherit',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  color: ink, fontSize: 14, fontWeight: 500,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  color: ink, fontSize: 14.5, fontWeight: 700,
                 }}>
-                <svg width="14" height="14" viewBox="0 0 14 14">
-                  <path d="M9 1L3 7l6 6" stroke={ink} strokeWidth="1.6" fill="none"
+                <svg width="13" height="13" viewBox="0 0 14 14">
+                  <path d="M9 1L3 7l6 6" stroke={ink} strokeWidth="1.7" fill="none"
                         strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span>Back</span>
+                {step === 0 ? 'Close' : 'Back'}
               </button>
               <CCButton variant="solid" accent={accent} fullWidth
                 onClick={blocked || submitting ? () => {} : onTap}
-                style={(blocked || submitting) ? { opacity: blocked ? 0.4 : 1, cursor: 'not-allowed' } : {}}>
+                style={{ height: 54, borderRadius: 16, fontWeight: 760, ...((blocked || submitting) ? { opacity: blocked ? 0.4 : 1, cursor: 'not-allowed' } : {}) }}>
                 {submitting ? <SubmitSpinner label="Processing…" /> : cta()}
               </CCButton>
             </div>
