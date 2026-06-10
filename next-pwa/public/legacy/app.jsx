@@ -138,21 +138,17 @@ function App() {
   const openSaveFromHub = () => { pkHaptic('select'); setTab('capital'); setRoute('capital'); };
   const openCreditFromHub = () => { pkHaptic('select'); setTab('credit'); setRoute('credit'); };
 
-  const dailyModes = [
-    { id: 'shop', label: 'Shop', route: 'shop' },
-    { id: 'save', label: 'Save', route: 'capital' },
-    { id: 'pay', label: 'Pay', route: 'pay' },
-    { id: 'plan', label: 'Plan', route: 'plan' },
-    { id: 'listen', label: 'Listen', route: 'listen' },
-    { id: 'commute', label: 'Commute', route: 'commute' },
-  ];
-  const activeMode = route === 'capital' ? 'save' : route;
-  const showModeSwitch = dailyModes.some((m) => m.id === activeMode);
-  const switchMode = (mode) => {
+  // Route a function id (from the + launcher) to its page. 'save' lives on the
+  // 'capital' route; every other function id is its own route.
+  const openFunctionById = (id) => {
     pkHaptic('select');
-    setTab(mode.route);
-    setRoute(mode.route);
+    const r = id === 'save' ? 'capital' : id;
+    setTab(r); setRoute(r);
   };
+  // The + launcher rides along on the function pages, so the user can hop
+  // between functions without first returning home.
+  const FUNCTION_ROUTES = ['shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
+  const showLauncher = FUNCTION_ROUTES.includes(route);
 
   const showTab = false;
 
@@ -185,6 +181,7 @@ function App() {
               {route === 'hub' && (
                 <EverydayHub
                   web={PK_WEB}
+                  functions={pkSelectedFunctions()}
                   onShop={() => openModeFromHub('shop')}
                   onSave={openSaveFromHub}
                   onPay={() => openModeFromHub('pay')}
@@ -271,12 +268,11 @@ function App() {
             </div>
           </div>
 
-          {showModeSwitch && (
-            <ModeSwitch
-              modes={dailyModes}
-              active={activeMode}
-              onSelect={switchMode}
-              native={PK_NATIVE}
+          {showLauncher && (
+            <FunctionLauncher
+              variant="fab"
+              functions={pkSelectedFunctions()}
+              onSelect={openFunctionById}
             />
           )}
 
@@ -343,109 +339,6 @@ function App() {
       </TweaksPanel>
       )}
     </React.Fragment>
-  );
-}
-
-function ModeSwitch({ modes, active, onSelect, native }) {
-  const activeIndex = Math.max(0, modes.findIndex((mode) => mode.id === active));
-  const [expanded, setExpanded] = React.useState(false);
-  const total = modes.length;
-  const prev = modes[(activeIndex - 1 + total) % total];
-  const current = modes[activeIndex];
-  const next = modes[(activeIndex + 1) % total];
-  const switchBy = (direction) => {
-    const target = modes[(activeIndex + direction + total) % total];
-    onSelect(target);
-    setExpanded(true);
-  };
-  const onWheel = (event) => {
-    if (!expanded) return;
-    event.preventDefault();
-    if (event.deltaY > 0) switchBy(1);
-    if (event.deltaY < 0) switchBy(-1);
-  };
-
-  return (
-    <div style={{
-      flexShrink: 0,
-      padding: native ? '6px 12px max(12px, env(safe-area-inset-bottom, 0px))' : '6px 16px 14px',
-      background: canvas,
-    }}>
-      <div onWheel={onWheel} style={{
-        width: 162,
-        margin: '0 auto',
-        padding: '0 8px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        userSelect: 'none',
-      }}>
-        {expanded && <button onClick={() => switchBy(-1)} aria-label="Previous section" style={{
-          width: 38,
-          height: 16,
-          border: 0,
-          background: 'transparent',
-          color: ink40,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <svg width="16" height="9" viewBox="0 0 18 10" fill="none">
-            <path d="M3 8L9 2L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>}
-        {expanded && <button onClick={() => { onSelect(prev); setExpanded(true); }} style={{
-          height: 16,
-          border: 0,
-          background: 'transparent',
-          color: ink25,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: 10,
-          fontWeight: 760,
-        }}>{prev.label}</button>}
-        <button onClick={() => setExpanded((open) => !open)} aria-current="page" aria-expanded={expanded} style={{
-          minWidth: 116,
-          height: 30,
-          border: 0,
-          borderRadius: 14,
-          background: ink,
-          color: paper,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: 12,
-          fontWeight: 820,
-          letterSpacing: '-0.01em',
-          boxShadow: '0 10px 24px rgba(10,10,10,0.14)',
-        }}>{current.label}</button>
-        {expanded && <button onClick={() => { onSelect(next); setExpanded(true); }} style={{
-          height: 16,
-          border: 0,
-          background: 'transparent',
-          color: ink25,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          fontSize: 10,
-          fontWeight: 760,
-        }}>{next.label}</button>}
-        {expanded && <button onClick={() => switchBy(1)} aria-label="Next section" style={{
-          width: 38,
-          height: 16,
-          border: 0,
-          background: 'transparent',
-          color: ink40,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <svg width="16" height="9" viewBox="0 0 18 10" fill="none">
-            <path d="M3 2L9 8L15 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>}
-      </div>
-    </div>
   );
 }
 

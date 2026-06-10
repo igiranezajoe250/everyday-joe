@@ -1,475 +1,160 @@
 // screens.jsx — Capital home, Venture feed, Detail, Checkout
 // Everyday — low-fi swiss wireframes, pill-rounded geometry.
 
+
 // ────────────────────────────── EVERYDAY HUB ──────────────────────────────
-// Vertical scroll-wheel picker. Single arrow top/bottom. Supports touch
-// swipe, mouse wheel, and click. "Everyday" label at top.
+// Minimal home: a single premium "+" launcher. Tapping it opens a card of the
+// functions the user chose at sign-up; tapping one opens that page. The old
+// vertical scroll-wheel switcher has been retired in favour of this.
 
-function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onSettings }) {
-  const hubBg = '#0A0A0A';
-  const hubText = '#FAF6F1';
-  const hubTextDim = 'rgba(250,246,241,0.25)';
-  const hubTextMid = 'rgba(250,246,241,0.55)';
+// Shared catalogue of the six Everyday functions. Each maps to a route the app
+// already renders. `icon` is JSX; stroke colour is applied via cloneElement.
+const EVERYDAY_FUNCTIONS = [
+  { id: 'shop', label: 'Shop', sub: 'Find trusted shops', color: '#A37BF2',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>) },
+  { id: 'save', label: 'Save', sub: 'Save and grow', color: '#2FAE9B', locked: true,
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
+  { id: 'pay', label: 'Pay', sub: 'Schedule payments', color: '#C8102E',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>) },
+  { id: 'plan', label: 'Plan', sub: 'Plan your day', color: '#E2941F',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
+  { id: 'listen', label: 'Listen', sub: 'Play podcasts', color: '#5B7CFA',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="7" rx="2"/><rect x="17" y="13" width="4" height="7" rx="2"/></svg>) },
+  { id: 'commute', label: 'Commute', sub: 'Book vetted rides', color: '#3B82F6',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z"/><path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8"/><path d="M6 9h12"/></svg>) },
+];
+const DEFAULT_FUNCTION_IDS = EVERYDAY_FUNCTIONS.map((f) => f.id);
 
-  const sections = [
-    { id: 'shop',    label: 'Shop',    action: onShop },
-    { id: 'save',    label: 'Save',    action: onSave },
-    { id: 'pay',     label: 'Pay',     action: onPay },
-    { id: 'plan',    label: 'Plan',    action: onPlan },
-    { id: 'listen',  label: 'Listen',  action: onListen },
-    { id: 'commute', label: 'Commute', action: onCommute },
-  ];
+// Resolve the user's chosen functions (persisted at sign-up). Save is always
+// present, and catalogue order is preserved.
+function pkSelectedFunctions() {
+  const ids = PKStore.get('functions', null);
+  const chosen = Array.isArray(ids) && ids.length ? ids : DEFAULT_FUNCTION_IDS;
+  const set = new Set(chosen); set.add('save');
+  return EVERYDAY_FUNCTIONS.filter((f) => set.has(f.id));
+}
 
-  const [selected, setSelected] = React.useState(0);
-  const total = sections.length;
-  const wheelRef = React.useRef(null);
-  const touchRef = React.useRef({ y: 0 });
+// The "+" launcher + the function card it reveals. variant 'hero' centres a
+// large button (home screen); 'fab' pins a smaller one bottom-centre (used on
+// the function pages so the user can hop between them).
+function FunctionLauncher({ functions, onSelect, variant = 'hero' }) {
+  const [open, setOpen] = React.useState(false);
+  const fns = functions && functions.length ? functions : EVERYDAY_FUNCTIONS;
+  const big = variant === 'hero';
+  const toggle = () => { pkHaptic(open ? 'light' : 'medium'); setOpen((o) => !o); };
+  const pick = (fn) => { pkHaptic('select'); setOpen(false); onSelect && onSelect(fn.id); };
 
-  const goUp = () => { pkHaptic('select'); setSelected((i) => (i - 1 + total) % total); };
-  const goDown = () => { pkHaptic('select'); setSelected((i) => (i + 1) % total); };
-  const goOpen = () => { pkHaptic('medium'); sections[selected].action && sections[selected].action(); };
-
-  // Mouse wheel scrolling
-  React.useEffect(() => {
-    const el = wheelRef.current;
-    if (!el) return;
-    let cooldown = false;
-    const onWheel = (e) => {
-      e.preventDefault();
-      if (cooldown) return;
-      cooldown = true;
-      setTimeout(() => { cooldown = false; }, 200);
-      if (e.deltaY > 0) goDown();
-      else if (e.deltaY < 0) goUp();
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  });
-
-  // Touch swipe
-  React.useEffect(() => {
-    const el = wheelRef.current;
-    if (!el) return;
-    const onStart = (e) => { touchRef.current.y = e.touches[0].clientY; };
-    const onEnd = (e) => {
-      const dy = touchRef.current.y - e.changedTouches[0].clientY;
-      if (Math.abs(dy) < 30) return;
-      if (dy > 0) goDown();
-      else goUp();
-    };
-    el.addEventListener('touchstart', onStart, { passive: true });
-    el.addEventListener('touchend', onEnd, { passive: true });
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchend', onEnd); };
-  });
-
-  const prev2 = sections[(selected - 2 + total) % total];
-  const prev  = sections[(selected - 1 + total) % total];
-  const current = sections[selected];
-  const next  = sections[(selected + 1) % total];
-  const next2 = sections[(selected + 2) % total];
-
-  // ── Desktop / web layout ──
-  if (web) {
-    return (
-      <div style={{
-        height: '100%', display: 'flex', flexDirection: 'column',
-        background: hubBg, userSelect: 'none', overflow: 'hidden',
+  const plusBtn = (
+    <button onClick={toggle} aria-label={open ? 'Close functions' : 'Open functions'} aria-expanded={open}
+      style={{
+        width: big ? 78 : 58, height: big ? 78 : 58, borderRadius: 999,
+        border: 0, cursor: 'pointer', background: ink, color: paper,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: open ? '0 8px 20px rgba(10,10,10,0.22)' : '0 16px 38px rgba(10,10,10,0.26)',
+        transition: 'transform 280ms cubic-bezier(.2,.7,.2,1), box-shadow 240ms ease',
+        transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
       }}>
-        <div style={{
-          padding: '24px 48px 0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ fontSize: 18, fontWeight: 650, color: hubTextMid }}>Everyday</div>
-          <button onClick={onSettings} aria-label="Settings" style={{
-            width: 40, height: 40, borderRadius: 12,
-            background: 'rgba(250,246,241,0.08)',
-            border: '1px solid rgba(250,246,241,0.10)',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hubTextMid} strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-            </svg>
-          </button>
-        </div>
+      <svg width={big ? 32 : 24} height={big ? 32 : 24} viewBox="0 0 24 24" fill="none"
+        stroke={paper} strokeWidth="2.2" strokeLinecap="round">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </button>
+  );
 
-        <div ref={wheelRef} style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          cursor: 'ns-resize', touchAction: 'none',
-        }}>
-          <button onClick={goUp} aria-label="Previous" style={{
-            background: 'transparent', border: 0, cursor: 'pointer',
-            padding: '14px 48px',
-          }}>
-            <svg width="34" height="20" viewBox="0 0 24 14" fill="none"
-              stroke={hubTextMid} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 11L12 3L20 11" />
-            </svg>
-          </button>
-
-          <div style={{
-            fontSize: 26, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
-            height: 42, lineHeight: '42px', cursor: 'pointer',
-          }} onClick={goUp}>
-            {prev2.label}
-          </div>
-
-          <div style={{
-            fontSize: 42, fontWeight: 300, color: hubTextDim,
-            height: 58, lineHeight: '58px', cursor: 'pointer',
-            transition: 'all 180ms ease',
-          }} onClick={goUp}>
-            {prev.label}
-          </div>
-
-          <button onClick={goOpen} style={{
-            background: 'transparent', border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', padding: '18px 0', margin: '4px 0',
-          }}>
-            <div style={{
-              fontSize: 92, fontWeight: 700, letterSpacing: '-0.04em',
-              color: hubText, lineHeight: 0.95,
+  const overlay = open ? (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <style>{`@keyframes pkFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
+      <div onClick={() => { pkHaptic('light'); setOpen(false); }} style={{
+        position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.34)',
+        animation: 'pkFadeIn 200ms ease both',
+      }} />
+      <div className="pk-rise" style={{
+        position: 'relative', background: paper,
+        borderTopLeftRadius: 26, borderTopRightRadius: 26,
+        padding: '8px 16px max(22px, env(safe-area-inset-bottom, 18px))',
+        boxShadow: '0 -18px 50px rgba(10,10,10,0.18)',
+      }}>
+        <div style={{ width: 38, height: 4, borderRadius: 999, background: ink12, margin: '8px auto 16px' }} />
+        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink55, padding: '0 6px 12px' }}>Your functions</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {fns.map((fn) => (
+            <button key={fn.id} onClick={() => pick(fn)} style={{
+              display: 'flex', alignItems: 'center', gap: 14, width: '100%',
+              padding: '12px', borderRadius: 16, background: paperSoft,
+              border: `1px solid ${ink06}`, cursor: 'pointer',
+              fontFamily: 'inherit', textAlign: 'left',
             }}>
-              {current.label}
-            </div>
-          </button>
-
-          <div style={{
-            fontSize: 42, fontWeight: 300, color: hubTextDim,
-            height: 58, lineHeight: '58px', cursor: 'pointer',
-            transition: 'all 180ms ease',
-          }} onClick={goDown}>
-            {next.label}
-          </div>
-
-          <div style={{
-            fontSize: 26, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
-            height: 42, lineHeight: '42px', cursor: 'pointer',
-          }} onClick={goDown}>
-            {next2.label}
-          </div>
-
-          <button onClick={goDown} aria-label="Next" style={{
-            background: 'transparent', border: 0, cursor: 'pointer',
-            padding: '14px 48px',
-          }}>
-            <svg width="34" height="20" viewBox="0 0 24 14" fill="none"
-              stroke={hubTextMid} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 3L12 11L20 3" />
-            </svg>
-          </button>
-        </div>
-
-        <div style={{ padding: '0 48px 30px', textAlign: 'center', color: 'rgba(250,246,241,0.20)', fontSize: 12, fontWeight: 600 }}>
-          Click the selected function to open it.
-        </div>
-      </div>
-    );
-
-    const webCards = [
-      { ...sections[0], color: '#2FAE9B', icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-      )},
-      { ...sections[1], color: '#E2941F', icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="17" rx="2" />
-          <path d="M3 9h18M8 2v4M16 2v4" />
-        </svg>
-      )},
-      { ...sections[2], color: '#A37BF2', icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-          <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
-        </svg>
-      )},
-      { ...sections[3], color: '#3B82F6', icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z" />
-          <path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8" />
-          <path d="M6 9h12" />
-        </svg>
-      )},
-    ];
-    webCards[0].color = '#A37BF2';
-    webCards[1].color = '#2FAE9B';
-    webCards[2].color = '#C8102E';
-    webCards[3].color = '#E2941F';
-    webCards[0].icon = (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-        <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
-      </svg>
-    );
-    webCards[1].icon = (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-      </svg>
-    );
-    webCards[2].icon = (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <path d="M3 10h18M7 15h4" />
-      </svg>
-    );
-    webCards[3].icon = (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="17" rx="2" />
-        <path d="M3 9h18M8 2v4M16 2v4M8 14h5M8 18h3" />
-      </svg>
-    );
-    webCards.push(
-      { ...sections[4], color: '#5B7CFA', icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 13a8 8 0 0 1 16 0" />
-          <rect x="3" y="13" width="4" height="7" rx="2" />
-          <rect x="17" y="13" width="4" height="7" rx="2" />
-        </svg>
-      )},
-      { ...sections[5], color: '#3B82F6', icon: (
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z" />
-          <path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8" />
-          <path d="M6 9h12" />
-        </svg>
-      )}
-    );
-    const subs = {
-      shop: 'Find trusted shops',
-      save: 'Save and grow',
-      pay: 'Schedule payments',
-      plan: 'Plan your day',
-      listen: 'Play podcasts',
-      commute: 'Book vetted rides',
-    };
-
-    return (
-      <div style={{
-        height: '100%', display: 'flex', flexDirection: 'column',
-        background: hubBg,
-      }}>
-        {/* Top nav */}
-        <div style={{
-          padding: '24px 48px 0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{
-            fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: hubText,
-          }}>Everyday</div>
-          <button onClick={onSettings} aria-label="Settings" style={{
-            background: 'rgba(250,246,241,0.08)', border: '1px solid rgba(250,246,241,0.10)',
-            borderRadius: 10, cursor: 'pointer', padding: '8px 16px',
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 500, color: hubTextMid,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hubTextMid} strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-            </svg>
-            Settings
-          </button>
-        </div>
-
-        {/* Greeting */}
-        <div style={{ padding: '40px 48px 0' }}>
-          <div style={{
-            fontSize: 36, fontWeight: 300, letterSpacing: '-0.03em',
-            color: hubText, lineHeight: 1.15,
-          }}>
-            Hello, Joseph.
-          </div>
-          <div style={{
-            fontSize: 16, color: hubTextMid, marginTop: 8, fontWeight: 400,
-          }}>
-            What would you like to do today?
-          </div>
-        </div>
-
-        {/* Function selector */}
-        <div style={{
-          flex: 1, display: 'grid', alignContent: 'center',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          padding: '0 48px', gap: 14,
-        }}>
-          {webCards.map((c) => (
-            <button
-              key={c.id}
-              onClick={c.action}
-              className="pk-calm-action"
-              style={{
-                minHeight: 170,
-                background: 'rgba(250,246,241,0.06)',
-                border: '1px solid rgba(250,246,241,0.10)',
-                borderRadius: 20,
-                padding: '28px 24px',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                display: 'flex', flexDirection: 'column',
-                justifyContent: 'space-between',
-                textAlign: 'left',
-                transition: 'border-color 200ms ease, background 200ms ease, transform 180ms ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = c.color;
-                e.currentTarget.style.background = c.color + '12';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(250,246,241,0.10)';
-                e.currentTarget.style.background = 'rgba(250,246,241,0.06)';
-              }}
-            >
-              <div style={{
-                width: 48, height: 48, borderRadius: 14,
-                background: c.color + '18',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {React.cloneElement(c.icon, { stroke: c.color })}
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: fn.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {React.cloneElement(fn.icon, { width: 22, height: 22, stroke: fn.color })}
               </div>
-              <div>
-                <div style={{
-                  fontSize: 18, fontWeight: 650, color: hubText,
-                  letterSpacing: '-0.01em',
-                }}>{c.label}</div>
-                <div style={{
-                  fontSize: 13, color: hubTextMid, marginTop: 4,
-                }}>{subs[c.id]}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 650, letterSpacing: '-0.01em', color: ink }}>{fn.label}</div>
+                <div style={{ fontSize: 12.5, color: ink55, marginTop: 2 }}>{fn.sub}</div>
               </div>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5" /></svg>
             </button>
           ))}
         </div>
-
-        {/* Footer */}
-        <div style={{ padding: '16px 48px 24px', textAlign: 'center' }}>
-          <span style={{
-            fontSize: 12, color: 'rgba(250,246,241,0.20)', fontWeight: 500,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>Everyday Joe</span>
-        </div>
       </div>
+    </div>
+  ) : null;
+
+  if (variant === 'fab') {
+    return (
+      <React.Fragment>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', padding: '0 0 22px', pointerEvents: 'none', zIndex: 50 }}>
+          <div style={{ pointerEvents: 'auto' }}>{plusBtn}</div>
+        </div>
+        {overlay}
+      </React.Fragment>
     );
   }
+  return (<React.Fragment>{plusBtn}{overlay}</React.Fragment>);
+}
 
-  // ── Mobile layout (scroll-wheel picker) ──
+function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, onCommute, onSettings }) {
+  const actions = { shop: onShop, save: onSave, pay: onPay, plan: onPlan, listen: onListen, commute: onCommute };
+  const fns = functions && functions.length ? functions : pkSelectedFunctions();
+  const handleSelect = (id) => { const a = actions[id]; if (a) a(); };
+
   return (
     <div style={{
       height: '100%', display: 'flex', flexDirection: 'column',
-      background: hubBg, userSelect: 'none', overflow: 'hidden',
+      background: canvas, position: 'relative', overflow: 'hidden',
     }}>
-      {/* "Everyday" top label */}
-      <div style={{ padding: '8px 0 0', textAlign: 'center' }}>
-        <span style={{
-          fontSize: 14, fontWeight: 400, color: hubTextMid,
-          letterSpacing: '0.01em',
+      {/* Top bar */}
+      <div style={{ padding: web ? '24px 40px 0' : '14px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
+        <button onClick={onSettings} aria-label="Settings" style={{
+          width: 38, height: 38, borderRadius: 11, background: paper,
+          border: `1px solid ${ink12}`, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          Everyday
-        </span>
-      </div>
-
-      {/* Scroll-wheel area */}
-      <div ref={wheelRef} style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        cursor: 'ns-resize', touchAction: 'none',
-      }}>
-        {/* Single up arrow */}
-        <button onClick={goUp} aria-label="Previous" style={{
-          background: 'transparent', border: 0, cursor: 'pointer',
-          padding: '10px 24px',
-        }}>
-          <svg width="24" height="14" viewBox="0 0 24 14" fill="none"
-            stroke={hubTextDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 11L12 3L20 11" />
-          </svg>
-        </button>
-
-        {/* Two-above (very faint) */}
-        <div style={{
-          fontSize: 16, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
-          height: 24, lineHeight: '24px', cursor: 'pointer',
-        }} onClick={goUp}>
-          {prev2.label}
-        </div>
-
-        {/* Previous (dimmed) */}
-        <div style={{
-          fontSize: 24, fontWeight: 300, color: hubTextDim,
-          height: 36, lineHeight: '36px', cursor: 'pointer',
-          transition: 'all 180ms ease',
-        }} onClick={goUp}>
-          {prev.label}
-        </div>
-
-        {/* ── Selected ── */}
-        <button onClick={goOpen} style={{
-          background: 'transparent', border: 0, cursor: 'pointer',
-          fontFamily: 'inherit', padding: '14px 0', margin: '4px 0',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-        }}>
-          <div style={{
-            fontSize: 58, fontWeight: 700, letterSpacing: '-0.04em',
-            color: hubText, lineHeight: 1,
-          }}>
-            {current.label}
-          </div>
-        </button>
-
-        {/* Next (dimmed) */}
-        <div style={{
-          fontSize: 24, fontWeight: 300, color: hubTextDim,
-          height: 36, lineHeight: '36px', cursor: 'pointer',
-          transition: 'all 180ms ease',
-        }} onClick={goDown}>
-          {next.label}
-        </div>
-
-        {/* Two-below (very faint) */}
-        <div style={{
-          fontSize: 16, fontWeight: 300, color: 'rgba(250,246,241,0.10)',
-          height: 24, lineHeight: '24px', cursor: 'pointer',
-        }} onClick={goDown}>
-          {next2.label}
-        </div>
-
-        {/* Single down arrow */}
-        <button onClick={goDown} aria-label="Next" style={{
-          background: 'transparent', border: 0, cursor: 'pointer',
-          padding: '10px 24px',
-        }}>
-          <svg width="24" height="14" viewBox="0 0 24 14" fill="none"
-            stroke={hubTextDim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 3L12 11L20 3" />
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.6" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
           </svg>
         </button>
       </div>
 
-      {/* Action button */}
-      <div style={{ padding: '0 40px 32px', display: 'flex', justifyContent: 'center' }}>
-        <button
-          onClick={goOpen}
-          className="pk-calm-action"
-          style={{
-            width: '100%', maxWidth: 340, height: 50, borderRadius: 14,
-            background: 'rgba(250,246,241,0.10)',
-            border: '1px solid rgba(250,246,241,0.15)',
-            cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 15, fontWeight: 600,
-            letterSpacing: '-0.01em',
-            color: hubText,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}
-        >
-          Open {current.label}
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={hubText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 3l5 5-5 5" />
-          </svg>
-        </button>
+      {/* Centre: greeting + the premium + */}
+      <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 28px', textAlign: 'center' }}>
+        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, Joseph</div>
+        <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 280, marginBottom: 36 }}>
+          What would you like to do today?
+        </div>
+        <FunctionLauncher variant="hero" functions={fns} onSelect={handleSelect} />
+        <div style={{ fontSize: 13, color: ink40, marginTop: 22 }}>Tap to choose a function</div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '0 28px 26px', textAlign: 'center' }}>
+        <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink25 }}>Everyday Joe</span>
       </div>
     </div>
   );
 }
+
 
 // ────────────────────────────── SAVE HOME ──────────────────────────────
 // Savings is the hero behaviour. The screen answers, top to bottom:

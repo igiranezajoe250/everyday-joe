@@ -305,61 +305,117 @@ function Onboarding({ native, accent, onDone }) {
     },
   ];
   const [i, setI] = React.useState(0);
-  const s = slides[i];
-  const last = i === slides.length - 1;
-  const advance = () => { pkHaptic('select'); last ? onDone() : setI(i + 1); };
+  const selecting = i >= slides.length;          // final step: function picker
+  const onLastInfo = i === slides.length - 1;
+  const s = selecting ? null : slides[i];
 
-  return (
+  // Which functions the user wants. Default everything on; Save is mandatory.
+  const [picked, setPicked] = React.useState(() => new Set(DEFAULT_FUNCTION_IDS));
+  const togglePick = (id) => {
+    if (id === 'save') return;                    // Save can't be turned off
+    pkHaptic('select');
+    setPicked((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+  const advance = () => { pkHaptic('select'); setI((n) => n + 1); };
+  const finish = () => {
+    const ids = EVERYDAY_FUNCTIONS.map((f) => f.id).filter((id) => id === 'save' || picked.has(id));
+    PKStore.set('functions', ids);
+    pkHaptic('success');
+    onDone();
+  };
+
+  const frame = (children, footer) => (
     <div style={{
       height: '100%', display: 'flex', flexDirection: 'column',
       background: canvas, padding: '0 28px',
       paddingTop: native ? 'max(64px, env(safe-area-inset-top, 64px))' : 78,
       paddingBottom: native ? 'max(28px, calc(env(safe-area-inset-bottom, 0px) + 22px))' : 40,
     }}>
-      {/* Skip */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', minHeight: 24 }}>
-        {!last && (
+        {!selecting && (
           <button onClick={() => { pkHaptic('light'); onDone(); }} style={{
-            background: 'transparent', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+            background: 'transparent', border: 0, cursor: 'pointer',
             fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em',
             textTransform: 'uppercase', color: ink55,
           }}>Skip</button>
         )}
       </div>
+      {children}
+      {footer}
+    </div>
+  );
 
-      {/* Body */}
-      <div key={i} className="pk-rise" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        {s.mark && <div style={{ marginBottom: 30 }}><PKMark size={56} /></div>}
-        <div style={{
-          fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em',
-          textTransform: 'uppercase', color: ink55, marginBottom: 16,
-        }}>{s.eyebrow}</div>
-        <div style={{
-          fontSize: 32, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.1,
-          maxWidth: 320,
-        }}>{s.title}</div>
-        <div style={{
-          fontSize: 15, color: ink70, marginTop: 18, lineHeight: 1.6, maxWidth: 330,
-        }}>{s.body}</div>
-      </div>
-
-      {/* Footer: dots + CTA */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {slides.map((_, j) => (
-            <div key={j} style={{
-              height: 6, borderRadius: 999,
-              width: j === i ? 22 : 6,
-              background: j === i ? ink : ink25,
-              transition: 'width 220ms ease, background 220ms ease',
-            }} />
-          ))}
+  // ── Function picker (final step) ──
+  if (selecting) {
+    return frame(
+      <div key="sel" className="pk-rise" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 16 }}>Set up your app</div>
+        <div style={{ fontSize: 30, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.12, marginBottom: 10 }}>Choose what you'll use.</div>
+        <div style={{ fontSize: 14, color: ink70, marginBottom: 24, lineHeight: 1.5 }}>
+          Pick the functions for your home <strong style={{ fontWeight: 700 }}>+</strong> menu. Save is always on — change the rest anytime.
         </div>
-        <CCButton variant="solid" accent={accent} onClick={advance}
-          style={{ minWidth: 132, padding: '0 26px' }}>
-          {last ? 'Get started' : 'Continue'}
-        </CCButton>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {EVERYDAY_FUNCTIONS.map((fn) => {
+            const on = fn.id === 'save' || picked.has(fn.id);
+            return (
+              <button key={fn.id} onClick={() => togglePick(fn.id)} aria-pressed={on} disabled={fn.id === 'save'} style={{
+                position: 'relative', display: 'flex', flexDirection: 'column', gap: 10,
+                padding: '14px', borderRadius: 16,
+                cursor: fn.id === 'save' ? 'default' : 'pointer',
+                background: on ? paper : 'transparent',
+                border: `1.5px solid ${on ? fn.color : ink12}`,
+                fontFamily: 'inherit', textAlign: 'left',
+                transition: 'border-color 180ms ease, background 180ms ease',
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: on ? fn.color + '18' : ink06, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {React.cloneElement(fn.icon, { width: 21, height: 21, stroke: on ? fn.color : ink40 })}
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 650, color: on ? ink : ink55 }}>{fn.label}</div>
+                  <div style={{ fontSize: 12, color: ink40, marginTop: 2 }}>{fn.sub}</div>
+                </div>
+                <div style={{ position: 'absolute', top: 12, right: 12, width: 18, height: 18, borderRadius: 999, border: `1.5px solid ${on ? fn.color : ink25}`, background: on ? fn.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {on && (<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke={paper} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5" /></svg>)}
+                </div>
+                {fn.id === 'save' && (<div style={{ position: 'absolute', bottom: 12, right: 12, fontFamily: CC_MONO, fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>Always</div>)}
+              </button>
+            );
+          })}
+        </div>
+      </div>,
+      <div style={{ marginTop: 22 }}>
+        <CCButton variant="solid" accent={accent} fullWidth onClick={finish} style={{ height: 54 }}>Get started</CCButton>
       </div>
+    );
+  }
+
+  // ── Info slides ──
+  return frame(
+    <div key={i} className="pk-rise" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      {s.mark && <div style={{ marginBottom: 30 }}><PKMark size={56} /></div>}
+      <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 16 }}>{s.eyebrow}</div>
+      <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.1, maxWidth: 320 }}>{s.title}</div>
+      <div style={{ fontSize: 15, color: ink70, marginTop: 18, lineHeight: 1.6, maxWidth: 330 }}>{s.body}</div>
+    </div>,
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[...slides, 'sel'].map((_, j) => (
+          <div key={j} style={{
+            height: 6, borderRadius: 999,
+            width: j === i ? 22 : 6,
+            background: j === i ? ink : ink25,
+            transition: 'width 220ms ease, background 220ms ease',
+          }} />
+        ))}
+      </div>
+      <CCButton variant="solid" accent={accent} onClick={advance}
+        style={{ minWidth: 132, padding: '0 26px' }}>
+        {onLastInfo ? 'Next' : 'Continue'}
+      </CCButton>
     </div>
   );
 }
