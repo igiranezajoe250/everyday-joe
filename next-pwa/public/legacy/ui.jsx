@@ -25,6 +25,7 @@ const ink40      = 'rgba(10,10,10,0.40)';
 const ink25      = 'rgba(10,10,10,0.25)';
 const ink12      = 'rgba(10,10,10,0.12)';
 const ink06      = 'rgba(10,10,10,0.06)';
+const DASH       = 'rgba(10,10,10,0.20)';   // thin dashed-divider colour
 const paper      = '#FFFFFF';
 const paperSoft  = '#FAFAFA';
 const canvas     = '#FAF6F1';   // Syncabi cream app background
