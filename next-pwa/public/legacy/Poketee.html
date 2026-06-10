@@ -100,6 +100,14 @@
       80% { transform: translateX(4px); }
     }
     .pk-shake { animation: pkShake 460ms cubic-bezier(.36,.07,.19,.97) both; }
+
+    /* ── Everyday design language ──────────────────────────────────────────
+       Inputs read as a shaded placeholder over a dashed rule — no card. The
+       placeholder colour signals "tap here to write". */
+    .pk-field input::placeholder,
+    .pk-field textarea::placeholder { color: rgba(10,10,10,0.30); font-weight: 600; }
+    .pk-field input:focus::placeholder { color: rgba(10,10,10,0.22); }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
     }

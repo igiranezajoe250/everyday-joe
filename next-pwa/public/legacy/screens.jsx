@@ -38,23 +38,43 @@ function pkSelectedFunctions() {
 // large button (home screen); 'fab' pins a smaller one bottom-centre (used on
 // the function pages so the user can hop between them).
 function FunctionLauncher({ functions, onSelect, variant = 'hero' }) {
+  // Two-phase open/close: `open` mounts the sheet, `shown` drives the
+  // transforms a frame later so the slide-up (and slide-down) animate smoothly.
   const [open, setOpen] = React.useState(false);
+  const [shown, setShown] = React.useState(false);
   const fns = functions && functions.length ? functions : EVERYDAY_FUNCTIONS;
   const big = variant === 'hero';
-  const toggle = () => { pkHaptic(open ? 'light' : 'medium'); setOpen((o) => !o); };
-  const pick = (fn) => { pkHaptic('select'); setOpen(false); onSelect && onSelect(fn.id); };
+
+  const openSheet = () => {
+    pkHaptic('medium');
+    setOpen(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)));
+  };
+  const closeSheet = () => {
+    pkHaptic('light');
+    setShown(false);
+    setTimeout(() => setOpen(false), 300);
+  };
+  const toggle = () => (open ? closeSheet() : openSheet());
+  const pick = (fn) => {
+    pkHaptic('select');
+    setShown(false);
+    setTimeout(() => { setOpen(false); onSelect && onSelect(fn.id); }, 240);
+  };
 
   const plusBtn = (
     <button onClick={toggle} aria-label={open ? 'Close functions' : 'Open functions'} aria-expanded={open}
       style={{
-        width: big ? 78 : 58, height: big ? 78 : 58, borderRadius: 999,
+        width: big ? 78 : 44, height: big ? 78 : 44, borderRadius: 999,
         border: 0, cursor: 'pointer', background: ink, color: paper,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: open ? '0 8px 20px rgba(10,10,10,0.22)' : '0 16px 38px rgba(10,10,10,0.26)',
-        transition: 'transform 280ms cubic-bezier(.2,.7,.2,1), box-shadow 240ms ease',
-        transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+        boxShadow: big
+          ? (shown ? '0 8px 20px rgba(10,10,10,0.22)' : '0 16px 38px rgba(10,10,10,0.26)')
+          : '0 8px 20px rgba(10,10,10,0.18)',
+        transition: 'transform 320ms cubic-bezier(.16,.84,.28,1), box-shadow 260ms ease',
+        transform: shown ? 'rotate(45deg)' : 'rotate(0deg)',
       }}>
-      <svg width={big ? 32 : 24} height={big ? 32 : 24} viewBox="0 0 24 24" fill="none"
+      <svg width={big ? 32 : 21} height={big ? 32 : 21} viewBox="0 0 24 24" fill="none"
         stroke={paper} strokeWidth="2.2" strokeLinecap="round">
         <path d="M12 5v14M5 12h14" />
       </svg>
@@ -63,35 +83,36 @@ function FunctionLauncher({ functions, onSelect, variant = 'hero' }) {
 
   const overlay = open ? (
     <div style={{ position: 'absolute', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-      <style>{`@keyframes pkFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
-      <div onClick={() => { pkHaptic('light'); setOpen(false); }} style={{
-        position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.34)',
-        animation: 'pkFadeIn 200ms ease both',
+      <div onClick={closeSheet} style={{
+        position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.30)',
+        opacity: shown ? 1 : 0, transition: 'opacity 300ms ease',
       }} />
-      <div className="pk-rise" style={{
+      <div style={{
         position: 'relative', background: paper,
-        borderTopLeftRadius: 26, borderTopRightRadius: 26,
-        padding: '8px 16px max(22px, env(safe-area-inset-bottom, 18px))',
-        boxShadow: '0 -18px 50px rgba(10,10,10,0.18)',
+        borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        padding: '8px 22px max(24px, env(safe-area-inset-bottom, 20px))',
+        boxShadow: '0 -20px 60px rgba(10,10,10,0.20)',
+        transform: shown ? 'translateY(0)' : 'translateY(102%)',
+        transition: 'transform 380ms cubic-bezier(.16,.84,.28,1)',
+        willChange: 'transform',
       }}>
-        <div style={{ width: 38, height: 4, borderRadius: 999, background: ink12, margin: '8px auto 16px' }} />
-        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink55, padding: '0 6px 12px' }}>Your functions</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {fns.map((fn) => (
+        <div style={{ width: 40, height: 4, borderRadius: 999, background: ink12, margin: '8px auto 14px' }} />
+        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink40, padding: '0 2px 6px' }}>Your functions</div>
+        <div>
+          {fns.map((fn, idx) => (
             <button key={fn.id} onClick={() => pick(fn)} style={{
-              display: 'flex', alignItems: 'center', gap: 14, width: '100%',
-              padding: '12px', borderRadius: 16, background: paperSoft,
-              border: `1px solid ${ink06}`, cursor: 'pointer',
-              fontFamily: 'inherit', textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: 16, width: '100%',
+              padding: '15px 2px', border: 0, borderTop: idx === 0 ? 'none' : `1px solid ${ink06}`,
+              background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
             }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: fn.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {React.cloneElement(fn.icon, { width: 22, height: 22, stroke: fn.color })}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 650, letterSpacing: '-0.01em', color: ink }}>{fn.label}</div>
-                <div style={{ fontSize: 12.5, color: ink55, marginTop: 2 }}>{fn.sub}</div>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5" /></svg>
+              <span style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {React.cloneElement(fn.icon, { width: 23, height: 23, stroke: fn.color })}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 16, fontWeight: 650, letterSpacing: '-0.01em', color: ink }}>{fn.label}</span>
+                <span style={{ display: 'block', fontSize: 12.5, color: ink40, marginTop: 1 }}>{fn.sub}</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5" /></svg>
             </button>
           ))}
         </div>
@@ -100,10 +121,12 @@ function FunctionLauncher({ functions, onSelect, variant = 'hero' }) {
   ) : null;
 
   if (variant === 'fab') {
+    // Top-right, aligned with the screen header — never collides with a
+    // screen's own full-width primary action or the bottom safe area.
     return (
       <React.Fragment>
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', padding: '0 0 22px', pointerEvents: 'none', zIndex: 50 }}>
-          <div style={{ pointerEvents: 'auto' }}>{plusBtn}</div>
+        <div style={{ position: 'absolute', top: PK_NATIVE ? 'calc(max(16px, env(safe-area-inset-top, 16px)) + 8px)' : 62, right: 20, zIndex: 50 }}>
+          {plusBtn}
         </div>
         {overlay}
       </React.Fragment>
@@ -431,49 +454,60 @@ function ShopScreen({ web, onBack }) {
           <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: ink55 }}>Search products, stores, links, voices, or images.</div>
         </div>
 
-        <SearchSurface value={query} onChange={setQuery} placeholder="Search shops, products, or paste a link" modes={['Image', 'Voice', 'Link']} />
+        <DashField
+          value={query}
+          onChange={setQuery}
+          placeholder="Search shops, products, or paste a link"
+          suffix={(
+            <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+              {['Image', 'Voice', 'Link'].map((mode) => (
+                <span key={mode} title={mode} aria-label={mode} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink40 }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">{SEARCH_MODE_ICONS[mode]}</svg>
+                </span>
+              ))}
+            </span>
+          )}
+        />
 
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
           {categories.map((cat) => {
             const on = cat === category;
             return (
             <button key={cat} onClick={() => setCategory(cat)} style={{
-              height: 38,
+              height: 36,
               padding: '0 14px',
-              border: 0,
               borderRadius: 999,
-              background: on ? ink : 'rgba(255,255,255,0.58)',
-              color: on ? paper : ink,
+              border: on ? '0' : `1px solid ${ink12}`,
+              background: on ? ink : 'transparent',
+              color: on ? paper : ink55,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 12,
-              fontWeight: 760,
+              fontSize: 12.5,
+              fontWeight: 700,
               whiteSpace: 'nowrap',
             }}>{cat}</button>
             );
           })}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: web ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 10 }}>
+        <div>
           {visible.length === 0 && (
-            <div style={{ padding: '20px 4px', fontSize: 13, color: ink55 }}>
+            <div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>
               No shops match your search.
             </div>
           )}
           {visible.map((brand, index) => (
-            <div key={brand.name} style={{
-              minHeight: 92,
-              borderRadius: 20,
-              background: 'rgba(255,255,255,0.62)',
-              boxShadow: '0 14px 34px rgba(10,10,10,0.07)',
-              padding: 16,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
+            <button key={brand.name} style={{
+              width: '100%', border: 0, borderTop: index === 0 ? 'none' : `1px solid ${ink06}`,
+              background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              padding: '15px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
             }}>
-              <div style={{ fontSize: 15, fontWeight: 820, color: ink }}>{brand.name}</div>
-              <div style={{ fontSize: 12, fontWeight: 650, color: ink40 }}>{index % 2 ? 'Fashion - trusted' : 'Local - verified'}</div>
-            </div>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{brand.name}</span>
+                <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{index % 2 ? 'Fashion · trusted' : 'Local · verified'}</span>
+              </span>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+            </button>
           ))}
         </div>
       </div>
@@ -481,105 +515,114 @@ function ShopScreen({ web, onBack }) {
   );
 }
 
+// Turn a free-text brain-dump into a simple time-blocked plan. No backend —
+// a deterministic transform that splits the input into tasks and lays them
+// out across the day.
+function generateDayPlan(text) {
+  const parts = text.split(/[\n.,;]+/).map((s) => s.trim()).filter(Boolean);
+  if (!parts.length) return [];
+  let h = 8;
+  return parts.slice(0, 8).map((p) => {
+    const time = String(h).padStart(2, '0') + ':00';
+    h = h + 2 > 20 ? 8 : h + 2;
+    return { time, task: p.charAt(0).toUpperCase() + p.slice(1) };
+  });
+}
+
 function PlanScreen({ web, onBack }) {
-  const [note, setNote] = React.useState('');
-  const [formatOpen, setFormatOpen] = React.useState(false);
-  const [formatPos, setFormatPos] = React.useState({ x: 24, y: 180 });
-  const longPressRef = React.useRef(null);
-  const insertText = (text) => {
-    setNote((value) => value ? `${value}${text}` : text.trimStart());
-    setFormatOpen(false);
+  const [plans, setPlans] = usePersisted('plans', []);
+  const [input, setInput] = React.useState('');
+  const [steps, setSteps] = React.useState([]);
+  const [activeId, setActiveId] = React.useState(null);
+  const [focus, setFocus] = React.useState(false);
+  const ready = input.trim().length > 0;
+
+  const newPlan = () => { pkHaptic('select'); setInput(''); setSteps([]); setActiveId(null); };
+  const send = () => { if (!ready) return; pkHaptic('medium'); setSteps(generateDayPlan(input)); };
+  const save = () => {
+    if (!ready) return;
+    pkHaptic('success');
+    const title = input.trim().split('\n')[0].slice(0, 40) || 'Untitled plan';
+    const body = steps.length ? steps : generateDayPlan(input);
+    if (activeId) {
+      setPlans((list) => list.map((p) => (p.id === activeId ? { ...p, title, input, steps: body } : p)));
+    } else {
+      const id = 'pl-' + Date.now().toString(36);
+      setPlans((list) => [{ id, title, input, steps: body }, ...list]);
+      setActiveId(id);
+    }
+    setSteps(body);
   };
-  const openFormat = (x, y) => {
-    setFormatPos({ x: Math.min(x, window.innerWidth - 164), y: Math.min(y, window.innerHeight - 260) });
-    setFormatOpen(true);
-  };
-  const clearLongPress = () => {
-    if (longPressRef.current) window.clearTimeout(longPressRef.current);
-    longPressRef.current = null;
-  };
-  const formatOptions = [
-    { label: 'New section', value: '\n\nNew section\n' },
-    { label: 'Header', value: '\n\n# Header\n' },
-    { label: 'Bold', value: '**bold**' },
-    { label: 'Italic', value: '*italic*' },
-    { label: 'Highlight', value: '==highlight==' },
-  ];
+  const loadPlan = (p) => { pkHaptic('select'); setInput(p.input); setSteps(p.steps || []); setActiveId(p.id); };
 
   return (
-    <SectionShell title="Plan" web={web} onBack={onBack}>
-      <div style={{ position: 'relative', minHeight: web ? 520 : 460 }}>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            openFormat(e.clientX, e.clientY);
-          }}
-          onPointerDown={(e) => {
-            clearLongPress();
-            longPressRef.current = window.setTimeout(() => openFormat(e.clientX, e.clientY), 560);
-          }}
-          onPointerUp={clearLongPress}
-          onPointerLeave={clearLongPress}
-          onBlur={() => window.setTimeout(() => setFormatOpen(false), 140)}
-          placeholder="Start writing..."
-          style={{
-            width: '100%',
-            minHeight: web ? 500 : 430,
-            resize: 'vertical',
-            border: 0,
-            borderRadius: 0,
-            background: 'transparent',
-            boxShadow: 'none',
-            outline: 0,
-            color: ink,
-            padding: web ? '18px 8px' : '12px 2px',
-            fontFamily: 'inherit',
-            fontSize: web ? 21 : 19,
-            lineHeight: 1.62,
-            fontWeight: 560,
-          }}
-        />
-        {formatOpen && (
-          <div style={{
-            position: 'fixed',
-            left: formatPos.x,
-            top: formatPos.y,
-            zIndex: 50,
-            width: 148,
-            borderRadius: 18,
-            background: 'rgba(255,255,255,0.9)',
-            boxShadow: '0 18px 42px rgba(10,10,10,0.14), inset 0 0 0 1px rgba(10,10,10,0.06)',
-            padding: 6,
-            display: 'grid',
-            gap: 2,
-          }}>
-            {formatOptions.map((option) => (
-              <button key={option.label} onMouseDown={(e) => e.preventDefault()} onClick={() => insertText(option.value)} style={{
-                height: 34,
-                border: 0,
-                borderRadius: 12,
-                background: 'transparent',
-                color: ink,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: 12,
-                fontWeight: 760,
-                textAlign: 'left',
-                padding: '0 10px',
-              }}>{option.label}</button>
-            ))}
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Plan</span>
+      </div>} />
+
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: web ? 22 : 14, padding: web ? '14px 28px 26px' : '8px 16px 18px' }}>
+        {/* Left rail — stored plans */}
+        <div style={{ width: web ? 196 : 104, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${ink06}`, paddingRight: web ? 18 : 12 }}>
+          <button onClick={newPlan} style={{ display: 'flex', alignItems: 'center', gap: 8, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, color: ink, padding: '2px 0 14px' }}>
+            <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            New
+          </button>
+          <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, padding: '0 0 6px' }}>Your plans</div>
+          <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            {plans.length === 0 && (<div style={{ fontSize: 12, color: ink40, padding: '8px 0', lineHeight: 1.4 }}>Saved plans appear here.</div>)}
+            {plans.map((p, idx) => {
+              const on = p.id === activeId;
+              return (
+                <button key={p.id} onClick={() => loadPlan(p)} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: idx === 0 ? 'none' : `1px solid ${ink06}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                  <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: on ? ink : 'transparent', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: on ? 760 : 600, color: on ? ink : ink70, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.title}</span>
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
+
+        {/* Main — write, then Save / Send */}
+        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: web ? 30 : 24, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>Plan your day.</div>
+          <div style={{ marginTop: 6, fontSize: 13.5, color: ink55, lineHeight: 1.45 }}>Write what’s on your mind. Send turns it into a plan; Save keeps it on the left.</div>
+
+          <div className="pk-field" style={{ marginTop: 20 }}>
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+              placeholder="e.g. gym, finish the report, call mum, groceries…"
+              style={{ width: '100%', minHeight: web ? 120 : 92, resize: 'none', border: 0, borderBottom: `2px ${focus ? 'solid' : 'dashed'} ${focus ? ink : ink25}`, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 600, lineHeight: 1.5, padding: '2px 0 12px', transition: 'border-color 200ms ease' }} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+            <button onClick={save} disabled={!ready} style={{ height: 48, padding: '0 22px', borderRadius: 14, border: `1.5px solid ${ready ? ink : ink12}`, background: 'transparent', color: ready ? ink : ink25, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, transition: 'border-color 200ms ease, color 200ms ease' }}>Save</button>
+            <button onClick={send} disabled={!ready} style={{ flex: 1, height: 48, borderRadius: 14, border: ready ? '0' : `2px dashed ${ink12}`, background: ready ? ink : 'transparent', color: ready ? paper : ink25, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, boxShadow: ready ? '0 14px 32px rgba(10,10,10,0.18)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 200ms ease, color 200ms ease' }}>
+              Send
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          {steps.length > 0 && (
+            <div className="pk-rise" style={{ marginTop: 26 }}>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 6 }}>Your plan</div>
+              {steps.map((s, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: 14, alignItems: 'baseline', padding: '13px 0', borderTop: idx === 0 ? 'none' : `1px solid ${ink06}` }}>
+                  <span style={{ fontFamily: CC_MONO, fontSize: 12, fontWeight: 600, color: ink40, width: 44, flexShrink: 0 }}>{s.time}</span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: ink, lineHeight: 1.4 }}>{s.task}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </SectionShell>
+    </div>
   );
 }
 
 function ListenScreen({ web, onBack }) {
-  const [query, setQuery] = React.useState('');
-  const [openChannel, setOpenChannel] = React.useState(null);
   const channels = [
     { name: 'Everyday Briefing', meta: 'Continue listening', episodes: ['Morning in Kigali', 'What to know before noon', 'Evening recap'] },
     { name: 'Kigali Business', meta: 'New episode today', episodes: ['Retail moves this week', 'Founder notes', 'Markets in 10 minutes'] },
@@ -588,118 +631,66 @@ function ListenScreen({ web, onBack }) {
     { name: 'Morning Focus', meta: 'Daily reset', episodes: ['A calm start', 'Deep work block', 'Five minute reflection'] },
     { name: 'Rwanda Culture', meta: 'Popular nearby', episodes: ['Stories from Nyamirambo', 'Food, music, memory', 'Weekend guide'] },
   ];
-  const q = query.trim().toLowerCase();
-  const visible = q
-    ? channels.filter((c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.meta.toLowerCase().includes(q) ||
-        c.episodes.some((e) => e.toLowerCase().includes(q)))
-    : channels;
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  const [playing, setPlaying] = React.useState(null);
+  const channel = channels[activeIdx];
+
+  const PlayIcon = ({ on }) => (on
+    ? (<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2.5" width="2.6" height="9" rx="1"/><rect x="8.4" y="2.5" width="2.6" height="9" rx="1"/></svg>)
+    : (<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M4 2.5v9l7-4.5-7-4.5z"/></svg>));
 
   return (
-    <SectionShell title="Listen" web={web} onBack={onBack}>
-      <div style={{ display: 'grid', gap: 20 }}>
-        <div>
-          <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Find what to listen to.</div>
-          <div style={{ marginTop: 10, fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: ink55 }}>Search channels, episodes, creators, or use voice.</div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Listen</span>
+      </div>} />
+
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: web ? 22 : 14, padding: web ? '14px 28px 26px' : '8px 16px 18px' }}>
+        {/* Left rail — channels */}
+        <div style={{ width: web ? 196 : 116, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${ink06}`, paddingRight: web ? 18 : 12 }}>
+          <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, padding: '2px 0 8px' }}>Channels</div>
+          <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            {channels.map((c, idx) => {
+              const on = idx === activeIdx;
+              return (
+                <button key={c.name} onClick={() => { pkHaptic('select'); setActiveIdx(idx); }} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: idx === 0 ? 'none' : `1px solid ${ink06}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                  <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: on ? ink : 'transparent', flexShrink: 0 }} />
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 13, fontWeight: on ? 760 : 600, color: on ? ink : ink70, lineHeight: 1.3 }}>{c.name}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 2 }}>{c.meta}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <SearchSurface value={query} onChange={setQuery} placeholder="Search podcasts or channels" modes={['Voice']} />
-        <div style={{ display: 'grid', gap: 10 }}>
-          {visible.length === 0 && (
-            <div style={{ padding: '20px 4px', fontSize: 13, color: ink55 }}>
-              No channels match “{query}”.
-            </div>
-          )}
-          {visible.map((channel, index) => (
-            <div key={channel.name} style={{
-              borderRadius: 20,
-              background: 'rgba(255,255,255,0.62)',
-              boxShadow: '0 14px 34px rgba(10,10,10,0.07)',
-              padding: '10px 12px',
-            }}>
-              <button onClick={() => setOpenChannel(openChannel === channel.name ? null : channel.name)} style={{
-                width: '100%',
-                minHeight: 52,
-                border: 0,
-                background: 'transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 14,
-                padding: 0,
-                fontFamily: 'inherit',
-              }}>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 15, fontWeight: 820, color: ink }}>{channel.name}</div>
-                  <div style={{ marginTop: 4, fontSize: 12, fontWeight: 650, color: ink40 }}>{channel.meta}</div>
-                </div>
-                <div style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: '50%',
-                  background: openChannel === channel.name || index === 0 ? ink : canvas,
-                  color: openChannel === channel.name || index === 0 ? paper : ink,
-                  display: 'grid',
-                  placeItems: 'center',
-                  flexShrink: 0,
-                }}>
-                  {openChannel === channel.name ? (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M3 8.5L7 4.5L11 8.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                      <path d="M4 2.5v9l7-4.5-7-4.5z" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-              {openChannel === channel.name && (
-                <div style={{
-                  marginTop: 8,
-                  padding: '8px 4px 2px',
-                  display: 'grid',
-                  gap: 6,
-                }}>
-                  {channel.episodes.map((episode, episodeIndex) => (
-                    <button key={episode} style={{
-                      minHeight: 38,
-                      border: 0,
-                      borderRadius: 14,
-                      background: episodeIndex === 0 ? 'rgba(10,10,10,0.06)' : 'transparent',
-                      color: ink,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      padding: '0 10px',
-                    }}>
-                      <span style={{ fontSize: 13, fontWeight: 760 }}>{episode}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: ink40 }}>{episodeIndex === 0 ? 'Play' : `${18 + episodeIndex * 5} min`}</span>
-                    </button>
-                  ))}
-                  <button onClick={() => setOpenChannel(null)} style={{
-                    justifySelf: 'end',
-                    height: 28,
-                    border: 0,
-                    background: 'transparent',
-                    color: ink40,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: 12,
-                    fontWeight: 760,
-                    padding: '0 8px',
-                  }}>Close</button>
-                </div>
-              )}
-            </div>
-          ))}
+
+        {/* Main — episodes of the selected channel */}
+        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: web ? 30 : 24, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>{channel.name}</div>
+          <div style={{ marginTop: 6, fontSize: 13.5, color: ink55 }}>{channel.meta}</div>
+
+          <div style={{ marginTop: 22 }}>
+            {channel.episodes.map((ep, idx) => {
+              const id = activeIdx + '-' + idx;
+              const on = playing === id;
+              return (
+                <button key={ep} onClick={() => { pkHaptic('select'); setPlaying(on ? null : id); }} style={{ width: '100%', border: 0, borderTop: idx === 0 ? 'none' : `1px solid ${ink06}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1.5px solid ${ink12}`, color: on ? paper : ink }}>
+                    <PlayIcon on={on} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 650, color: ink, letterSpacing: '-0.01em' }}>{ep}</span>
+                    <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{on ? 'Now playing' : `${18 + idx * 5} min`}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </SectionShell>
+    </div>
   );
 }
 
@@ -709,304 +700,157 @@ function PayScreen({ web, onBack }) {
     { id: 'eric', name: 'Eric Kwizera', phone: '+250 782 441 009' },
     { id: 'school', name: 'Green Hills School', phone: 'School fees' },
   ];
+  const currencies = ['RWF', 'USD', 'GBP', 'KES', 'UGX', 'TZS'];
   const [amount, setAmount] = React.useState('');
   const [recipientText, setRecipientText] = React.useState('');
   const [recipient, setRecipient] = React.useState(null);
   const [contactOpen, setContactOpen] = React.useState(false);
+  const [curIdx, setCurIdx] = React.useState(0);
   const [paidReceipt, setPaidReceipt] = React.useState(null);
-  const currencies = [
-    { code: 'RWF', label: 'Rwandan franc' },
-    { code: 'USD', label: 'US dollar' },
-    { code: 'GBP', label: 'British pound' },
-    { code: 'KES', label: 'Kenyan shilling' },
-    { code: 'UGX', label: 'Ugandan shilling' },
-    { code: 'TZS', label: 'Tanzanian shilling' },
-  ];
-  const [currencyIndex, setCurrencyIndex] = React.useState(0);
-  const currency = currencies[currencyIndex];
-  const shiftCurrency = (dir) => {
-    setCurrencyIndex((i) => (i + dir + currencies.length) % currencies.length);
-  };
+  const currency = currencies[curIdx];
+  const cycleCurrency = () => { pkHaptic('select'); setCurIdx((i) => (i + 1) % currencies.length); };
   const matches = contacts.filter((c) => {
     const q = recipientText.trim().toLowerCase();
     if (!q) return true;
     return c.name.toLowerCase().includes(q) || c.phone.toLowerCase().includes(q);
   });
   const canPay = amount.trim() && (recipient || recipientText.trim());
-
-  const pickRecipient = (contact) => {
-    setRecipient(contact);
-    setRecipientText(contact.name);
-    setContactOpen(false);
-  };
+  const pickRecipient = (c) => { pkHaptic('select'); setRecipient(c); setRecipientText(c.name); setContactOpen(false); };
   const submitPayment = () => {
     if (!canPay) return;
+    pkHaptic('success');
     setPaidReceipt({
-      amount,
-      currency: currency.code,
+      amount, currency,
       recipient: recipient ? recipient.name : recipientText.trim(),
-      time: 'Just now',
       id: 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
     });
   };
-  const resetPayment = () => {
-    setAmount('');
-    setRecipientText('');
-    setRecipient(null);
-    setContactOpen(false);
-    setPaidReceipt(null);
-  };
+  const resetPayment = () => { setAmount(''); setRecipientText(''); setRecipient(null); setContactOpen(false); setPaidReceipt(null); };
 
+  const header = (
+    <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <IconBtn onClick={onBack}>
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </IconBtn>
+      <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Pay</span>
+    </div>} />
+  );
+
+  // ── Receipt (success) — clean divided list, no tinted card ──
   if (paidReceipt) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
-        <ScreenHeader
-          left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconBtn onClick={onBack}>
-              <svg width="16" height="16" viewBox="0 0 16 16">
-                <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </IconBtn>
-            <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Pay</span>
-          </div>}
-        />
-
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: web ? '36px 48px 44px' : '18px 18px 26px',
-        }}>
-          <div style={{
-            width: '100%',
-            maxWidth: 460,
-            borderRadius: 30,
-            background: 'rgba(47,174,155,0.12)',
-            border: '1px solid rgba(47,174,155,0.22)',
-            padding: web ? 34 : 24,
-            textAlign: 'center',
-          }}>
-            <div style={{
-              width: 72,
-              height: 72,
-              borderRadius: '50%',
-              background: '#2FAE9B',
-              color: paper,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto',
-              boxShadow: '0 18px 44px rgba(47,174,155,0.26)',
-            }}>
-              <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-                <path d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div style={{ marginTop: 20, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.05em', color: ink }}>
-              Payment sent.
-            </div>
-            <div style={{ marginTop: 8, fontSize: 14, fontWeight: 650, color: ink55 }}>
-              Your receipt is ready.
-            </div>
-
-            <div style={{
-              marginTop: 24,
-              borderRadius: 22,
-              background: 'rgba(255,255,255,0.72)',
-              padding: 18,
-              display: 'grid',
-              gap: 10,
-              textAlign: 'left',
-            }}>
-              <ReceiptRow label="Amount" value={(paidReceipt.currency || 'RWF') + ' ' + Number(paidReceipt.amount || 0).toLocaleString('en-US')} />
-              <ReceiptRow label="To" value={paidReceipt.recipient} />
-              <ReceiptRow label="Status" value="Confirmed" green />
-              <ReceiptRow label="Receipt" value={paidReceipt.id} />
-            </div>
-
-            <button onClick={resetPayment} style={{
-              marginTop: 22,
-              width: '100%',
-              height: 54,
-              border: 0,
-              borderRadius: 18,
-              background: ink,
-              color: paper,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 15,
-              fontWeight: 820,
-              boxShadow: '0 18px 42px rgba(10,10,10,0.18)',
-            }}>
-              New payment
-            </button>
+        {header}
+        <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%', maxWidth: web ? 460 : 430, margin: '0 auto', padding: web ? '0 60px 40px' : '0 28px 34px' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#2FAE9B', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 40px rgba(47,174,155,0.30)' }}>
+            <svg width="30" height="30" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
+          <div style={{ marginTop: 24, fontSize: web ? 40 : 34, fontWeight: 850, letterSpacing: '-0.05em', color: ink }}>Payment sent.</div>
+          <div style={{ marginTop: 8, fontSize: 15, color: ink55 }}>Your receipt is ready.</div>
+          <div style={{ marginTop: 28 }}>
+            <ReceiptRow label="Amount" value={currency + ' ' + Number(paidReceipt.amount || 0).toLocaleString('en-US')} />
+            <ReceiptRow label="To" value={paidReceipt.recipient} />
+            <ReceiptRow label="Status" value="Confirmed" green />
+            <ReceiptRow label="Receipt" value={paidReceipt.id} last />
+          </div>
+          <button onClick={resetPayment} style={{ marginTop: 34, height: 56, border: 0, borderRadius: 18, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 760, letterSpacing: '-0.01em', boxShadow: '0 16px 38px rgba(10,10,10,0.20)' }}>New payment</button>
         </div>
       </div>
     );
   }
 
+  // ── Compose payment — dashed tap-to-type lines, standout button ──
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
-      <ScreenHeader
-        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IconBtn onClick={onBack}>
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M10 3L5 8l5 5" stroke={ink} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </IconBtn>
-          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Pay</span>
-        </div>}
-      />
-
-      <div className="cc-scroll" style={{
-        flex: 1,
-        overflow: 'auto',
-        display: 'flex',
-        justifyContent: 'center',
-        padding: web ? '36px 48px 44px' : '18px 18px 26px',
-      }}>
-        <div style={{
-          width: '100%',
-          maxWidth: web ? 520 : 420,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: 18,
-        }}>
-          <div>
-            <div style={{ fontSize: web ? 42 : 34, fontWeight: 820, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>
-              Send money.
-            </div>
-            <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.45, fontWeight: 600, color: ink55 }}>
-              Enter an amount, choose a contact, then pay.
-            </div>
+      {header}
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '12px 60px 40px' : '6px 28px 34px' }}>
+        <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 430, margin: '0 auto', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ paddingTop: web ? 28 : 18 }}>
+            <div style={{ fontSize: web ? 44 : 36, fontWeight: 820, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Send money.</div>
+            <div style={{ marginTop: 12, fontSize: 15, lineHeight: 1.45, color: ink55 }}>Tap the lines to enter an amount and who you’re paying.</div>
           </div>
 
-          <div style={{
-            borderRadius: 28,
-            background: 'rgba(255,255,255,0.70)',
-            boxShadow: '0 24px 58px rgba(10,10,10,0.09), inset 0 1px 0 rgba(255,255,255,0.9)',
-            padding: web ? 26 : 20,
-            display: 'grid',
-            gap: 18,
-          }}>
-            <label style={{ display: 'grid', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>Amount</span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                <CurrencyPicker
-                  currency={currency}
-                  prev={currencies[(currencyIndex - 1 + currencies.length) % currencies.length]}
-                  next={currencies[(currencyIndex + 1) % currencies.length]}
-                  onUp={() => shiftCurrency(-1)}
-                  onDown={() => shiftCurrency(1)}
-                />
-                <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
-                  inputMode="numeric"
-                  placeholder="0"
-                  style={{
-                    width: '100%',
-                    border: 0,
-                    background: 'transparent',
-                    color: ink,
-                    outline: 0,
-                    fontFamily: 'inherit',
-                    fontSize: web ? 56 : 44,
-                    fontWeight: 850,
-                    letterSpacing: '-0.06em',
-                    lineHeight: 1,
-                  }}
-                />
-              </div>
-            </label>
+          {/* Amount — big tap-to-type with a tappable currency */}
+          <div style={{ marginTop: web ? 46 : 38 }}>
+            <DashField
+              label="Amount"
+              value={amount}
+              onChange={(v) => setAmount(v.replace(/[^\d]/g, ''))}
+              placeholder="0"
+              inputMode="numeric"
+              big
+              prefix={(
+                <button onClick={cycleCurrency} aria-label="Change currency" style={{
+                  alignSelf: 'center', border: 0, background: 'transparent', color: ink40,
+                  cursor: 'pointer', fontFamily: CC_MONO, fontSize: 14, fontWeight: 700,
+                  letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4, padding: 0,
+                }}>
+                  {currency}
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5L6 7.5l3-3"/></svg>
+                </button>
+              )}
+            />
+          </div>
 
-            <div style={{ height: 1, background: ink06 }} />
-
-            <label style={{ display: 'grid', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>Recipient</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
+          {/* Recipient — dashed line + a standout "Add" button with breathing room */}
+          <div style={{ marginTop: 32 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <DashField
+                  label="To"
                   value={recipientText}
-                  onChange={(e) => { setRecipientText(e.target.value); setRecipient(null); setContactOpen(true); }}
+                  onChange={(v) => { setRecipientText(v); setRecipient(null); setContactOpen(true); }}
                   onFocus={() => setContactOpen(true)}
                   placeholder="Name or phone number"
-                  style={{
-                    minWidth: 0,
-                    flex: 1,
-                    height: 50,
-                    border: `1px solid ${ink12}`,
-                    borderRadius: 16,
-                    background: canvas,
-                    color: ink,
-                    outline: 0,
-                    padding: '0 15px',
-                    fontFamily: 'inherit',
-                    fontSize: 14,
-                    fontWeight: 650,
-                  }}
                 />
-                <button onClick={() => setContactOpen((open) => !open)} style={{
-                  width: 52,
-                  border: 0,
-                  borderRadius: 16,
-                  background: ink,
-                  color: paper,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }} aria-label="Open contacts">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path d="M6.5 8.2a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8ZM2.5 14.5c.5-2.4 2-3.6 4-3.6s3.5 1.2 4 3.6M12.5 5h3M14 3.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </button>
               </div>
-            </label>
+              <button onClick={() => setContactOpen((o) => !o)} aria-label="Choose from contacts" style={{
+                flexShrink: 0, height: 48, padding: '0 18px', border: 0, borderRadius: 999,
+                background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13.5, fontWeight: 760, display: 'flex', alignItems: 'center', gap: 8,
+                boxShadow: '0 10px 26px rgba(10,10,10,0.16)',
+              }}>
+                <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M6.5 8.2a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8ZM2.5 14.5c.5-2.4 2-3.6 4-3.6s3.5 1.2 4 3.6M12.5 5h3M14 3.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                Add
+              </button>
+            </div>
 
             {contactOpen && (
-              <div style={{ display: 'grid', gap: 8 }}>
-                {matches.slice(0, 3).map((contact) => (
-                  <button key={contact.id} onClick={() => pickRecipient(contact)} style={{
-                    minHeight: 54,
-                    border: 0,
-                    borderRadius: 16,
-                    background: recipient && recipient.id === contact.id ? ink : 'transparent',
-                    color: recipient && recipient.id === contact.id ? paper : ink,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    padding: '10px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    textAlign: 'left',
-                  }}>
-                    <span>
-                      <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{contact.name}</span>
-                      <span style={{ display: 'block', marginTop: 3, fontSize: 11.5, fontWeight: 650, color: recipient && recipient.id === contact.id ? 'rgba(255,255,255,0.62)' : ink40 }}>{contact.phone}</span>
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 760, color: recipient && recipient.id === contact.id ? 'rgba(255,255,255,0.62)' : ink40 }}>Select</span>
-                  </button>
-                ))}
+              <div className="pk-rise" style={{ marginTop: 16 }}>
+                {matches.slice(0, 3).map((c, idx) => {
+                  const on = recipient && recipient.id === c.id;
+                  return (
+                    <button key={c.id} onClick={() => pickRecipient(c)} style={{
+                      width: '100%', border: 0, borderTop: idx === 0 ? 'none' : `1px solid ${ink06}`,
+                      background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                      padding: '13px 2px', display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between', gap: 12, textAlign: 'left',
+                    }}>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: ink }}>{c.name}</span>
+                        <span style={{ display: 'block', marginTop: 2, fontSize: 12.5, color: ink40 }}>{c.phone}</span>
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Select'}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
+          </div>
 
+          {/* Primary action — stands alone with space, dashed ghost until ready */}
+          <div style={{ marginTop: 'auto', paddingTop: 44 }}>
             <button disabled={!canPay} onClick={submitPayment} style={{
-              height: 54,
-              border: 0,
-              borderRadius: 18,
-              background: canPay ? ink : 'rgba(10,10,10,0.12)',
-              color: canPay ? paper : ink40,
+              width: '100%', height: 58, borderRadius: 18,
+              background: canPay ? ink : 'transparent',
+              color: canPay ? paper : ink25,
+              border: canPay ? '0' : `2px dashed ${ink12}`,
               cursor: canPay ? 'pointer' : 'default',
-              fontFamily: 'inherit',
-              fontSize: 15,
-              fontWeight: 820,
-              boxShadow: canPay ? '0 18px 42px rgba(10,10,10,0.18)' : 'none',
+              fontFamily: 'inherit', fontSize: 16, fontWeight: 760, letterSpacing: '-0.01em',
+              boxShadow: canPay ? '0 18px 40px rgba(10,10,10,0.22)' : 'none',
+              transition: 'background 200ms ease, color 200ms ease, box-shadow 200ms ease',
             }}>
-              Pay
+              {canPay ? `Pay ${currency} ${Number(amount || 0).toLocaleString('en-US')}` : 'Enter amount to pay'}
             </button>
           </div>
         </div>
@@ -1015,77 +859,17 @@ function PayScreen({ web, onBack }) {
   );
 }
 
-function ReceiptRow({ label, value, green = false }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-      <span style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 820, color: green ? '#2FAE9B' : ink, textAlign: 'right' }}>{value}</span>
-    </div>
-  );
-}
-
-function CurrencyPicker({ currency, prev, next, onUp, onDown }) {
+function ReceiptRow({ label, value, green = false, last = false }) {
   return (
     <div style={{
-      width: 72,
-      flexShrink: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      userSelect: 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+      padding: '14px 0', borderBottom: last ? 'none' : `1px solid ${ink06}`,
     }}>
-      <button onClick={onUp} aria-label="Previous currency" style={{
-        width: 42,
-        height: 20,
-        border: 0,
-        background: 'transparent',
-        color: ink40,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
-          <path d="M3 8L9 2L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      <div style={{ fontSize: 9.5, fontWeight: 760, color: ink25, height: 13, lineHeight: '13px' }}>{prev.code}</div>
-      <button title={currency.label} style={{
-        minWidth: 64,
-        height: 34,
-        border: 0,
-        borderRadius: 14,
-        background: ink,
-        color: paper,
-        cursor: 'default',
-        fontFamily: 'inherit',
-        fontSize: 13,
-        fontWeight: 820,
-        letterSpacing: '-0.01em',
-      }}>
-        {currency.code}
-      </button>
-      <div style={{ fontSize: 9.5, fontWeight: 760, color: ink25, height: 13, lineHeight: '13px', marginTop: 1 }}>{next.code}</div>
-      <button onClick={onDown} aria-label="Next currency" style={{
-        width: 42,
-        height: 20,
-        border: 0,
-        background: 'transparent',
-        color: ink40,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
-          <path d="M3 2L9 8L15 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+      <span style={{ fontSize: 13, color: ink40 }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: green ? '#2FAE9B' : ink, textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
-
 function CommuteScreen({ web, onBack }) {
   const [query, setQuery] = React.useState('');
   const [destination, setDestination] = React.useState('Kigali Heights');
@@ -1247,130 +1031,67 @@ function CommuteScreen({ web, onBack }) {
           justifyContent: web ? 'center' : 'flex-start',
           gap: 14,
         }}>
-          <div style={{
-            borderRadius: 24,
-            background: paper,
-            boxShadow: '0 22px 50px rgba(10,10,10,0.10), inset 0 1px 0 rgba(255,255,255,0.88)',
-            padding: web ? 22 : 18,
-          }}>
-            <div style={{ fontSize: 28, lineHeight: 1, fontWeight: 820, letterSpacing: '-0.04em', color: ink }}>
+          <div style={{ padding: web ? '4px 2px' : '0' }}>
+            <div style={{ fontSize: web ? 30 : 26, lineHeight: 1.04, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>
               Where are you going?
             </div>
-            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.45, fontWeight: 600, color: ink55 }}>
-              Enter an address or landmark. Everyday will find a clean, vetted ride.
+            <div style={{ marginTop: 8, fontSize: 13.5, lineHeight: 1.45, color: ink55 }}>
+              Tap to enter a destination. Everyday finds a clean, vetted ride.
             </div>
 
-            <button onClick={trackLocation} style={{
-              marginTop: 16,
-              width: '100%',
-              minHeight: 46,
-              border: `1px solid ${ink12}`,
-              borderRadius: 15,
-              background: origin === 'Current location' ? 'transparent' : ink,
-              color: origin === 'Current location' ? ink : paper,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 13,
-              fontWeight: 760,
-              textAlign: 'left',
-              padding: '0 14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-            }}>
-              <span>{tracking ? 'Finding your location...' : origin}</span>
-              <span style={{ color: origin === 'Current location' ? ink40 : 'rgba(255,255,255,0.62)', fontSize: 12 }}>Track</span>
-            </button>
-
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <input
+            <div style={{ marginTop: 20 }}>
+              <DashField
+                label="Destination"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && query.trim()) setDestination(query.trim()); }}
-                placeholder="Search destination"
-                style={{
-                  width: '100%',
-                  height: 48,
-                  border: `1px solid ${ink12}`,
-                  borderRadius: 16,
-                  background: canvas,
-                  color: ink,
-                  outline: 0,
-                  padding: '0 15px',
-                  fontFamily: 'inherit',
-                  fontSize: 14,
-                  fontWeight: 650,
-                }}
+                onChange={setQuery}
+                placeholder="Search address or landmark"
               />
             </div>
 
-            <div style={{ marginTop: 14, display: 'grid', gap: 8 }}>
-              {suggestions.map((item) => (
-                <button key={item} onClick={() => chooseDestination(item)} style={{
-                  height: 44,
-                  border: 0,
-                  borderRadius: 14,
-                  background: item === destination ? ink : 'transparent',
-                  color: item === destination ? paper : ink,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: 13,
-                  fontWeight: 720,
-                  textAlign: 'left',
-                  padding: '0 12px',
-                }}>
-                  {item}
-                </button>
-              ))}
+            <button onClick={trackLocation} style={{
+              marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8,
+              border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 13, fontWeight: 700, color: origin === 'Current location' ? ink55 : '#2FAE9B', padding: '4px 0',
+            }}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2" strokeLinecap="round"/></svg>
+              {tracking ? 'Finding your location…' : origin}
+            </button>
+
+            <div style={{ marginTop: 16, fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Suggestions</div>
+            <div>
+              {suggestions.map((item, sidx) => {
+                const on = item === destination;
+                return (
+                  <button key={item} onClick={() => chooseDestination(item)} style={{
+                    width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px solid ${ink06}`,
+                    background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                    padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  }}>
+                    <span style={{ fontSize: 14, fontWeight: on ? 760 : 600, color: on ? ink : ink70 }}>{item}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Set'}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{
-              marginTop: 16,
-              borderTop: `1px solid ${ink06}`,
-              paddingTop: 14,
-              display: 'grid',
-              gap: 10,
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 760, color: ink40 }}>Link someone else's address</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
-                  placeholder="Phone number from contacts"
-                  style={{
-                    minWidth: 0,
-                    flex: 1,
-                    height: 44,
-                    border: `1px solid ${ink12}`,
-                    borderRadius: 14,
-                    background: canvas,
-                    color: ink,
-                    outline: 0,
-                    padding: '0 13px',
-                    fontFamily: 'inherit',
-                    fontSize: 13,
-                    fontWeight: 650,
-                  }}
-                />
+            <div style={{ marginTop: 18, borderTop: `1px solid ${ink06}`, paddingTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <DashField
+                    label="Link someone’s address"
+                    value={contactNumber}
+                    onChange={setContactNumber}
+                    placeholder="Phone number from contacts"
+                    inputMode="tel"
+                  />
+                </div>
                 <button onClick={linkContact} style={{
-                  width: 76,
-                  border: 0,
-                  borderRadius: 14,
-                  background: ink,
-                  color: paper,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: 12,
-                  fontWeight: 760,
+                  flexShrink: 0, height: 46, padding: '0 20px', border: 0, borderRadius: 999,
+                  background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 13.5, fontWeight: 760, boxShadow: '0 10px 26px rgba(10,10,10,0.16)',
                 }}>Link</button>
               </div>
-              <div style={{ fontSize: 11.5, lineHeight: 1.35, fontWeight: 600, color: ink40 }}>
+              <div style={{ marginTop: 10, fontSize: 11.5, lineHeight: 1.35, color: ink40 }}>
                 Works when that person has allowed Everyday to share their destination.
               </div>
             </div>
@@ -1406,18 +1127,11 @@ function CommuteScreen({ web, onBack }) {
               <span style={{ letterSpacing: 2 }}>•••</span>
             </button>
             {connectionOpen && (
-              <div style={{
-                borderRadius: 18,
-                background: 'rgba(255,255,255,0.78)',
-                boxShadow: '0 16px 36px rgba(10,10,10,0.08)',
-                padding: 14,
-                display: 'grid',
-                gap: 8,
-              }}>
+              <div className="pk-rise" style={{ padding: '2px 2px' }}>
                 <ConnectionRow label="Your location" value={origin} />
                 <ConnectionRow label="Moto profile" value={selectedMotoProfile.name} />
                 <ConnectionRow label="Destination" value={routeLabel} />
-                <ConnectionRow label="Linked number" value={linkedContact || 'Not linked'} />
+                <ConnectionRow label="Linked number" value={linkedContact || 'Not linked'} last />
               </div>
             )}
           </div>
@@ -1427,11 +1141,11 @@ function CommuteScreen({ web, onBack }) {
   );
 }
 
-function ConnectionRow({ label, value }) {
+function ConnectionRow({ label, value, last = false }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontSize: 11.5, fontWeight: 760, color: ink40 }}>{label}</span>
-      <span style={{ fontSize: 12.5, fontWeight: 760, color: ink, textAlign: 'right' }}>{value}</span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderBottom: last ? 'none' : `1px solid ${ink06}` }}>
+      <span style={{ fontSize: 12, color: ink40 }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: ink, textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
@@ -1439,19 +1153,21 @@ function ConnectionRow({ label, value }) {
 function CommuteOption({ title, meta, price, active = false, onClick }) {
   return (
     <button onClick={onClick} style={{
-      minHeight: 74,
-      border: '1px solid transparent',
-      borderRadius: 18,
-      background: active ? ink : 'rgba(255,255,255,0.74)',
+      width: '100%', minHeight: 60, border: 0, borderRadius: 16,
+      background: active ? ink : 'transparent',
       color: active ? paper : ink,
-      boxShadow: active ? '0 18px 42px rgba(10,10,10,0.18)' : '0 16px 36px rgba(10,10,10,0.08)',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      padding: '14px 15px',
-      textAlign: 'left',
+      boxShadow: active ? '0 14px 32px rgba(10,10,10,0.16)' : 'none',
+      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+      padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
     }}>
-      <div style={{ fontSize: 15, fontWeight: 820 }}>{title}</div>
-      <div style={{ marginTop: 4, fontSize: 11.5, fontWeight: 650, color: active ? 'rgba(255,255,255,0.62)' : ink40 }}>{meta} · {price}</div>
+      <span style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'rgba(255,255,255,0.16)' : ink06, color: active ? paper : ink }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 11a3 3 0 0 1 6 0c0 2-3 3.2-3 5M12 18h.01"/></svg>
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 14.5, fontWeight: 760 }}>{title}</span>
+        <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, color: active ? 'rgba(255,255,255,0.62)' : ink40 }}>{meta} · {price}</span>
+      </span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: active ? 'rgba(255,255,255,0.7)' : ink25, flexShrink: 0 }}>{active ? 'Chosen' : 'Choose'}</span>
     </button>
   );
 }

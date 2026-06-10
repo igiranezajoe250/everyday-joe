@@ -536,6 +536,49 @@ function CCButton({
   );
 }
 
+// Tap-to-type field — the core of the Everyday design language. No card: just
+// a label, and a shaded placeholder sitting over a dashed rule that firms to a
+// solid ink line on focus. Used app-wide instead of boxed inputs so the page
+// stays clean and the primary button is free to stand out.
+function DashField({
+  label, value, onChange, placeholder, type = 'text', inputMode,
+  prefix, suffix, big = false, onFocus, onBlur, autoFocus,
+}) {
+  const [focus, setFocus] = React.useState(false);
+  return (
+    <div className="pk-field" style={{ display: 'grid', gap: 9 }}>
+      {label && (
+        <span style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>{label}</span>
+      )}
+      <div style={{
+        display: 'flex', alignItems: big ? 'baseline' : 'center', gap: 10,
+        paddingBottom: big ? 12 : 9,
+        borderBottom: `2px ${focus ? 'solid' : 'dashed'} ${focus ? ink : ink25}`,
+        transition: 'border-color 200ms ease',
+      }}>
+        {prefix}
+        <input
+          value={value}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          placeholder={placeholder}
+          type={type}
+          inputMode={inputMode}
+          autoFocus={autoFocus}
+          onFocus={(e) => { setFocus(true); onFocus && onFocus(e); }}
+          onBlur={(e) => { setFocus(false); onBlur && onBlur(e); }}
+          style={{
+            flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0,
+            color: ink, fontFamily: 'inherit', padding: 0,
+            fontSize: big ? 48 : 17, fontWeight: big ? 850 : 650,
+            letterSpacing: big ? '-0.05em' : '-0.01em', lineHeight: 1.1,
+          }}
+        />
+        {suffix}
+      </div>
+    </div>
+  );
+}
+
 // Allocation bar — Swiss bar chart row, thin line
 function AllocBar({ label, percent, accent }) {
   return (

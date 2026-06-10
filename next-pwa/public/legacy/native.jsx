@@ -289,19 +289,19 @@ function Onboarding({ native, accent, onDone }) {
   const slides = [
     {
       mark: true,
-      eyebrow: 'Welcome',
-      title: 'Build wealth, one save at a time.',
-      body: 'Everyday helps you grow your money through one simple habit — saving consistently, straight from your pocket.',
+      eyebrow: 'Your Everyday',
+      title: 'Your everyday trust.',
+      body: 'One place to shop, pay, plan and grow — where everyone you deal with has already been vetted. Welcome to Everyday.',
     },
     {
-      eyebrow: 'Save · Grow · Access',
-      title: 'The more you save, the more opens up.',
-      body: 'Your savings earn returns as they grow, and unlock a credit line you can draw on — the stronger your saving, the more finance you can access.',
+      eyebrow: 'Vetted, always',
+      title: 'Only people worth your trust.',
+      body: 'Every business, brand, and individual on Everyday is verified before they’re let in. No strangers, no guesswork — just people and places you can rely on.',
     },
     {
-      eyebrow: 'Your credit line',
-      title: 'Saving builds your borrowing power.',
-      body: 'Your borrowing capacity is a share of your savings, and rises automatically as you save more. Save when you can; access finance when you need it.',
+      eyebrow: 'Plan · Save · Grow',
+      title: 'And manage your wealth.',
+      body: 'Beyond the everyday, Everyday helps you plan your spending, save consistently, and grow your money — building real wealth, one day at a time.',
     },
   ];
   const [i, setI] = React.useState(0);
