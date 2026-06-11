@@ -100,6 +100,8 @@
       80% { transform: translateX(4px); }
     }
     .pk-shake { animation: pkShake 460ms cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes pkShimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
+    .pk-shimmer { background: linear-gradient(90deg, rgba(10,10,10,0.05) 25%, rgba(10,10,10,0.10) 37%, rgba(10,10,10,0.05) 63%); background-size: 720px 100%; animation: pkShimmer 1.25s linear infinite; }
 
     /* ── Everyday design language ──────────────────────────────────────────
        Inputs read as a shaded placeholder over a dashed rule — no card. The

@@ -1071,317 +1071,701 @@ function ReceiptRow({ label, value, green = false, last = false }) {
     </div>
   );
 }
-function CommuteScreen({ web, onBack }) {
-  const [query, setQuery] = React.useState('');
-  const [destination, setDestination] = React.useState('Kigali Heights');
-  const [origin, setOrigin] = React.useState('');
-  const [tracking, setTracking] = React.useState(false);
-  const [contactNumber, setContactNumber] = React.useState('');
-  const [linkedContact, setLinkedContact] = React.useState(null);
-  const [connectionOpen, setConnectionOpen] = React.useState(false);
-  const [profilesOpen, setProfilesOpen] = React.useState(false);
-  const [destsOpen, setDestsOpen] = React.useState(false);
-  const [selectedMoto, setSelectedMoto] = React.useState('aline');
-  const suggestions = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium'];
-  const [rideFilter, setRideFilter] = React.useState('all');
-  const motos = [
-    { id: 'aline',  name: 'Aline N.',   type: 'moto',    rating: '4.9', vehicle: 'Clean moto',     eta: '3 min' },
-    { id: 'eric',   name: 'Eric K.',    type: 'moto',    rating: '4.8', vehicle: 'Helmet ready',    eta: '5 min' },
-    { id: 'jp',     name: 'Jean-Paul',  type: 'car',     rating: '4.9', vehicle: 'Toyota · AC',     eta: '7 min' },
-    { id: 'claud',  name: 'Claudine',   type: 'car',     rating: '4.7', vehicle: 'Saloon · 4 seats', eta: '9 min' },
-    { id: 'diane',  name: 'Diane M.',   type: 'profile', rating: '',    vehicle: 'Saved contact',   eta: '—' },
-  ];
-  const rideFilters = [
-    { id: 'all',     label: 'All' },
-    { id: 'moto',    label: 'Moto' },
-    { id: 'car',     label: 'Car' },
-    { id: 'profile', label: 'Profile' },
-  ];
-  const filteredMotos = rideFilter === 'all' ? motos : motos.filter((m) => m.type === rideFilter);
-  const selectedMotoProfile = motos.find((m) => m.id === selectedMoto) || motos[0];
-  const routeLabel = destination || 'Choose destination';
+// ────────────────────────────── COMMUTE ──────────────────────────────
+// A guided, progressively-disclosed journey that keeps the de-carded
+// Everyday language (dashed rules, ink/paper, mono labels):
+//   plan → results → detail → confirm → success, plus a focused
+//   "ride with someone" sub-flow. The map is a design-native demo
+//   surface (route, pickup, destination, live nearby riders).
 
-  const chooseDestination = (value) => {
-    setDestination(value);
-    setQuery(value);
-  };
-  const trackLocation = () => {
-    setTracking(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        () => { setOrigin('Your live location'); setTracking(false); },
-        () => { setOrigin('Kigali current location'); setTracking(false); },
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    } else {
-      setOrigin('Kigali current location');
-      setTracking(false);
-    }
-  };
-  const linkContact = () => {
-    const clean = contactNumber.trim();
-    if (!clean) return;
-    setLinkedContact(clean);
-    setConnectionOpen(true);
-  };
+// Realistic Kigali demo fleet. Prices in RWF.
+const CC_RIDES = [
+  { id: 'aline',  name: 'Aline N.',     type: 'moto',   vehicle: 'Bajaj · Helmet',        rating: 4.9, eta: 3,  duration: 8,  distance: 2.4, price: 1200, verified: true,  available: true,  x: '28%', y: '58%' },
+  { id: 'eric',   name: 'Eric K.',      type: 'moto',   vehicle: 'TVS · Helmet ready',    rating: 4.8, eta: 5,  duration: 9,  distance: 2.6, price: 1100, verified: true,  available: true,  x: '46%', y: '70%' },
+  { id: 'jp',     name: 'Jean-Paul U.', type: 'car',    vehicle: 'Toyota Vitz · AC',      rating: 4.9, eta: 7,  duration: 12, distance: 3.1, price: 3800, verified: true,  available: true,  x: '62%', y: '46%' },
+  { id: 'claud',  name: 'Claudine I.',  type: 'car',    vehicle: 'Toyota Yaris · 4 seats',rating: 4.7, eta: 9,  duration: 13, distance: 3.0, price: 3500, verified: false, available: true,  x: '38%', y: '40%' },
+  { id: 'pat',    name: 'Patrick + 2',  type: 'shared', vehicle: 'Toyota Noah · 2 seats', rating: 4.8, eta: 6,  duration: 15, distance: 3.2, price: 1800, seatsLeft: 2, verified: true, available: true,  x: '70%', y: '64%' },
+  { id: 'grace',  name: 'Grace & riders',type: 'shared',vehicle: 'Hiace · 3 seats left',  rating: 4.6, eta: 11, duration: 16, distance: 3.4, price: 1500, seatsLeft: 3, verified: true, available: false, x: '54%', y: '30%' },
+];
 
+const CC_PLACES = [
+  { id: 'home', label: 'Home', addr: 'Kicukiro', kind: 'home' },
+  { id: 'work', label: 'Work', addr: 'Kigali Heights', kind: 'work' },
+];
+
+const CC_RECENT_DESTS = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium', 'Kimironko Market'];
+
+// People going your way — the ride-with-someone sub-flow.
+const CC_RIDE_MATES = [
+  { id: 'diane',    name: 'Diane M.',    rating: 4.9, verified: true, type: 'car',  vehicle: 'Toyota Vitz', route: 'Same route',        heading: 'Kigali Heights', seatsLeft: 2, when: 'Leaving in 8 min' },
+  { id: 'sandrine', name: 'Sandrine K.', rating: 4.8, verified: true, type: 'moto', vehicle: 'Bajaj',       route: 'Similar direction', heading: 'Nyamirambo',     seatsLeft: 1, when: 'Leaving now' },
+  { id: 'eric2',    name: 'Eric K.',     rating: 4.8, verified: true, type: 'car',  vehicle: 'Saved contact', route: 'Frequent rider',  heading: 'City centre',    seatsLeft: 3, when: 'Flexible' },
+];
+
+const CC_SORTS = [
+  { id: 'fast',  label: 'Fastest',    key: (a, b) => a.eta - b.eta },
+  { id: 'cheap', label: 'Cheapest',   key: (a, b) => a.price - b.price },
+  { id: 'close', label: 'Closest',    key: (a, b) => a.distance - b.distance },
+  { id: 'rated', label: 'Top rated',  key: (a, b) => b.rating - a.rating },
+];
+
+function ccPrice(n) { return 'RWF ' + Number(n).toLocaleString('en-US'); }
+
+// Small inline marks ----------------------------------------------------------
+function Verified({ size = 13 }) {
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
-      <ScreenHeader
-        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <IconBtn onClick={onBack}>
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </IconBtn>
-          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Commute</span>
-        </div>}
-      />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-label="Verified" style={{ flexShrink: 0 }}>
+      <path d="M12 2.6l2.3 1.7 2.8-.2 1 2.7 2.3 1.7-.9 2.7.9 2.7-2.3 1.7-1 2.7-2.8-.2L12 21.4 9.7 19.7l-2.8.2-1-2.7-2.3-1.7.9-2.7-.9-2.7 2.3-1.7 1-2.7 2.8.2z" fill="#2FAE9B"/>
+      <path d="M8.6 12.2l2.2 2.2 4.6-4.8" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function Stars({ value }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: ink55, fontSize: 11.5, fontWeight: 700 }}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="#E2941F"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+      {value.toFixed(1)}
+    </span>
+  );
+}
 
-      <div className="cc-scroll" style={{
-        flex: 1,
-        minHeight: 0,
-        overflowY: web ? 'hidden' : 'auto',
-        padding: web ? '16px 32px 32px' : '8px 14px 18px',
-        display: 'grid',
-        gridTemplateColumns: web ? 'minmax(0, 1.35fr) minmax(320px, 0.65fr)' : '1fr',
-        gridTemplateRows: web ? '1fr' : 'auto auto',
-        gap: web ? 18 : 12,
-      }}>
-        <div style={{
-          position: 'relative',
-          overflow: 'hidden',
-          minHeight: web ? 0 : 330,
-          borderRadius: web ? 28 : 24,
-          background:
-            'linear-gradient(90deg, rgba(10,10,10,0.045) 1px, transparent 1px), linear-gradient(0deg, rgba(10,10,10,0.045) 1px, transparent 1px), #ECE8E0',
-          backgroundSize: '58px 58px',
-          boxShadow: 'inset 0 0 0 1px rgba(10,10,10,0.08)',
-        }}>
-          <svg viewBox="0 0 900 760" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-            <path d="M-30 560 C160 492 235 430 354 394 C478 356 542 304 622 210 C693 126 770 88 930 72" fill="none" stroke="rgba(255,255,255,0.72)" strokeWidth="64" strokeLinecap="round"/>
-            <path d="M-30 560 C160 492 235 430 354 394 C478 356 542 304 622 210 C693 126 770 88 930 72" fill="none" stroke="rgba(10,10,10,0.20)" strokeWidth="2" strokeDasharray="10 16"/>
-            <path d="M92 -30 C158 144 242 244 352 324 C485 420 606 489 804 790" fill="none" stroke="rgba(255,255,255,0.58)" strokeWidth="42" strokeLinecap="round"/>
-            <path d="M92 -30 C158 144 242 244 352 324 C485 420 606 489 804 790" fill="none" stroke="rgba(10,10,10,0.16)" strokeWidth="2" strokeDasharray="8 14"/>
-            <path d="M210 704 C252 590 319 520 430 475 C548 426 612 385 716 282" fill="none" stroke="#0A0A0A" strokeWidth="8" strokeLinecap="round"/>
-            <path d="M210 704 C252 590 319 520 430 475 C548 426 612 385 716 282" fill="none" stroke="#FAF6F1" strokeWidth="3" strokeLinecap="round"/>
-          </svg>
+// Design-native demo map -----------------------------------------------------
+// Keeps the cream grid + soft road art of the original, adds a highlighted
+// route, pickup/destination pins, and live nearby-rider markers.
+function CommuteMap({ origin, destination, riders = [], phase = 'plan', height, radius = 24 }) {
+  return (
+    <div style={{
+      position: 'relative', overflow: 'hidden',
+      height: height || '100%', minHeight: height ? undefined : 200,
+      borderRadius: radius,
+      background:
+        'linear-gradient(90deg, rgba(10,10,10,0.045) 1px, transparent 1px), linear-gradient(0deg, rgba(10,10,10,0.045) 1px, transparent 1px), #ECE8E0',
+      backgroundSize: '54px 54px',
+      boxShadow: 'inset 0 0 0 1px rgba(10,10,10,0.08)',
+    }}>
+      <style>{`
+        @keyframes cc-ping { 0% { transform: scale(.6); opacity:.55 } 70%,100% { transform: scale(2.4); opacity:0 } }
+        @keyframes cc-dash { to { stroke-dashoffset: -120 } }
+      `}</style>
+      <svg viewBox="0 0 900 760" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {/* soft roads */}
+        <path d="M-30 560 C160 492 235 430 354 394 C478 356 542 304 622 210 C693 126 770 88 930 72" fill="none" stroke="rgba(255,255,255,0.72)" strokeWidth="60" strokeLinecap="round"/>
+        <path d="M92 -30 C158 144 242 244 352 324 C485 420 606 489 804 790" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="40" strokeLinecap="round"/>
+        <path d="M-30 300 C220 320 470 300 930 360" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="34" strokeLinecap="round"/>
+        {/* active route */}
+        <path d="M150 632 C250 560 322 520 430 470 C548 416 612 360 716 250" fill="none" stroke="rgba(10,10,10,0.16)" strokeWidth="9" strokeLinecap="round"/>
+        <path d="M150 632 C250 560 322 520 430 470 C548 416 612 360 716 250" fill="none" stroke={ink} strokeWidth="4.5" strokeLinecap="round" strokeDasharray="2 14" style={{ animation: 'cc-dash 2.4s linear infinite' }}/>
+      </svg>
 
-          <div style={{
-            position: 'absolute',
-            left: '22%',
-            bottom: '12%',
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            background: ink,
-            border: '4px solid #FAF6F1',
-            boxShadow: '0 8px 24px rgba(10,10,10,0.24)',
-          }} />
-          <div style={{
-            position: 'absolute',
-            left: '34%',
-            top: '42%',
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            background: linkedContact ? '#5B7CFA' : 'rgba(10,10,10,0.28)',
-            border: '4px solid #FAF6F1',
-            boxShadow: '0 8px 24px rgba(10,10,10,0.18)',
-            opacity: linkedContact ? 1 : 0.4,
-          }} />
-          <div style={{
-            position: 'absolute',
-            left: '54%',
-            bottom: '31%',
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            background: ink,
-            color: paper,
-            border: '4px solid #FAF6F1',
-            boxShadow: '0 8px 24px rgba(10,10,10,0.24)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 10,
-            fontWeight: 800,
-          }}>M</div>
-          <div style={{
-            position: 'absolute',
-            right: '19%',
-            top: '30%',
-            width: 26,
-            height: 26,
-            borderRadius: '50% 50% 50% 4px',
-            transform: 'rotate(-45deg)',
-            background: '#2FAE9B',
-            border: '4px solid #FAF6F1',
-            boxShadow: '0 8px 24px rgba(10,10,10,0.22)',
-          }} />
-
-          <div style={{
-            position: 'absolute',
-            left: web ? 22 : 16,
-            top: web ? 22 : 16,
-            right: web ? 'auto' : 16,
-            borderRadius: 18,
-            background: 'rgba(250,246,241,0.82)',
-            backdropFilter: 'blur(18px)',
-            WebkitBackdropFilter: 'blur(18px)',
-            boxShadow: '0 18px 44px rgba(10,10,10,0.10)',
-            padding: '14px 16px',
-            minWidth: web ? 260 : 0,
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 760, color: ink40 }}>Route</div>
-            <div style={{ marginTop: 5, fontSize: 15, fontWeight: 820, color: ink }}>{routeLabel}</div>
-            <div style={{ marginTop: 4, fontSize: 12, fontWeight: 650, color: ink55 }}>{origin || 'Current location'} · {selectedMotoProfile.name} · {linkedContact ? 'contact linked' : '12 min'}</div>
-          </div>
+      {/* nearby riders */}
+      {phase === 'plan' && riders.map((r) => (
+        <div key={r.id} style={{ position: 'absolute', left: r.x, top: r.y, transform: 'translate(-50%,-50%)' }}>
+          <span style={{ position: 'absolute', inset: -6, borderRadius: '50%', background: r.type === 'shared' ? 'rgba(91,124,250,0.4)' : 'rgba(47,174,155,0.4)', animation: 'cc-ping 2.6s ease-out infinite' }} />
+          <span style={{ position: 'relative', width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: paper, border: `1.5px solid ${ink12}`, color: ink, boxShadow: '0 6px 16px rgba(10,10,10,0.16)' }}>
+            <RideTypeIcon type={r.type} size={14} />
+          </span>
         </div>
+      ))}
 
-        <div style={{
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: web ? 'center' : 'flex-start',
-          gap: 14,
-        }}>
-          <div style={{ padding: web ? '4px 2px' : '0' }}>
-            {/* Where from — type, or tap the map icon for your live location */}
-            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Where from?</div>
-            <DashField
-              value={origin}
-              onChange={setOrigin}
-              placeholder="Current location or address"
-              prefix={(
-                <button onClick={trackLocation} aria-label="Use current location" title="Use current location" style={{ border: 0, background: 'transparent', cursor: 'pointer', color: tracking ? '#2FAE9B' : ink55, padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-                </button>
-              )}
-            />
-            {tracking && (<div style={{ marginTop: 8, fontSize: 12, color: ink40 }}>Finding your location…</div>)}
+      {/* origin pin */}
+      <div style={{ position: 'absolute', left: '17%', bottom: '15%', transform: 'translate(-50%,50%)', width: 18, height: 18, borderRadius: '50%', background: ink, border: '4px solid #FAF6F1', boxShadow: '0 8px 22px rgba(10,10,10,0.24)' }} />
+      {/* destination pin */}
+      <div style={{ position: 'absolute', right: '18%', top: '30%', width: 28, height: 28, borderRadius: '50% 50% 50% 4px', transform: 'rotate(-45deg)', background: '#2FAE9B', border: '4px solid #FAF6F1', boxShadow: '0 10px 24px rgba(47,174,155,0.34)' }} />
 
-            {/* Where to — name or search a destination, send to commit */}
-            <div style={{ marginTop: 22, fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Where to?</div>
-            <DashField
-              value={query}
-              onChange={setQuery}
-              placeholder="Search or name a destination"
-              prefix={(
-                <span style={{ color: ink40, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-                </span>
-              )}
-              suffix={(
-                <button onClick={() => { const v = query.trim(); if (v) chooseDestination(v); }} aria-label="Search destination" disabled={!query.trim()} style={{ border: 0, background: query.trim() ? ink : 'transparent', color: query.trim() ? paper : ink25, cursor: query.trim() ? 'pointer' : 'default', width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 180ms ease' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                </button>
-              )}
-            />
-
-            {query.trim() ? (
-              /* Live suggestions — only while typing */
-              <div style={{ marginTop: 14 }}>
-                {suggestions.filter((s) => s.toLowerCase().includes(query.trim().toLowerCase())).map((item, sidx) => (
-                  <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: ink70 }}>{item}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: ink25 }}>Set</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              /* Find a person to ride with, then the recents — hidden while typing */
-              <div style={{ marginTop: 18 }}>
-                {/* Call a saved rider/contact to negotiate a pickup */}
-                <div style={{ borderTop: `1px dashed ${DASH}`, paddingTop: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <DashField label="Find someone to ride with" value={contactNumber} onChange={setContactNumber} placeholder="Search a saved number" inputMode="tel" />
-                    </div>
-                    <button onClick={linkContact} disabled={!contactNumber.trim()} style={{ flexShrink: 0, border: 0, background: 'transparent', color: contactNumber.trim() ? ink : ink25, cursor: contactNumber.trim() ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, padding: '8px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      Call
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
-                    </button>
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 11.5, color: ink40, lineHeight: 1.4 }}>Call a saved rider to negotiate and have them come to you.</div>
-                </div>
-
-                {/* Filter — All · Moto · Car · Profile */}
-                <div style={{ marginTop: 18, display: 'flex', gap: 8 }}>
-                  {rideFilters.map((f) => {
-                    const on = rideFilter === f.id;
-                    return (
-                      <button key={f.id} onClick={() => { pkHaptic('select'); setRideFilter(f.id); }} aria-label={f.label} style={{ flex: 1, height: 54, borderRadius: 14, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <RideTypeIcon type={f.id} />
-                        <span style={{ fontSize: 10.5, fontWeight: 700 }}>{f.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <RecentSection title="Recent profiles" count={filteredMotos.length} open={profilesOpen} onToggle={() => setProfilesOpen((o) => !o)}>
-                    {filteredMotos.length === 0 && (<div style={{ fontSize: 13, color: ink40, padding: '10px 0' }}>No {rideFilter} profiles yet.</div>)}
-                    {filteredMotos.map((moto, midx) => {
-                      const on = moto.id === selectedMoto;
-                      return (
-                        <button key={moto.id} onClick={() => setSelectedMoto(moto.id)} style={{ width: '100%', border: 0, borderTop: midx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1px dashed ${DASH}`, color: on ? paper : ink55 }}>
-                            <RideTypeIcon type={moto.type} size={16} />
-                          </span>
-                          <span style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{moto.name}</span>
-                            <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 1 }}>{moto.vehicle}{moto.eta && moto.eta !== '—' ? ` · ${moto.eta}` : ''}</span>
-                          </span>
-                          <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Chosen' : (moto.type === 'profile' ? 'Call' : 'Choose')}</span>
-                        </button>
-                      );
-                    })}
-                  </RecentSection>
-                  <RecentSection title="Recent destinations" count={suggestions.length} open={destsOpen} onToggle={() => setDestsOpen((o) => !o)}>
-                    {suggestions.map((item, sidx) => {
-                      const on = item === destination;
-                      return (
-                        <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                          <span style={{ fontSize: 14, fontWeight: on ? 760 : 600, color: on ? ink : ink70 }}>{item}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Set'}</span>
-                        </button>
-                      );
-                    })}
-                  </RecentSection>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Connections summary */}
-          <div>
-            <button onClick={() => setConnectionOpen((open) => !open)} style={{
-              width: '100%', minHeight: 46, border: 0, borderRadius: 12,
-              background: connectionOpen ? ink : 'transparent',
-              color: connectionOpen ? paper : ink, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, fontWeight: 760, display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', padding: '0 14px',
-            }}>
-              <span>Connections</span>
-              <span style={{ letterSpacing: 2 }}>•••</span>
-            </button>
-            {connectionOpen && (
-              <div className="pk-rise" style={{ padding: '6px 2px 2px' }}>
-                <ConnectionRow label="Your location" value={origin || 'Current location'} />
-                <ConnectionRow label="Moto profile" value={selectedMotoProfile.name} />
-                <ConnectionRow label="Destination" value={routeLabel} />
-                <ConnectionRow label="Linked number" value={linkedContact || 'Not linked'} last />
-              </div>
-            )}
-          </div>
-
-          {/* Spacer so the bottom-centre + launcher never overlaps content */}
-          {!web && <div aria-hidden="true" style={{ flexShrink: 0, height: 96 }} />}
+      {/* glass route card */}
+      <div style={{ position: 'absolute', left: 14, top: 14, right: 14, maxWidth: 320, borderRadius: 16, background: 'rgba(250,246,241,0.85)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', boxShadow: '0 16px 40px rgba(10,10,10,0.12)', padding: '11px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: ink, flexShrink: 0 }} />
+          <span style={{ fontSize: 13, fontWeight: 760, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{origin || 'Current location'}</span>
+        </div>
+        <div style={{ width: 1, height: 12, borderLeft: `1.5px dashed ${ink25}`, marginLeft: 3.5 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '2px 2px 2px 0', transform: 'rotate(45deg)', background: '#2FAE9B', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, fontWeight: 760, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{destination || 'Choose destination'}</span>
         </div>
       </div>
     </div>
   );
+}
+
+// Segmented transport switcher (essential choices, always visible in results)
+function CommuteSegmented({ value, onChange }) {
+  const opts = [
+    { id: 'all',    label: 'All' },
+    { id: 'moto',   label: 'Moto' },
+    { id: 'car',    label: 'Car' },
+    { id: 'shared', label: 'Shared' },
+  ];
+  return (
+    <div style={{ display: 'flex', gap: 7 }}>
+      {opts.map((o) => {
+        const on = value === o.id;
+        return (
+          <button key={o.id} onClick={() => { pkHaptic('select'); onChange(o.id); }} style={{ flex: 1, height: 52, borderRadius: 13, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, transition: 'background 160ms ease' }}>
+            <RideTypeIcon type={o.id} size={16} />
+            <span style={{ fontSize: 10.5, fontWeight: 700 }}>{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// A single ride result — de-carded dashed row.
+function RideRow({ ride, first, onOpen }) {
+  const dimmed = !ride.available;
+  return (
+    <button onClick={() => ride.available && onOpen(ride)} disabled={dimmed} style={{
+      width: '100%', border: 0, borderTop: first ? 'none' : `1px dashed ${DASH}`, background: 'transparent',
+      cursor: dimmed ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left',
+      padding: '14px 0', display: 'flex', alignItems: 'center', gap: 13, opacity: dimmed ? 0.5 : 1,
+    }}>
+      <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}>
+        <RideTypeIcon type={ride.type} size={18} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 14.5, fontWeight: 760, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.name}</span>
+          {ride.verified && <Verified />}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+          <Stars value={ride.rating} />
+          <span style={{ fontSize: 11.5, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.vehicle}</span>
+        </span>
+        <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 3, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>
+          {dimmed ? 'Fully booked' : `${ride.eta} min away · ${ride.duration} min trip · ${ride.distance} km`}
+        </span>
+      </span>
+      <span style={{ textAlign: 'right', flexShrink: 0 }}>
+        <span style={{ display: 'block', fontSize: 14.5, fontWeight: 820, color: ink, letterSpacing: '-0.01em' }}>{ccPrice(ride.price)}</span>
+        <span style={{ display: 'block', fontSize: 10.5, color: ride.type === 'shared' ? '#5B7CFA' : ink40, marginTop: 2, fontWeight: 700 }}>{ride.type === 'shared' ? `${ride.seatsLeft} seats left` : 'per trip'}</span>
+      </span>
+    </button>
+  );
+}
+
+function RideSkeleton({ first }) {
+  return (
+    <div style={{ borderTop: first ? 'none' : `1px dashed ${DASH}`, padding: '14px 0', display: 'flex', alignItems: 'center', gap: 13 }}>
+      <span className="pk-shimmer" style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }} />
+      <span style={{ flex: 1 }}>
+        <span className="pk-shimmer" style={{ display: 'block', width: '52%', height: 13, borderRadius: 6 }} />
+        <span className="pk-shimmer" style={{ display: 'block', width: '74%', height: 11, borderRadius: 6, marginTop: 8 }} />
+      </span>
+      <span className="pk-shimmer" style={{ width: 56, height: 16, borderRadius: 6 }} />
+    </div>
+  );
+}
+
+// Section heading used across steps
+function CommuteStepLabel({ children }) {
+  return <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 6 }}>{children}</div>;
+}
+function DetailRow({ label, value, accent = false, last = false }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '12px 0', borderBottom: last ? 'none' : `1px dashed ${DASH}` }}>
+      <span style={{ fontSize: 12.5, color: ink40 }}>{label}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 760, color: accent ? '#2FAE9B' : ink, textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+}
+
+function CommuteScreen({ web, onBack }) {
+  // step: plan · results · detail · confirm · success · share · share-confirm · share-success
+  const [step, setStep] = React.useState('plan');
+  const [origin, setOrigin] = React.useState('');
+  const [destination, setDestination] = React.useState('');
+  const [query, setQuery] = React.useState('');
+  const [tracking, setTracking] = React.useState(false);
+  const [searching, setSearching] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [sort, setSort] = React.useState('fast');
+  const [refineOpen, setRefineOpen] = React.useState(false);
+  const [topRated, setTopRated] = React.useState(false);
+  const [verifiedOnly, setVerifiedOnly] = React.useState(false);
+
+  const [selected, setSelected] = React.useState(null);
+  const [destsOpen, setDestsOpen] = React.useState(false);
+
+  // ride-with-someone sub-flow
+  const [mateQuery, setMateQuery] = React.useState('');
+  const [mate, setMate] = React.useState(null);
+
+  const goPlan = () => { pkHaptic('select'); setStep('plan'); setError(''); };
+  const back = () => {
+    pkHaptic('select');
+    if (step === 'results') setStep('plan');
+    else if (step === 'detail') setStep('results');
+    else if (step === 'confirm') setStep('detail');
+    else if (step === 'success') setStep('plan');
+    else if (step === 'share') setStep('plan');
+    else if (step === 'share-confirm') setStep('share');
+    else if (step === 'share-success') setStep('plan');
+    else onBack();
+  };
+
+  const setDest = (v) => { setDestination(v); setQuery(v); setError(''); };
+  const trackLocation = () => {
+    setTracking(true);
+    const done = (label) => { setOrigin(label); setTracking(false); };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        () => done('Your live location'),
+        () => done('Kigali — current location'),
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else { done('Kigali — current location'); }
+  };
+
+  const runSearch = () => {
+    const dest = (query || destination).trim();
+    if (!dest) { setError('Add where you’re going to see rides.'); return; }
+    setDestination(dest);
+    pkHaptic('medium');
+    setStep('results');
+    setSearching(true);
+    setTimeout(() => setSearching(false), 700);
+  };
+
+  // results pipeline: filter → refine → sort
+  const results = React.useMemo(() => {
+    let rs = CC_RIDES.slice();
+    if (typeFilter !== 'all') rs = rs.filter((r) => r.type === typeFilter);
+    if (topRated) rs = rs.filter((r) => r.rating >= 4.8);
+    if (verifiedOnly) rs = rs.filter((r) => r.verified);
+    const s = CC_SORTS.find((x) => x.id === sort) || CC_SORTS[0];
+    rs.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1) || s.key(a, b));
+    return rs;
+  }, [typeFilter, sort, topRated, verifiedOnly]);
+
+  const openRide = (r) => { pkHaptic('select'); setSelected(r); setStep('detail'); };
+  const confirmRide = () => { pkHaptic('success'); setStep('success'); };
+
+  const mates = React.useMemo(() => {
+    const q = mateQuery.trim().toLowerCase();
+    if (!q) return CC_RIDE_MATES;
+    return CC_RIDE_MATES.filter((m) => m.name.toLowerCase().includes(q) || m.heading.toLowerCase().includes(q));
+  }, [mateQuery]);
+  const openMate = (m) => { pkHaptic('select'); setMate(m); setStep('share-confirm'); };
+  const connectMate = () => { pkHaptic('success'); setStep('share-success'); };
+
+  const title = step === 'share' || step === 'share-confirm' || step === 'share-success' ? 'Ride together' : 'Commute';
+
+  const header = (
+    <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <IconBtn onClick={back}>
+        {step === 'plan' ? (
+          <svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3l-5 5 5 5"/></svg>
+        )}
+      </IconBtn>
+      <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>{title}</span>
+    </div>} />
+  );
+
+  const sheetPad = web ? '18px 60px 40px' : '10px 20px 30px';
+  const ctaPad = web ? 0 : 96; // clear of the bottom-centre + launcher on mobile
+
+  // ───────────────────────────── PLAN ─────────────────────────────
+  if (step === 'plan') {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, minHeight: 0, overflowY: web ? 'hidden' : 'auto', padding: web ? '16px 32px 32px' : '8px 14px 18px', display: 'grid', gridTemplateColumns: web ? 'minmax(0,1.25fr) minmax(330px,0.75fr)' : '1fr', gridTemplateRows: web ? '1fr' : 'auto auto', gap: web ? 18 : 12 }}>
+          <CommuteMap origin={origin} destination={query || destination} riders={CC_RIDES} phase="plan" height={web ? undefined : 240} radius={web ? 28 : 22} />
+
+          <div style={{ minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: web ? 'center' : 'flex-start' }}>
+            <div className="pk-stagger">
+              <CommuteStepLabel>Where from?</CommuteStepLabel>
+              <DashField value={origin} onChange={setOrigin} placeholder="Current location or address"
+                prefix={(
+                  <button onClick={trackLocation} aria-label="Use current location" style={{ border: 0, background: 'transparent', cursor: 'pointer', color: tracking ? '#2FAE9B' : ink55, padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                  </button>
+                )} />
+              {tracking && <div style={{ marginTop: 8, fontSize: 12, color: ink40 }}>Finding your location…</div>}
+
+              <div style={{ marginTop: 22 }}>
+                <CommuteStepLabel>Where to?</CommuteStepLabel>
+                <DashField value={query} onChange={(v) => { setQuery(v); setError(''); }} placeholder="Search or name a destination"
+                  prefix={(<span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>)}
+                  suffix={query.trim() ? (<button onClick={() => { setQuery(''); }} aria-label="Clear" style={{ border: 0, background: 'transparent', color: ink25, cursor: 'pointer', display: 'flex', flexShrink: 0, padding: 4 }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>) : null} />
+              </div>
+
+              {/* Saved places + recent destinations — contextual to destination selection */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                {CC_PLACES.map((p) => (
+                  <button key={p.id} onClick={() => setDest(p.addr)} style={{ height: 36, padding: '0 13px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: ink70, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    {p.kind === 'home'
+                      ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>
+                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>}
+                    {p.label}
+                  </button>
+                ))}
+                {query.trim() === '' && CC_RECENT_DESTS.slice(0, 2).map((d) => (
+                  <button key={d} onClick={() => setDest(d)} style={{ height: 36, padding: '0 13px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: ink55 }}>{d}</button>
+                ))}
+              </div>
+
+              {/* live suggestions while typing */}
+              {query.trim() && (
+                <div style={{ marginTop: 12 }}>
+                  {CC_RECENT_DESTS.filter((s) => s.toLowerCase().includes(query.trim().toLowerCase())).map((item, i) => (
+                    <button key={item} onClick={() => setDest(item)} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '11px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: ink70 }}>{item}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {error && <div style={{ marginTop: 14, fontSize: 12.5, color: '#C8102E', fontWeight: 600 }}>{error}</div>}
+
+              <button onClick={runSearch} style={{ marginTop: 18, width: '100%', height: 54, borderRadius: 16, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 760, letterSpacing: '-0.01em', boxShadow: '0 14px 34px rgba(10,10,10,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+                Find rides
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+
+              <button onClick={() => { pkHaptic('select'); setStep('share'); }} style={{ marginTop: 12, width: '100%', height: 48, borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 6.5a3 3 0 0 1 0 5.8M18.5 19a5.5 5.5 0 0 0-3-4.9"/></svg>
+                Ride with someone
+              </button>
+
+              <div style={{ marginTop: 14 }}>
+                <RecentSection title="Recent destinations" count={CC_RECENT_DESTS.length} open={destsOpen} onToggle={() => setDestsOpen((o) => !o)}>
+                  {CC_RECENT_DESTS.map((item, i) => (
+                    <button key={item} onClick={() => setDest(item)} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: ink70 }}>{item}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: ink25 }}>Set</span>
+                    </button>
+                  ))}
+                </RecentSection>
+              </div>
+            </div>
+            {!web && <div aria-hidden="true" style={{ flexShrink: 0, height: 96 }} />}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────── RESULTS ────────────────────────────
+  if (step === 'results') {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 620 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <button onClick={goPlan} style={{ width: '100%', border: `1px dashed ${DASH}`, borderRadius: 14, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 11, textAlign: 'left' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: ink, flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{origin || 'Current location'} → {destination}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: ink40, flexShrink: 0 }}>Edit</span>
+            </button>
+
+            <div style={{ marginTop: 16 }}>
+              <CommuteSegmented value={typeFilter} onChange={setTypeFilter} />
+            </div>
+
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: ink40, fontWeight: 600 }}>{searching ? 'Finding rides…' : `${results.length} ride${results.length === 1 ? '' : 's'} nearby`}</span>
+              <button onClick={() => setRefineOpen((o) => !o)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, color: ink, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+                Refine
+              </button>
+            </div>
+
+            {refineOpen && (
+              <div className="pk-rise" style={{ marginTop: 12, paddingTop: 12, borderTop: `1px dashed ${DASH}` }}>
+                <CommuteStepLabel>Sort by</CommuteStepLabel>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  {CC_SORTS.map((s) => {
+                    const on = sort === s.id;
+                    return <button key={s.id} onClick={() => { pkHaptic('select'); setSort(s.id); }} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>{s.label}</button>;
+                  })}
+                </div>
+                <div style={{ display: 'flex', gap: 7, marginTop: 12 }}>
+                  <button onClick={() => setTopRated((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: topRated ? '0' : `1px dashed ${DASH}`, background: topRated ? ink : 'transparent', color: topRated ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>4.8★ and up</button>
+                  <button onClick={() => setVerifiedOnly((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: verifiedOnly ? '0' : `1px dashed ${DASH}`, background: verifiedOnly ? ink : 'transparent', color: verifiedOnly ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>Verified only</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: 12 }}>
+              {searching ? (
+                [0, 1, 2, 3].map((i) => <RideSkeleton key={i} first={i === 0} />)
+              ) : results.length === 0 ? (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <div style={{ width: 46, height: 46, borderRadius: '50%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink40 }}>
+                    <RideTypeIcon type={typeFilter === 'all' ? 'profile' : typeFilter} size={20} />
+                  </div>
+                  <div style={{ marginTop: 14, fontSize: 14.5, fontWeight: 760, color: ink }}>No rides match</div>
+                  <div style={{ marginTop: 4, fontSize: 12.5, color: ink40 }}>Try another type or clear your filters.</div>
+                  <button onClick={() => { setTypeFilter('all'); setTopRated(false); setVerifiedOnly(false); }} style={{ marginTop: 16, height: 40, padding: '0 18px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 760 }}>Reset filters</button>
+                </div>
+              ) : (
+                results.map((r, i) => <RideRow key={r.id} ride={r} first={i === 0} onOpen={openRide} />)
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────── DETAIL ────────────────────────────
+  if (step === 'detail' && selected) {
+    const r = selected;
+    const fee = Math.round(r.price * 0.1);
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 560 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <CommuteMap origin={origin} destination={destination} phase="route" height={170} radius={20} />
+
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 13 }}>
+              <span style={{ width: 50, height: 50, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={22} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>{r.name}</span>
+                  {r.verified && <Verified size={15} />}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                  <Stars value={r.rating} />
+                  <span style={{ fontSize: 12.5, color: ink40 }}>{r.vehicle}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              <DetailRow label="Pickup ETA" value={`${r.eta} min`} />
+              <DetailRow label="Trip time" value={`${r.duration} min`} />
+              <DetailRow label="Distance" value={`${r.distance} km`} />
+              {r.type === 'shared' && <DetailRow label="Seats left" value={`${r.seatsLeft}`} />}
+              <DetailRow label="Pickup" value={origin || 'Current location'} />
+              <DetailRow label="Drop-off" value={destination} last />
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <CommuteStepLabel>Fare breakdown</CommuteStepLabel>
+              <DetailRow label="Base fare" value={ccPrice(r.price - fee)} />
+              <DetailRow label="Service" value={ccPrice(fee)} />
+              <DetailRow label="Total" value={ccPrice(r.price)} accent last />
+            </div>
+
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', borderRadius: 14, background: ink06 }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2FAE9B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9.3 12l1.9 1.9 3.6-3.8"/></svg>
+              <span style={{ fontSize: 12.5, color: ink55, lineHeight: 1.45 }}>Driver is ID-verified. Share your live trip and reach support any time from the ride.</span>
+            </div>
+
+            <button onClick={() => { pkHaptic('select'); setStep('confirm'); }} style={{ marginTop: 22, width: '100%', height: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 760, boxShadow: '0 16px 38px rgba(10,10,10,0.22)' }}>Continue · {ccPrice(r.price)}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────── CONFIRM ────────────────────────────
+  if (step === 'confirm' && selected) {
+    const r = selected;
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: ctaPad }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Confirm your ride.</div>
+              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Review the details before you book.</div>
+
+              <div style={{ marginTop: 24 }}>
+                <button onClick={goPlan} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', borderBottom: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span><span style={{ display: 'block', fontSize: 11, color: ink40, fontFamily: CC_MONO, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pickup</span><span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, marginTop: 3 }}>{origin || 'Current location'}</span></span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: ink40 }}>Change</span>
+                </button>
+                <button onClick={goPlan} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', borderBottom: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span><span style={{ display: 'block', fontSize: 11, color: ink40, fontFamily: CC_MONO, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Drop-off</span><span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, marginTop: 3 }}>{destination}</span></span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: ink40 }}>Change</span>
+                </button>
+                <DetailRow label="Ride" value={`${r.name} · ${r.vehicle.split(' · ')[0]}`} />
+                <DetailRow label="Pickup ETA" value={`${r.eta} min`} />
+                <DetailRow label="Pay with" value="Everyday Wallet" />
+                <DetailRow label="Total" value={ccPrice(r.price)} accent last />
+              </div>
+            </div>
+
+            <button onClick={confirmRide} style={{ marginTop: 24, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)' }}>Confirm ride · {ccPrice(r.price)}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────── SUCCESS ────────────────────────────
+  if (step === 'success' && selected) {
+    const r = selected;
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 480 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#2FAE9B', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 40px rgba(47,174,155,0.30)' }}>
+              <svg width="30" height="30" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ marginTop: 22, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>{r.name} is on the way.</div>
+            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>Arriving in about {r.eta} minutes.</div>
+
+            <div style={{ marginTop: 22 }}>
+              <CommuteMap origin={origin} destination={destination} phase="route" height={160} radius={20} />
+            </div>
+
+            <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 13 }}>
+              <span style={{ width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={20} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 15.5, fontWeight: 800, color: ink }}>{r.name}</span>{r.verified && <Verified />}</div>
+                <div style={{ fontSize: 12.5, color: ink40, marginTop: 1 }}>{r.vehicle} · {ccPrice(r.price)}</div>
+              </div>
+              <span style={{ fontFamily: CC_MONO, fontSize: 11, fontWeight: 700, color: '#2FAE9B', padding: '5px 9px', borderRadius: 999, background: 'rgba(47,174,155,0.12)' }}>EN ROUTE</span>
+            </div>
+
+            <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
+              <button style={{ flex: 1, height: 52, borderRadius: 16, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+                Call
+              </button>
+              <button style={{ flex: 1, height: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
+                Message
+              </button>
+            </div>
+
+            <button onClick={goPlan} style={{ marginTop: 12, width: '100%', height: 50, borderRadius: 16, border: 0, background: 'transparent', color: ink40, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>Back to commute</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ───────────────────── RIDE WITH SOMEONE (sub-flow) ─────────────────────
+  if (step === 'share') {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 560 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <div style={{ fontSize: web ? 32 : 27, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.08, color: ink }}>Find someone going your way.</div>
+            <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Connect with a verified rider, negotiate, and share the trip.</div>
+
+            <div style={{ marginTop: 20 }}>
+              <DashField value={mateQuery} onChange={setMateQuery} placeholder="Search a name, number, or destination"
+                prefix={(<span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>)} />
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <CommuteStepLabel>Riders nearby · {mates.length}</CommuteStepLabel>
+              {mates.length === 0 ? (
+                <div style={{ padding: '34px 0', textAlign: 'center', fontSize: 13, color: ink40 }}>No matching riders yet. Try another name or destination.</div>
+              ) : mates.map((m, i) => (
+                <button key={m.id} onClick={() => openMate(m)} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 13 }}>
+                  <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={m.type} size={18} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 14.5, fontWeight: 760, color: ink }}>{m.name}</span>{m.verified && <Verified />}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}><Stars value={m.rating} /><span style={{ fontSize: 11.5, color: ink40 }}>{m.vehicle}</span></span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, minWidth: 0 }}>
+                      <span style={{ flexShrink: 0, whiteSpace: 'nowrap', fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.04em', color: '#5B7CFA', fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: 'rgba(91,124,250,0.12)' }}>{m.route}</span>
+                      <span style={{ fontSize: 11, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>→ {m.heading} · {m.when}</span>
+                    </span>
+                  </span>
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'share-confirm' && mate) {
+    const m = mate;
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <span style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={m.type} size={24} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 20, fontWeight: 840, letterSpacing: '-0.02em', color: ink }}>{m.name}</span>{m.verified && <Verified size={16} />}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}><Stars value={m.rating} /><span style={{ fontSize: 12.5, color: ink40 }}>{m.vehicle}</span></div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 22 }}>
+              <CommuteMap origin={origin} destination={m.heading} phase="route" height={160} radius={20} />
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              <DetailRow label="Heading to" value={m.heading} />
+              <DetailRow label="Departure" value={m.when} />
+              <DetailRow label="Seats available" value={`${m.seatsLeft}`} />
+              <DetailRow label="Route match" value={m.route} accent last />
+            </div>
+
+            <div style={{ marginTop: 16, fontSize: 12.5, color: ink40, lineHeight: 1.5 }}>Call to agree on pickup and a fair split before they pull up.</div>
+
+            <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
+              <button onClick={connectMate} style={{ flex: 1, height: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 16px 38px rgba(10,10,10,0.22)' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+                Call to negotiate
+              </button>
+            </div>
+            <button onClick={connectMate} style={{ marginTop: 10, width: '100%', height: 48, borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760 }}>Request to join the ride</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'share-success' && mate) {
+    const m = mate;
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {header}
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 480 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#5B7CFA', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 40px rgba(91,124,250,0.30)' }}>
+              <svg width="30" height="30" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ marginTop: 22, fontSize: web ? 34 : 28, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>You’re connected with {m.name.replace(/\.$/, '')}.</div>
+            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>Agree on a pickup point and they’ll head your way.</div>
+
+            <div style={{ marginTop: 22 }}>
+              <DetailRow label="Rider" value={m.name} />
+              <DetailRow label="Heading to" value={m.heading} />
+              <DetailRow label="Departure" value={m.when} last />
+            </div>
+
+            <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
+              <button style={{ flex: 1, height: 52, borderRadius: 16, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+                Call
+              </button>
+              <button style={{ flex: 1, height: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
+                Message
+              </button>
+            </div>
+            <button onClick={goPlan} style={{ marginTop: 12, width: '100%', height: 50, borderRadius: 16, border: 0, background: 'transparent', color: ink40, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>Back to commute</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 // Collapsible recents section — header toggles a dashed-divided list open.
@@ -1390,6 +1774,7 @@ function RideTypeIcon({ type, size = 17 }) {
   if (type === 'moto') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M8.5 16.5h4l3-6h3.5M14 8h3l1.5 5M7 10.5h5.5"/></svg>);
   if (type === 'car') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 13l1.8-4.6A2 2 0 0 1 6.7 7h10.6a2 2 0 0 1 1.9 1.4L21 13v4h-2.2M3 17v-4m2.2 4H3m18 0h-2.2M5.2 17h13.6"/><circle cx="7.2" cy="17" r="1.6"/><circle cx="16.8" cy="17" r="1.6"/></svg>);
   if (type === 'profile') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>);
+  if (type === 'shared') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="8.5" cy="8" r="2.8"/><circle cx="16" cy="9.5" r="2.3"/><path d="M3.5 19a5 5 0 0 1 10 0M14 19a4.4 4.4 0 0 1 6.5-3.4"/></svg>);
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>);
 }
 
