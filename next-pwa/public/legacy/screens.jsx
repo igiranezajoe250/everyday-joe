@@ -1395,6 +1395,16 @@ function ListenScreen({ web, onBack, player }) {
     return () => clearTimeout(id);
   }, [activeIdx]);
 
+  // When the rail is collapsed, the channel icons float in, then fade after 3s —
+  // the open/close toggle always stays.
+  const [railIcons, setRailIcons] = React.useState(false);
+  React.useEffect(() => {
+    if (railOpen) { setRailIcons(false); return; }
+    setRailIcons(true);
+    const id = setTimeout(() => setRailIcons(false), 3000);
+    return () => clearTimeout(id);
+  }, [railOpen]);
+
   const selectChannel = (idx) => { pkHaptic('select'); setActiveIdx(idx); setDisc(''); };
   const isFollowing = !!subscribed[channel.id];
   const discs = [['popular', 'Popular'], ['new', 'New'], ['highlighted', 'Highlighted']];
@@ -1440,9 +1450,24 @@ function ListenScreen({ web, onBack, player }) {
               </div>
             </React.Fragment>
           ) : (
-            <button onClick={() => setRailOpen(true)} aria-label="Show channels" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* Open/close toggle — always stays */}
+              <button onClick={() => setRailOpen(true)} aria-label="Show channels" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+              </button>
+              {/* Floating channel icons — fade out after 3s; tap to jump */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 12, opacity: railIcons ? 1 : 0, transform: railIcons ? 'none' : 'translateY(-6px)', transition: 'opacity 400ms ease, transform 400ms ease', pointerEvents: railIcons ? 'auto' : 'none' }}>
+                {channels.map((c, idx) => {
+                  const on = idx === activeIdx;
+                  return (
+                    <button key={c.id} onClick={() => selectChannel(idx)} aria-label={c.name} title={c.name} style={{ position: 'relative', border: 0, background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex', flexShrink: 0 }}>
+                      <ChannelAvatar ch={c} size={24} />
+                      {on && <span style={{ position: 'absolute', inset: -2.5, borderRadius: '50%', border: `1.5px solid ${ink}` }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
