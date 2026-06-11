@@ -248,23 +248,23 @@ function buildHomeSuggestions(nav) {
 
   try {
     const ln = PKStore.get('listen_now', null);
-    if (ln && ln.title) push({ key: 'listen', icon: 'listen', label: 'Resume listening', sub: ln.title, run: nav.onListen });
+    if (ln && ln.title) push({ key: 'listen', icon: 'listen', label: 'Listening', sub: ln.title, run: nav.onListen });
     const files = PKStore.get('plan_files', null);
     if (Array.isArray(files)) {
       const live = files.filter((f) => f && !f.trashed).sort((a, b) => (b.updated || 0) - (a.updated || 0));
-      if (live[0]) push({ key: 'note', icon: 'note', label: 'Continue note', sub: live[0].title || 'Untitled note', run: () => nav.onOpenNote(live[0].id) });
+      if (live[0]) push({ key: 'note', icon: 'note', label: 'Note', sub: live[0].title || 'Untitled note', run: () => nav.onOpenNote(live[0].id) });
       const withDoc = live.find((f) => (f.attachments || []).length);
-      if (withDoc) push({ key: 'doc', icon: 'doc', label: 'Review document', sub: (withDoc.attachments[0] && withDoc.attachments[0].name) || withDoc.title, run: () => nav.onOpenNote(withDoc.id) });
+      if (withDoc) push({ key: 'doc', icon: 'doc', label: 'Document', sub: (withDoc.attachments[0] && withDoc.attachments[0].name) || withDoc.title, run: () => nav.onOpenNote(withDoc.id) });
     }
   } catch (e) {}
 
   // Evergreen entry points so the main destinations stay one tap away.
-  push({ key: 'save', icon: 'save', label: 'Continue savings plan', sub: 'On track for December', run: nav.onSave });
-  push({ key: 'commute', icon: 'commute', label: 'Plan a commute', sub: 'Where to next?', run: nav.onCommute });
-  push({ key: 'pay', icon: 'pay', label: 'Send a payment', sub: 'Pay or schedule', run: nav.onPay });
-  push({ key: 'shop', icon: 'shop', label: 'Find a trusted shop', sub: 'Vetted near you', run: nav.onShop });
+  push({ key: 'save', icon: 'save', label: 'Savings plan', sub: 'On track', run: nav.onSave });
+  push({ key: 'commute', icon: 'commute', label: 'Commute', sub: 'Where to?', run: nav.onCommute });
+  push({ key: 'pay', icon: 'pay', label: 'Payment', sub: 'Pay or schedule', run: nav.onPay });
+  push({ key: 'shop', icon: 'shop', label: 'Shop', sub: 'Nearby', run: nav.onShop });
 
-  return out.slice(0, 5);
+  return out.slice(0, 6);
 }
 
 function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenNote }) {
@@ -307,26 +307,22 @@ function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, 
             boxShadow: focus ? '0 12px 34px rgba(10,10,10,0.07)' : '0 1px 0 rgba(10,10,10,0.02)',
             transition: 'border-color 180ms ease, box-shadow 180ms ease',
           }}>
-            {/* Left: + → input modes */}
-            <button onClick={() => { pkHaptic('select'); setModeOpen((o) => !o); }} aria-label="Input options" aria-expanded={modeOpen} style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 260ms cubic-bezier(.16,.84,.28,1)', transform: modeOpen ? 'rotate(45deg)' : 'none' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            {/* Left: a worded button — click to choose what you want */}
+            <button onClick={() => { pkHaptic('select'); setModeOpen((o) => !o); }} aria-label="Choose action" aria-haspopup="menu" aria-expanded={modeOpen} style={{ flexShrink: 0, height: 36, padding: '0 8px 0 13px', borderRadius: 999, border: 0, background: ink06, color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>
+              Write
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: modeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M4 6l4 4 4-4"/></svg>
             </button>
 
             <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
               onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
               placeholder="Ask anything" enterKeyHint="go"
-              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '0 4px' }} />
+              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '0 6px' }} />
 
-            {/* Right: microphone (kept) + send when typing */}
-            <button onClick={() => pickMode('voice')} aria-label="Voice" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: 'transparent', color: ink55, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+            {/* Right: minimalist send (replaces the microphone) */}
+            <button onClick={submit} disabled={!ready} aria-label="Send" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: 'transparent', color: ready ? ink : ink25, cursor: ready ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 160ms ease' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
-            {ready && (
-              <button onClick={submit} aria-label="Send" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-              </button>
-            )}
           </div>
 
           {/* + modes popover */}
@@ -346,15 +342,17 @@ function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, 
           )}
         </div>
 
-        {/* Contextual activity cards */}
-        <div style={{ width: '100%', maxWidth: 640, marginTop: 18, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 9 }}>
-          {suggestions.map((s) => (
-            <button key={s.key} onClick={() => { pkHaptic('select'); s.run && s.run(); }} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px dashed ${DASH}`, background: 'transparent', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '9px 13px', textAlign: 'left', maxWidth: 260 }}>
-              <span style={{ color: ink, display: 'flex', flexShrink: 0 }}><HomeIcon kind={s.icon} size={16} /></span>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: ink, whiteSpace: 'nowrap' }}>{s.label}</span>
-                {s.sub && <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>{s.sub}</span>}
+        {/* Recent — a clean, short history list */}
+        <div style={{ width: '100%', maxWidth: 560, marginTop: 24, textAlign: 'left' }}>
+          <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, padding: '0 2px 2px' }}>Recent</div>
+          {suggestions.map((s, i) => (
+            <button key={s.key} onClick={() => { pkHaptic('select'); s.run && s.run(); }} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '11px 2px', display: 'flex', alignItems: 'center', gap: 11 }}>
+              <span style={{ color: ink55, display: 'flex', flexShrink: 0 }}><HomeIcon kind={s.icon} size={15} /></span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontWeight: 700 }}>{s.label}</span>
+                {s.sub ? <span style={{ color: ink40, fontWeight: 500 }}> · {s.sub}</span> : null}
               </span>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>
             </button>
           ))}
         </div>
