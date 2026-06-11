@@ -150,10 +150,15 @@ function App() {
   const FUNCTION_ROUTES = ['shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
   const showLauncher = FUNCTION_ROUTES.includes(route);
 
-  // Global header actions (notifications · wallet · profile) appear on every
-  // screen except the full-screen money flow which has its own chrome.
+  // Global header actions (notifications · wallet · profile) appear on the
+  // primary browsing surfaces (hub + the six functions) where quick access is
+  // useful. Secondary destinations — wallet, profile/settings, activity, credit,
+  // growth, detail/checkout, money — have their own back-header chrome and are
+  // reached *from* this cluster, so showing it there would be redundant and
+  // would collide with their own headers.
   const [inboxOpen, setInboxOpen] = React.useState(false);
-  const showHeaderActions = route !== 'money';
+  const HEADER_ACTION_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
+  const showHeaderActions = HEADER_ACTION_ROUTES.includes(route);
 
   // ── Global audio player ──
   // Lifted here so playback (and the mini player) persist while the user moves
