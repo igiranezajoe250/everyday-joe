@@ -1212,35 +1212,54 @@ function CommuteSegmented({ value, onChange }) {
 }
 
 // A single ride result — de-carded dashed row.
-function RideRow({ ride, first, onOpen }) {
+function RideRow({ ride, first, onOpen, onCall, onOffer }) {
   const dimmed = !ride.available;
   return (
-    <button onClick={() => ride.available && onOpen(ride)} disabled={dimmed} style={{
-      width: '100%', border: 0, borderTop: first ? 'none' : `1px dashed ${DASH}`, background: 'transparent',
-      cursor: dimmed ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left',
+    <div style={{
+      borderTop: first ? 'none' : `1px dashed ${DASH}`,
       padding: '14px 0', display: 'flex', alignItems: 'center', gap: 13, opacity: dimmed ? 0.5 : 1,
     }}>
-      <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}>
-        <RideTypeIcon type={ride.type} size={18} />
-      </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 14.5, fontWeight: 760, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.name}</span>
-          {ride.verified && <Verified />}
+      {/* Tap the rider to see full details */}
+      <button onClick={() => ride.available && onOpen(ride)} disabled={dimmed} style={{
+        flex: 1, minWidth: 0, border: 0, background: 'transparent', cursor: dimmed ? 'default' : 'pointer',
+        fontFamily: 'inherit', textAlign: 'left', padding: 0, display: 'flex', alignItems: 'center', gap: 13,
+      }}>
+        <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}>
+          <RideTypeIcon type={ride.type} size={18} />
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-          <Stars value={ride.rating} />
-          <span style={{ fontSize: 11.5, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.vehicle}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14.5, fontWeight: 760, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.name}</span>
+            {ride.verified && <Verified />}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <Stars value={ride.rating} />
+            <span style={{ fontSize: 11.5, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.vehicle}</span>
+          </span>
+          <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 3, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>
+            {dimmed ? 'Fully booked' : `${ride.eta} min away · ${ride.duration} min trip · ${ride.distance} km`}
+          </span>
         </span>
-        <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 3, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>
-          {dimmed ? 'Fully booked' : `${ride.eta} min away · ${ride.duration} min trip · ${ride.distance} km`}
+      </button>
+
+      {/* Price + quick actions: call to negotiate, or offer your price */}
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+        <span style={{ textAlign: 'right' }}>
+          <span style={{ display: 'block', fontSize: 14.5, fontWeight: 820, color: ink, letterSpacing: '-0.01em' }}>{ccPrice(ride.price)}</span>
+          <span style={{ display: 'block', fontSize: 10.5, color: ride.type === 'shared' ? '#5B7CFA' : ink40, marginTop: 1, fontWeight: 700 }}>{ride.type === 'shared' ? `${ride.seatsLeft} seats left` : 'per trip'}</span>
         </span>
-      </span>
-      <span style={{ textAlign: 'right', flexShrink: 0 }}>
-        <span style={{ display: 'block', fontSize: 14.5, fontWeight: 820, color: ink, letterSpacing: '-0.01em' }}>{ccPrice(ride.price)}</span>
-        <span style={{ display: 'block', fontSize: 10.5, color: ride.type === 'shared' ? '#5B7CFA' : ink40, marginTop: 2, fontWeight: 700 }}>{ride.type === 'shared' ? `${ride.seatsLeft} seats left` : 'per trip'}</span>
-      </span>
-    </button>
+        {!dimmed && (
+          <div style={{ display: 'flex', gap: 7 }}>
+            <button onClick={() => onCall(ride)} aria-label={`Call ${ride.name} to negotiate`} title="Call to negotiate" style={{ width: 34, height: 34, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+            </button>
+            <button onClick={() => onOffer(ride)} aria-label={`Offer your price to ${ride.name}`} title="Offer your price" style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.5 12 9.5s5 1.1 5 3-2.2 3-5 3-5-1.1-5-3"/></svg>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1358,14 +1377,25 @@ function CommuteScreen({ web, onBack }) {
   };
   const firstNameOf = (full) => (full || '').split(/[\s+]/)[0] || 'the driver';
 
-  // Quick path: call now, ride is booked, fare is settled on arrival.
-  const callOnArrival = () => {
+  // Quick path: pin the rider and call now — fare is negotiated and settled on
+  // arrival. Works from the detail screen or straight from a results row.
+  const callOnArrival = (ride) => {
+    const r = ride || selected;
     pkHaptic('success');
+    setSelected(r);
     setPayMode('on-arrival');
-    setAgreedPrice(selected.price);
+    setAgreedPrice(r.price);
     setStep('success');
   };
-  // Offer path: open the negotiation screen.
+  // Offer path: open the negotiation screen for a given ride (from a results row).
+  const offerFor = (r) => {
+    pkHaptic('select');
+    setSelected(r);
+    setOffer(String(r.price));
+    setNegoStatus('idle'); setCounter(0); setAgreedPrice(0);
+    setStep('negotiate');
+  };
+  // Offer path from the detail screen (selected is already set).
   const startNegotiate = () => { pkHaptic('select'); setNegoStatus('idle'); setStep('negotiate'); };
   const sendOffer = () => {
     const v = parseInt(String(offer).replace(/[^\d]/g, ''), 10);
@@ -1545,7 +1575,7 @@ function CommuteScreen({ web, onBack }) {
                   <button onClick={() => { setTypeFilter('all'); setTopRated(false); setVerifiedOnly(false); }} style={{ marginTop: 16, height: 40, padding: '0 18px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 760 }}>Reset filters</button>
                 </div>
               ) : (
-                results.map((r, i) => <RideRow key={r.id} ride={r} first={i === 0} onOpen={openRide} />)
+                results.map((r, i) => <RideRow key={r.id} ride={r} first={i === 0} onOpen={openRide} onCall={callOnArrival} onOffer={offerFor} />)
               )}
             </div>
           </div>
@@ -1605,7 +1635,7 @@ function CommuteScreen({ web, onBack }) {
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.5 12 9.5s5 1.1 5 3-2.2 3-5 3-5-1.1-5-3"/></svg>
                 Offer your price
               </button>
-              <button onClick={callOnArrival} style={{ width: '100%', minHeight: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <button onClick={() => callOnArrival()} style={{ width: '100%', minHeight: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
                 Call &amp; pay on arrival
               </button>
