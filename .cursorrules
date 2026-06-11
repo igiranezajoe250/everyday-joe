@@ -1,0 +1,20 @@
+Everyday App — Cursor rules.
+
+READ PRODUCT_CONSTITUTION.md BEFORE DOING ANYTHING. It is the highest-level source
+of truth for this product and overrides any conflicting instruction. AGENTS.md and
+CLAUDE.md carry the same guidance for other tools. Keep all rules in the
+Constitution; this file only points to it.
+
+Core, non-negotiable principles (full detail in PRODUCT_CONSTITUTION.md):
+- Evolve the existing app; never redesign or introduce a new visual language.
+- Completing/hardening existing flows outranks adding new features.
+- Progressive disclosure: one primary task per screen; predictable navigation.
+- Reuse the ui.jsx design tokens and primitives; never hardcode a new look.
+- Production-ready only: loading/empty/error/success states, responsive on mobile
+  and desktop, realistic data (no lorem ipsum or placeholder content).
+- When uncertain, choose the simpler, clearer, more consistent option.
+
+Orientation: the live product is the in-browser-Babel React JSX under
+next-pwa/public/legacy/ (screens.jsx, app.jsx, ui.jsx, data.jsx, Poketee.html).
+next build does NOT catch JSX errors there — always run the app and verify every
+state on mobile and desktop. See Appendix A of the Constitution for the full map.
