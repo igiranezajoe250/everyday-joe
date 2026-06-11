@@ -261,7 +261,7 @@ function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, 
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved · how much has it grown · how much can I access.
 
-function EverydayFunctionScreen({ mode, web, onBack, player }) {
+function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0 }) {
   const modes = {
     shop: {
       title: 'Shop',
@@ -300,7 +300,7 @@ function EverydayFunctionScreen({ mode, web, onBack, player }) {
     return <ShopScreen web={web} onBack={onBack} />;
   }
   if (mode === 'plan') {
-    return <PlanScreen web={web} onBack={onBack} />;
+    return <PlanScreen web={web} onBack={onBack} bottomInset={bottomInset} />;
   }
   if (mode === 'listen') {
     return <ListenScreen web={web} onBack={onBack} player={player} />;
@@ -615,120 +615,523 @@ function generateDayPlan(text) {
   });
 }
 
-function PlanScreen({ web, onBack }) {
-  const [plans, setPlans] = usePersisted('plans', []);
-  const [input, setInput] = React.useState('');
-  const [steps, setSteps] = React.useState([]);
-  const [activeId, setActiveId] = React.useState(null);
-  const [focus, setFocus] = React.useState(false);
-  const [railOpen, setRailOpen] = React.useState(true);
-  const ready = input.trim().length > 0;
+// ─────────────────────────────── PLAN ───────────────────────────────
+// Plan is the brain of Everyday: a calm, private place to keep thoughts,
+// plans, goals, notes, voice memos and documents. Kept as the existing
+// two-pane workspace (collapsible rail + canvas, de-carded dashed style);
+// the rail now organizes Folders and the canvas holds Files. What the user
+// captures quietly informs the rest of the app (the Insights view).
 
-  const newPlan = () => { pkHaptic('select'); setInput(''); setSteps([]); setActiveId(null); };
-  const send = () => { if (!ready) return; pkHaptic('medium'); setSteps(generateDayPlan(input)); };
-  const save = () => {
-    if (!ready) return;
-    pkHaptic('success');
-    const title = input.trim().split('\n')[0].slice(0, 40) || 'Untitled plan';
-    const body = steps.length ? steps : generateDayPlan(input);
-    if (activeId) {
-      setPlans((list) => list.map((p) => (p.id === activeId ? { ...p, title, input, steps: body } : p)));
-    } else {
-      const id = 'pl-' + Date.now().toString(36);
-      setPlans((list) => [{ id, title, input, steps: body }, ...list]);
-      setActiveId(id);
-    }
-    setSteps(body);
+const PLAN_FOLDERS_0 = [
+  { id: 'personal', name: 'Personal', icon: 'user' },
+  { id: 'work', name: 'Work', icon: 'work' },
+  { id: 'finance', name: 'Finance', icon: 'wallet' },
+  { id: 'ideas', name: 'Ideas', icon: 'bulb' },
+];
+const PLAN_FILES_0 = [
+  { id: 'pf1', folderId: 'finance', title: 'Savings goal — RWF 1.5M by December', body: 'Put aside RWF 120,000 each month. Cut back on eating out. Keep the emergency fund untouched. This covers school fees and a laptop.', updated: 1781000000000, attachments: [], voice: [] },
+  { id: 'pf2', folderId: 'work', title: 'Q3 priorities', body: 'Ship the retail report. Weekly founder calls. Prep the markets brief. Meeting Tuesday 9am at Kigali Heights.', updated: 1781050000000, attachments: [], voice: [] },
+  { id: 'pf3', folderId: 'personal', title: 'This weekend', body: 'Groceries at Kimironko market. Visit family in Nyamirambo. Try that podcast about building a loyal audience.', updated: 1781090000000, attachments: [], voice: [] },
+  { id: 'pf4', folderId: 'ideas', title: 'App ideas', body: 'A calm place to keep everything in one spot. Voice notes that turn into searchable text. Let the app suggest a ride before a meeting.', updated: 1781120000000, attachments: [], voice: [] },
+];
+
+const PLAN_NEW_FOLDER_ICONS = ['user', 'work', 'wallet', 'bulb', 'plane', 'family', 'health', 'folder'];
+function planId(p) { return p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+function FolderIcon({ kind, size = 16, color }) {
+  const c = color || 'currentColor';
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: c, strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (kind === 'user')   return (<svg {...p}><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>);
+  if (kind === 'work')   return (<svg {...p}><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>);
+  if (kind === 'wallet') return (<svg {...p}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg>);
+  if (kind === 'bulb')   return (<svg {...p}><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.2-1 2H9c0-.8-.4-1.4-1-2A6 6 0 0 1 12 3z"/></svg>);
+  if (kind === 'plane')  return (<svg {...p}><path d="M10 14L3 12l2-3 5 1 4-6 2 1-2 7 4 4-1 2-5-2-3 4-2-1z"/></svg>);
+  if (kind === 'family') return (<svg {...p}><path d="M12 20s-6-4-6-9a4 4 0 0 1 6-2 4 4 0 0 1 6 2c0 5-6 9-6 9z"/></svg>);
+  if (kind === 'health') return (<svg {...p}><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>);
+  return (<svg {...p}><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>);
+}
+
+function planMatch(f, q) {
+  if (!q) return false;
+  const hay = [f.title, f.body, ...(f.voice || []).map((v) => v.transcript), ...(f.attachments || []).map((a) => a.name)].join(' ').toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
+// Quietly derive context from everything captured — this is what makes the rest
+// of the app smarter. Honest, lightweight keyword signals.
+function planInsights(files) {
+  const text = files.map((f) => `${f.title} ${f.body} ${(f.voice || []).map((v) => v.transcript).join(' ')}`).join(' \n ').toLowerCase();
+  const out = [];
+  const has = (re) => re.test(text);
+  if (has(/sav(e|ings|ing)|emergency fund|goal|rwf|budget/)) out.push({ section: 'Save', hue: '#2FAE9B', text: 'Tracking a savings goal — Save can suggest opportunities and surface progress.' });
+  if (has(/meeting|\d\s?am|\d\s?pm|kigali heights|nyamirambo|route|airport|commute/)) out.push({ section: 'Commute', hue: '#3B82F6', text: 'You have places to be — Commute can suggest a departure time and a ride before each one.' });
+  if (has(/groceries|kimironko|market|buy|laptop|shop|brand/)) out.push({ section: 'Shop', hue: '#A37BF2', text: 'Noticed shopping plans — Shop can surface trusted stores within your budget.' });
+  if (has(/podcast|listen|audience|episode|channel/)) out.push({ section: 'Listen', hue: '#5B7CFA', text: 'You write about audio topics — Listen can recommend matching episodes.' });
+  return out;
+}
+
+function PlanAttachmentIcon({ kind, size = 16 }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (kind === 'image') return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5L5 20"/></svg>);
+  if (kind === 'voice') return (<svg {...p}><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>);
+  return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/></svg>);
+}
+
+function PlanScreen({ web, onBack, bottomInset = 0 }) {
+  const [folders, setFolders] = usePersisted('plan_folders', PLAN_FOLDERS_0);
+  const [files, setFiles] = usePersisted('plan_files', PLAN_FILES_0);
+  const [activeFolder, setActiveFolder] = React.useState(() => (PLAN_FOLDERS_0[0] && PLAN_FOLDERS_0[0].id));
+  const [view, setView] = React.useState('files'); // files · editor · insights · trash
+  const [openId, setOpenId] = React.useState(null);
+  const [query, setQuery] = React.useState('');
+  const [railOpen, setRailOpen] = React.useState(true);
+  const [fabOpen, setFabOpen] = React.useState(false);
+  const [recording, setRecording] = React.useState(false);
+  const [renamingId, setRenamingId] = React.useState(null);
+  const [movePicker, setMovePicker] = React.useState(false);
+  const [undo, setUndo] = React.useState(null);    // { file }
+  const [err, setErr] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+  const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => { const id = setTimeout(() => setLoading(false), 320); return () => clearTimeout(id); }, []);
+
+  const live = files.filter((f) => !f.trashed);
+  const trashed = files.filter((f) => f.trashed);
+  const folderFiles = live.filter((f) => f.folderId === activeFolder).sort((a, b) => b.updated - a.updated);
+  const searchHits = query.trim() ? live.filter((f) => planMatch(f, query.trim())) : [];
+  const openFile = files.find((f) => f.id === openId) || null;
+  const fileCount = (fid) => live.filter((f) => f.folderId === fid).length;
+  const folderName = (fid) => { const f = folders.find((x) => x.id === fid); return f ? f.name : '—'; };
+  const insights = planInsights(live);
+
+  const touch = (id, patch) => setFiles((list) => list.map((f) => (f.id === id ? { ...f, ...patch, updated: Date.now() } : f)));
+
+  const selectFolder = (id) => { pkHaptic('select'); setActiveFolder(id); setView('files'); setQuery(''); };
+  const openEditor = (f) => { pkHaptic('select'); setOpenId(f.id); setView('editor'); setMovePicker(false); };
+  const createNote = (folderId) => {
+    const id = planId('pf');
+    const file = { id, folderId: folderId || activeFolder, title: '', body: '', updated: Date.now(), attachments: [], voice: [] };
+    setFiles((list) => [file, ...list]);
+    setOpenId(id); setView('editor'); setFabOpen(false); pkHaptic('select');
   };
-  const loadPlan = (p) => { pkHaptic('select'); setInput(p.input); setSteps(p.steps || []); setActiveId(p.id); };
+  const addFolder = () => {
+    const id = planId('fl');
+    const icon = PLAN_NEW_FOLDER_ICONS[folders.length % PLAN_NEW_FOLDER_ICONS.length];
+    setFolders((list) => [...list, { id, name: 'New folder', icon }]);
+    setActiveFolder(id); setView('files'); setRenamingId(id); pkHaptic('select');
+  };
+  const renameFolder = (id, name) => setFolders((list) => list.map((f) => (f.id === id ? { ...f, name: name || 'Untitled' } : f)));
+  const deleteFolder = (id) => {
+    if (folders.length <= 1) return;
+    setFiles((list) => list.map((f) => (f.folderId === id ? { ...f, trashed: true } : f)));
+    setFolders((list) => list.filter((f) => f.id !== id));
+    setActiveFolder((cur) => (cur === id ? folders.find((f) => f.id !== id).id : cur));
+    setView('files'); pkHaptic('medium');
+  };
+  const trashFile = (id) => {
+    const f = files.find((x) => x.id === id);
+    setFiles((list) => list.map((x) => (x.id === id ? { ...x, trashed: true } : x)));
+    setView('files'); setOpenId(null); setUndo({ file: f }); pkHaptic('medium');
+    setTimeout(() => setUndo((u) => (u && u.file.id === id ? null : u)), 5000);
+  };
+  const restoreFile = (id) => { setFiles((list) => list.map((x) => (x.id === id ? { ...x, trashed: false } : x))); setUndo(null); pkHaptic('select'); };
+  const purgeFile = (id) => setFiles((list) => list.filter((x) => x.id !== id));
+  const moveFile = (id, folderId) => { touch(id, { folderId }); setMovePicker(false); pkHaptic('select'); };
+
+  const onPickAttachment = (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file || !openFile) return;
+    if (file.size > 2 * 1024 * 1024) { setErr('That file is over 2 MB — attach a smaller one.'); setTimeout(() => setErr(''), 3500); return; }
+    const kind = file.type.startsWith('image/') ? 'image' : 'doc';
+    const att = { id: planId('at'), name: file.name, kind, size: file.size, url: kind === 'image' ? URL.createObjectURL(file) : null };
+    touch(openFile.id, { attachments: [...(openFile.attachments || []), att] });
+    pkHaptic('success');
+  };
+  const removeAttachment = (aid) => touch(openFile.id, { attachments: (openFile.attachments || []).filter((a) => a.id !== aid) });
+
+  const saveVoice = (sec) => {
+    setRecording(false);
+    const transcript = ccTranscriptForVoice();
+    let target = openFile;
+    if (!target) {
+      const id = planId('pf');
+      target = { id, folderId: activeFolder, title: 'Voice note', body: '', updated: Date.now(), attachments: [], voice: [] };
+      setFiles((list) => [target, ...list]); setOpenId(id); setView('editor');
+    }
+    const v = { id: planId('vn'), dur: sec, transcript };
+    setFiles((list) => list.map((f) => (f.id === target.id ? { ...f, voice: [...(f.voice || []), v], title: f.title || 'Voice note', updated: Date.now() } : f)));
+    pkHaptic('success');
+  };
+
+  const header = (
+    <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+      <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Plan</span>
+    </div>} />
+  );
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
-      <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
-        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Plan</span>
-      </div>} />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative' }}>
+      {header}
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: railOpen ? (web ? 22 : 14) : 12, padding: web ? '14px 28px 0' : '8px 16px 0' }}>
-        {/* Left rail — collapsible store of plans */}
-        <div style={{ width: railOpen ? (web ? 196 : 120) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px dashed ${DASH}`, paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
+        {/* Left rail — folders only */}
+        <div style={{ width: railOpen ? (web ? 200 : 128) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px dashed ${DASH}`, paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
           {railOpen ? (
             <React.Fragment>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 10px' }}>
-                <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Your plans</span>
-                <button onClick={() => setRailOpen(false)} aria-label="Hide plans" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 2, display: 'flex' }}>
+                <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Folders</span>
+                <button onClick={() => setRailOpen(false)} aria-label="Hide folders" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 2, display: 'flex' }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L5 8l5 5"/></svg>
                 </button>
               </div>
-              <button onClick={newPlan} style={{ display: 'flex', alignItems: 'center', gap: 8, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, color: ink, padding: '0 0 12px' }}>
+
+              {/* Insights — the intelligence layer, pinned above folders */}
+              <button onClick={() => { pkHaptic('select'); setView('insights'); }} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', border: 0, background: view === 'insights' ? ink : 'transparent', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', padding: '9px 8px', marginBottom: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={view === 'insights' ? paper : ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.2-1 2H9c0-.8-.4-1.4-1-2A6 6 0 0 1 12 3zM9 18h6M10 21h4"/></svg>
+                <span style={{ fontSize: 12.5, fontWeight: 760, color: view === 'insights' ? paper : ink }}>Insights</span>
+                {insights.length > 0 && <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: view === 'insights' ? paper : ink40 }}>{insights.length}</span>}
+              </button>
+
+              <button onClick={addFolder} style={{ display: 'flex', alignItems: 'center', gap: 8, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, color: ink, padding: '0 0 10px' }}>
                 <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 </span>
-                New
+                New folder
               </button>
+
               <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                {plans.length === 0 && (<div style={{ fontSize: 12, color: ink40, padding: '4px 0', lineHeight: 1.4 }}>Saved plans appear here.</div>)}
-                {plans.map((p, idx) => {
-                  const on = p.id === activeId;
+                {folders.map((fl, idx) => {
+                  const on = fl.id === activeFolder && view !== 'insights' && view !== 'trash';
+                  if (renamingId === fl.id) {
+                    return (
+                      <div key={fl.id} style={{ padding: '9px 0', borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <FolderIcon kind={fl.icon} size={15} color={ink55} />
+                        <input autoFocus defaultValue={fl.name} onBlur={(e) => { renameFolder(fl.id, e.target.value.trim()); setRenamingId(null); }} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                          style={{ flex: 1, minWidth: 0, border: 0, borderBottom: `1.5px solid ${ink}`, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '2px 0' }} />
+                      </div>
+                    );
+                  }
                   return (
-                    <button key={p.id} onClick={() => loadPlan(p)} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                      <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: on ? ink : 'transparent', flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: on ? 760 : 600, color: on ? ink : ink70, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.title}</span>
-                    </button>
+                    <div key={fl.id} style={{ borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button onClick={() => selectFolder(fl.id)} style={{ flex: 1, minWidth: 0, textAlign: 'left', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 9, alignItems: 'center' }}>
+                        <FolderIcon kind={fl.icon} size={15} color={on ? ink : ink55} />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: on ? 760 : 600, color: on ? ink : ink70, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fl.name}</span>
+                        <span style={{ fontFamily: CC_MONO, fontSize: 10.5, color: ink40, flexShrink: 0 }}>{fileCount(fl.id)}</span>
+                      </button>
+                      {on && (
+                        <span style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                          <button onClick={() => setRenamingId(fl.id)} aria-label="Rename folder" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 3, display: 'flex' }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg>
+                          </button>
+                          {folders.length > 1 && (
+                            <button onClick={() => deleteFolder(fl.id)} aria-label="Delete folder" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 3, display: 'flex' }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
+
+                {trashed.length > 0 && (
+                  <button onClick={() => { pkHaptic('select'); setView('trash'); }} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 9, alignItems: 'center', marginTop: 4 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={view === 'trash' ? ink : ink40} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+                    <span style={{ fontSize: 12.5, fontWeight: view === 'trash' ? 760 : 600, color: view === 'trash' ? ink : ink55 }}>Recently deleted</span>
+                    <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 10.5, color: ink40 }}>{trashed.length}</span>
+                  </button>
+                )}
               </div>
             </React.Fragment>
           ) : (
-            <button onClick={() => setRailOpen(true)} aria-label="Show plans" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
+            <button onClick={() => setRailOpen(true)} aria-label="Show folders" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
             </button>
           )}
         </div>
 
-        {/* Main — write + generated plan */}
-        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: web ? 30 : 24, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>Plan your day.</div>
-          <div style={{ marginTop: 6, fontSize: 13.5, color: ink55, lineHeight: 1.45 }}>Write freely. Send builds your plan.</div>
+        {/* Main canvas */}
+        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: 96 + bottomInset }}>
+          {/* ── INSIGHTS ── */}
+          {view === 'insights' ? (
+            <div className="pk-stagger">
+              <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>What Everyday understands</div>
+              <div style={{ marginTop: 6, fontSize: 13, color: ink55, lineHeight: 1.5 }}>The more you keep here, the more the rest of the app can quietly help. Nothing leaves your space.</div>
+              <div style={{ marginTop: 20 }}>
+                {insights.length === 0 ? (
+                  <div style={{ padding: '30px 0', fontSize: 13.5, color: ink40 }}>Write a few notes and goals — helpful context will appear here.</div>
+                ) : insights.map((it, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 12, padding: '15px 0', borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, alignItems: 'flex-start' }}>
+                    <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: it.hue + '1F', color: it.hue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: CC_MONO, fontSize: 10, fontWeight: 800 }}>{it.section[0]}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: it.hue, fontWeight: 700 }}>Helps {it.section}</div>
+                      <div style={{ fontSize: 13.5, color: ink, marginTop: 3, lineHeight: 1.45 }}>{it.text}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : view === 'trash' ? (
+            /* ── RECENTLY DELETED ── */
+            <div>
+              <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>Recently deleted</div>
+              <div style={{ marginTop: 6, fontSize: 13, color: ink55 }}>Restore a note, or remove it for good.</div>
+              <div style={{ marginTop: 16 }}>
+                {trashed.map((f, i) => (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i === 0 ? 'none' : `1px dashed ${DASH}` }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 650, color: ink70, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.title || 'Untitled note'} <span style={{ color: ink40, fontWeight: 500 }}>· {folderName(f.folderId)}</span></span>
+                    <button onClick={() => restoreFile(f.id)} style={{ flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700 }}>Restore</button>
+                    <button onClick={() => purgeFile(f.id)} aria-label="Delete forever" style={{ flexShrink: 0, border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 4, display: 'flex' }}>
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                    </button>
+                  </div>
+                ))}
+                {trashed.length === 0 && <div style={{ padding: '24px 0', fontSize: 13, color: ink40 }}>Nothing here.</div>}
+              </div>
+            </div>
+          ) : view === 'editor' && openFile ? (
+            /* ── FILE EDITOR ── */
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button onClick={() => { setView('files'); setOpenId(null); }} aria-label="Back to files" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L5 8l5 5"/></svg>
+                </button>
+                <button onClick={() => setMovePicker((m) => !m)} style={{ border: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, color: ink55, padding: '5px 11px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FolderIcon kind={(folders.find((x) => x.id === openFile.folderId) || {}).icon} size={12} color={ink55} />
+                  {folderName(openFile.folderId)}
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4.5L6 7.5l3-3"/></svg>
+                </button>
+                <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 10, color: ink40, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2FAE9B' }} />Saved
+                </span>
+                <button onClick={() => trashFile(openFile.id)} aria-label="Delete note" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 4, display: 'flex' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+                </button>
+              </div>
 
-          <div className="pk-field" style={{ marginTop: 20 }}>
-            <textarea value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-              placeholder="e.g. gym, finish the report, call mum, groceries…"
-              style={{ width: '100%', minHeight: web ? 120 : 92, resize: 'none', border: 0, borderBottom: `2px ${focus ? 'solid' : 'dashed'} ${focus ? ink : ink25}`, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 600, lineHeight: 1.5, padding: '2px 0 12px', transition: 'border-color 200ms ease' }} />
-          </div>
-
-          {steps.length > 0 && (
-            <div className="pk-rise" style={{ marginTop: 24, paddingBottom: 8 }}>
-              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 6 }}>Your plan</div>
-              {steps.map((s, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: 14, alignItems: 'baseline', padding: '13px 0', borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}` }}>
-                  <span style={{ fontFamily: CC_MONO, fontSize: 12, fontWeight: 600, color: ink40, width: 44, flexShrink: 0 }}>{s.time}</span>
-                  <span style={{ fontSize: 15, fontWeight: 600, color: ink, lineHeight: 1.4 }}>{s.task}</span>
+              {movePicker && (
+                <div className="pk-rise" style={{ marginTop: 10, padding: '8px 10px', border: `1px dashed ${DASH}`, borderRadius: 12 }}>
+                  <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, padding: '2px 2px 6px' }}>Move to</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                    {folders.map((fl) => {
+                      const on = fl.id === openFile.folderId;
+                      return <button key={fl.id} onClick={() => moveFile(openFile.id, fl.id)} style={{ height: 32, padding: '0 12px', borderRadius: 999, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}><FolderIcon kind={fl.icon} size={12} color={on ? paper : ink55} />{fl.name}</button>;
+                    })}
+                  </div>
                 </div>
-              ))}
+              )}
+
+              <input value={openFile.title} onChange={(e) => touch(openFile.id, { title: e.target.value })} placeholder="Title"
+                style={{ marginTop: 16, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: web ? 26 : 22, fontWeight: 820, letterSpacing: '-0.02em', padding: 0, width: '100%' }} />
+
+              <textarea value={openFile.body} onChange={(e) => touch(openFile.id, { body: e.target.value })} placeholder="Write freely — thoughts, plans, goals, anything worth remembering…"
+                style={{ marginTop: 12, flex: 1, minHeight: web ? 180 : 130, resize: 'none', border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, lineHeight: 1.6, padding: 0, width: '100%' }} />
+
+              {/* Voice notes */}
+              {(openFile.voice || []).length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, paddingBottom: 6 }}>Voice notes</div>
+                  {openFile.voice.map((v) => (
+                    <div key={v.id} style={{ display: 'flex', gap: 11, padding: '11px 0', borderTop: `1px dashed ${DASH}`, alignItems: 'flex-start' }}>
+                      <span style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: ink06, color: ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PlanAttachmentIcon kind="voice" size={15} /></span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: CC_MONO, fontSize: 11, color: ink55 }}>Voice · {ccFmtTime(v.dur)}</div>
+                        <div style={{ fontSize: 13, color: ink70, marginTop: 3, lineHeight: 1.45 }}>{v.transcript}</div>
+                      </div>
+                      <button onClick={() => touch(openFile.id, { voice: openFile.voice.filter((x) => x.id !== v.id) })} aria-label="Remove voice note" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 3, display: 'flex', flexShrink: 0 }}>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Attachments */}
+              {(openFile.attachments || []).length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, paddingBottom: 8 }}>Attachments</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {openFile.attachments.map((a) => (
+                      <div key={a.id} style={{ width: 88, position: 'relative' }}>
+                        <div style={{ width: 88, height: 72, borderRadius: 12, overflow: 'hidden', background: ink06, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink55, border: `1px dashed ${DASH}` }}>
+                          {a.kind === 'image' && a.url ? <img src={a.url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <PlanAttachmentIcon kind={a.kind} size={22} />}
+                        </div>
+                        <div style={{ marginTop: 5, fontSize: 10.5, color: ink55, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
+                        <button onClick={() => removeAttachment(a.id)} aria-label="Remove attachment" style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: `2px solid ${canvas}`, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                          <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Inline add row */}
+              <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 14, borderTop: `1px dashed ${DASH}` }}>
+                <button onClick={() => setRecording(true)} style={{ height: 38, padding: '0 14px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}><PlanAttachmentIcon kind="voice" size={14} />Record</button>
+                <button onClick={() => fileInputRef.current && fileInputRef.current.click()} style={{ height: 38, padding: '0 14px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}><PlanAttachmentIcon kind="doc" size={14} />Attach</button>
+              </div>
+              {err && <div style={{ marginTop: 10, fontSize: 12, color: '#C8102E', fontWeight: 600 }}>{err}</div>}
+            </div>
+          ) : (
+            /* ── FILE LIST (default) ── */
+            <div>
+              {/* Search */}
+              <DashField value={query} onChange={setQuery} placeholder="Search notes, voice, attachments"
+                prefix={(<span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>)}
+                suffix={query.trim() ? (<button onClick={() => setQuery('')} aria-label="Clear" style={{ border: 0, background: 'transparent', color: ink25, cursor: 'pointer', display: 'flex', flexShrink: 0, padding: 4 }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>) : null} />
+
+              {query.trim() ? (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>{searchHits.length} result{searchHits.length === 1 ? '' : 's'}</div>
+                  {searchHits.length === 0 ? (
+                    <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13.5, color: ink40 }}>Nothing matches “{query.trim()}”.</div>
+                  ) : searchHits.map((f, i) => <PlanFileRow key={f.id} file={f} folder={folderName(f.folderId)} onOpen={() => openEditor(f)} first={i === 0} />)}
+                </div>
+              ) : (
+                <React.Fragment>
+                  <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>{folderName(activeFolder)}</div>
+                    <span style={{ fontFamily: CC_MONO, fontSize: 11, color: ink40 }}>{folderFiles.length} file{folderFiles.length === 1 ? '' : 's'}</span>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    {loading ? (
+                      [0, 1, 2].map((i) => (
+                        <div key={i} style={{ borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, padding: '14px 0' }}>
+                          <span className="pk-shimmer" style={{ display: 'block', width: '60%', height: 14, borderRadius: 6 }} />
+                          <span className="pk-shimmer" style={{ display: 'block', width: '85%', height: 11, borderRadius: 6, marginTop: 8 }} />
+                        </div>
+                      ))
+                    ) : folderFiles.length === 0 ? (
+                      <div style={{ padding: '36px 0', textAlign: 'center' }}>
+                        <div style={{ width: 46, height: 46, borderRadius: 12, margin: '0 auto', background: ink06, color: ink40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FolderIcon kind={(folders.find((x) => x.id === activeFolder) || {}).icon} size={20} color={ink40} /></div>
+                        <div style={{ marginTop: 14, fontSize: 14.5, fontWeight: 760, color: ink }}>Nothing here yet</div>
+                        <div style={{ marginTop: 4, fontSize: 12.5, color: ink40 }}>Capture a thought, a plan, or a voice note.</div>
+                        <button onClick={() => createNote(activeFolder)} style={{ marginTop: 16, height: 40, padding: '0 18px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 760 }}>New note</button>
+                      </div>
+                    ) : (
+                      folderFiles.map((f, i) => <PlanFileRow key={f.id} file={f} onOpen={() => openEditor(f)} first={i === 0} />)
+                    )}
+                  </div>
+                </React.Fragment>
+              )}
+
+              {/* Undo banner — restore a just-deleted note */}
+              {undo && (
+                <div className="pk-rise" style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: ink, color: paper }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Note moved to trash.</span>
+                  <button onClick={() => restoreFile(undo.file.id)} style={{ border: 0, background: 'transparent', color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, textDecoration: 'underline' }}>Undo</button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Footer — Save / Send pinned to the very bottom */}
-      <div style={{ flexShrink: 0, padding: web ? '14px 28px 22px' : '12px 16px max(16px, env(safe-area-inset-bottom, 16px))', borderTop: `1px dashed ${DASH}`, display: 'flex', gap: 10, background: canvas }}>
-        <button onClick={save} disabled={!ready} style={{ height: 50, padding: '0 24px', borderRadius: 14, border: `1.5px solid ${ready ? ink : ink12}`, background: 'transparent', color: ready ? ink : ink25, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, transition: 'border-color 200ms ease, color 200ms ease' }}>Save</button>
-        <button onClick={send} disabled={!ready} style={{ flex: 1, height: 50, borderRadius: 14, border: ready ? '0' : `2px dashed ${ink12}`, background: ready ? ink : 'transparent', color: ready ? paper : ink25, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, boxShadow: ready ? '0 14px 32px rgba(10,10,10,0.18)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 200ms ease, color 200ms ease' }}>
-          Send
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      {/* Quick capture FAB (bottom-right) */}
+      {fabOpen && <div onClick={() => setFabOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 44 }} />}
+      <div style={{ position: 'absolute', right: web ? 28 : 18, bottom: `calc(${(web ? 24 : 20) + bottomInset}px + env(safe-area-inset-bottom, 0px))`, zIndex: 45, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+        {fabOpen && (
+          <div className="pk-rise" style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            {[['New note', 'doc', () => createNote(activeFolder)], ['Voice recording', 'voice', () => { setFabOpen(false); setRecording(true); }], ['Upload attachment', 'image', () => { setFabOpen(false); if (!openFile) createNote(activeFolder); setTimeout(() => fileInputRef.current && fileInputRef.current.click(), 60); }]].map(([label, kind, act]) => (
+              <button key={label} onClick={act} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 42, padding: '0 14px', borderRadius: 999, border: 0, background: paper, color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 720, boxShadow: '0 10px 26px rgba(10,10,10,0.16)' }}>
+                <span style={{ color: ink55, display: 'flex' }}><PlanAttachmentIcon kind={kind} size={15} /></span>{label}
+              </button>
+            ))}
+          </div>
+        )}
+        <button onClick={() => { pkHaptic('select'); setFabOpen((o) => !o); }} aria-label="Quick capture" style={{ width: 54, height: 54, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px rgba(10,10,10,0.24)', transition: 'transform 260ms cubic-bezier(.16,.84,.28,1)', transform: fabOpen ? 'rotate(45deg)' : 'none' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
+      </div>
+
+      <input ref={fileInputRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt" onChange={onPickAttachment} style={{ display: 'none' }} />
+
+      {recording && <PlanRecorder onCancel={() => setRecording(false)} onSave={saveVoice} />}
+    </div>
+  );
+}
+
+// A note row in the list — title, preview, meta, content markers.
+function PlanFileRow({ file, folder, onOpen, first }) {
+  const preview = (file.body || '').replace(/\n+/g, ' ').trim();
+  const nVoice = (file.voice || []).length;
+  const nAtt = (file.attachments || []).length;
+  return (
+    <button onClick={onOpen} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: first ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '14px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 740, color: ink, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.title || 'Untitled note'}</span>
+        {folder && <span style={{ flexShrink: 0, fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.04em', color: ink40, padding: '2px 7px', borderRadius: 999, background: ink06 }}>{folder}</span>}
+      </span>
+      {preview && <span style={{ fontSize: 12.5, color: ink55, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{preview}</span>}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: CC_MONO, fontSize: 10.5, color: ink40 }}>
+        <span>{planAgo(file.updated)}</span>
+        {nVoice > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><PlanAttachmentIcon kind="voice" size={11} />{nVoice}</span>}
+        {nAtt > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><PlanAttachmentIcon kind="doc" size={11} />{nAtt}</span>}
+      </span>
+    </button>
+  );
+}
+
+function planAgo(ts) {
+  if (!ts) return '';
+  const d = Date.now() - ts; const min = 60000, hr = 60 * min, day = 24 * hr;
+  if (d < min) return 'just now';
+  if (d < hr) return Math.floor(d / min) + 'm ago';
+  if (d < day) return Math.floor(d / hr) + 'h ago';
+  if (d < 7 * day) return Math.floor(d / day) + 'd ago';
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// A transcript generated for a saved voice note (no mic in the prototype).
+function ccTranscriptForVoice() {
+  const samples = [
+    'Reminder to move some money into savings before the weekend.',
+    'Idea: ask the app to suggest a moto before the 9am meeting at Kigali Heights.',
+    'Pick up groceries at Kimironko on the way home, stay within budget.',
+    'Note to self — listen to that episode on building a loyal audience.',
+    'Plan the week: finish the report, call family, rest on Sunday.',
+  ];
+  return samples[Math.floor(Math.random() * samples.length)];
+}
+
+// Voice recorder overlay — simulated capture (timer + live bars), saves a
+// transcribed voice note. (Microphone is disabled in the prototype.)
+function PlanRecorder({ onCancel, onSave }) {
+  const [sec, setSec] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
+  React.useEffect(() => { if (paused) return; const id = setInterval(() => setSec((s) => s + 1), 1000); return () => clearInterval(id); }, [paused]);
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(10,10,10,0.34)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onCancel}>
+      <div className="pk-rise" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: paper, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: '10px 24px max(26px, env(safe-area-inset-bottom, 20px))', boxShadow: '0 -20px 60px rgba(10,10,10,0.22)' }}>
+        <div style={{ width: 40, height: 4, borderRadius: 999, background: ink12, margin: '8px auto 18px' }} />
+        <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>Recording</div>
+        <div style={{ textAlign: 'center', fontFamily: CC_MONO, fontSize: 13, color: ink55, marginTop: 4 }}>{ccFmtTime(sec)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 48, marginTop: 16 }}>
+          {Array.from({ length: 28 }).map((_, i) => (
+            <span key={i} style={{ width: 3, borderRadius: 2, background: paused ? ink25 : ink, height: paused ? 6 : 6 + Math.abs(Math.sin((i + sec) * 0.7)) * 34, transition: 'height 220ms ease' }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 22 }}>
+          <button onClick={onCancel} style={{ height: 48, padding: '0 20px', borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760 }}>Cancel</button>
+          <button onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Resume' : 'Pause'} style={{ width: 56, height: 56, borderRadius: '50%', border: `1.5px solid ${ink}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {paused ? <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>}
+          </button>
+          <button onClick={() => onSave(Math.max(1, sec))} style={{ height: 48, padding: '0 22px', borderRadius: 14, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, boxShadow: '0 12px 28px rgba(10,10,10,0.2)' }}>Save note</button>
+        </div>
+        <div style={{ marginTop: 14, fontSize: 11, color: ink40, textAlign: 'center', lineHeight: 1.4 }}>Saved with an automatic transcript so it’s searchable.</div>
       </div>
     </div>
   );
 }
 
 // ────────────────────────────── LISTEN ──────────────────────────────
-// Two-pane listening, kept as-is in spirit: a lightweight source rail on the
-// left, the content canvas on the right. Completed with Long Form / Shorts,
-// lightweight discovery, a dedicated full player + transcript, a persistent
-// mini player, and resume-where-you-left-off. Playback state is lifted to App
-// so audio keeps going while you use the rest of the app.
+// Two-pane listening: a lightweight source rail and a content canvas, with a
+// dedicated full player + transcript, a persistent mini player, and resume.
+// Playback state is lifted to App so audio keeps going across the app.
 
 const CC_LISTEN = [
   { id: 'briefing', name: 'Everyday Briefing', author: 'EBC Studio', desc: 'Your daily brief on Kigali — in ten minutes.', hue: '#5B7CFA',
@@ -773,7 +1176,6 @@ const CC_LISTEN = [
 
 function ccFmtTime(s) { s = Math.max(0, Math.floor(s)); const m = Math.floor(s / 60); const ss = String(s % 60).padStart(2, '0'); return `${m}:${ss}`; }
 
-// Look up a channel / build the normalized "now playing" item the App player holds.
 function ccChannel(id) { return CC_LISTEN.find((c) => c.id === id) || null; }
 function ccBuildItem(chId, epIdx) {
   const c = ccChannel(chId); if (!c) return null;
@@ -781,8 +1183,6 @@ function ccBuildItem(chId, epIdx) {
   return { ch: chId, channel: c.name, hue: c.hue, ep: epIdx, id: e.id, title: e.title, dur: (e.min || 10) * 60 };
 }
 
-// A simple synced transcript generated for the demo. Lines carry a fractional
-// position so the active line tracks playback and tapping a line seeks.
 function ccTranscript(item) {
   if (!item) return [];
   const lines = [
@@ -801,7 +1201,6 @@ function ccTranscript(item) {
   return lines.map((text, i) => ({ t: i / lines.length, text }));
 }
 
-// Hue monogram avatar for a channel (no images in the prototype).
 function ChannelAvatar({ ch, size = 40, square = false }) {
   const initials = ch.name.split(' ').slice(0, 2).map((w) => w[0]).join('');
   return (
@@ -809,7 +1208,6 @@ function ChannelAvatar({ ch, size = 40, square = false }) {
   );
 }
 
-// Episode thumbnail that doubles as the play affordance.
 function EpisodeThumb({ hue, playing, size = 44 }) {
   return (
     <span style={{ width: size, height: size, borderRadius: Math.round(size * 0.26), flexShrink: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: hue + '22', color: hue }}>

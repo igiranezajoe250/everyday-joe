@@ -266,6 +266,7 @@ function App() {
                   mode="plan"
                   web={PK_WEB}
                   onBack={backToHub}
+                  bottomInset={showMini ? 66 : 0}
                 />
               )}
               {route === 'listen' && (
@@ -333,7 +334,7 @@ function App() {
               variant="fab"
               functions={pkSelectedFunctions()}
               onSelect={openFunctionById}
-              bottomOffset={(route === 'pay' || route === 'plan' ? 92 : route === 'shop' ? 80 : 22) + (showMini ? 66 : 0)}
+              bottomOffset={(route === 'pay' ? 92 : route === 'shop' ? 80 : 22) + (showMini ? 66 : 0)}
             />
           )}
 
