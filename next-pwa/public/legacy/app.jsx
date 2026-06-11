@@ -150,6 +150,11 @@ function App() {
   const FUNCTION_ROUTES = ['shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
   const showLauncher = FUNCTION_ROUTES.includes(route);
 
+  // Global header actions (notifications · wallet · profile) appear on every
+  // screen except the full-screen money flow which has its own chrome.
+  const [inboxOpen, setInboxOpen] = React.useState(false);
+  const showHeaderActions = route !== 'money';
+
   const showTab = false;
 
   return (
@@ -252,21 +257,33 @@ function App() {
               )}
               {route === 'wallet' && (
                 <WalletScreen accent={accent}
-                  onBack={backToCapital}
+                  onBack={backToHub}
                   onMoney={openMoney}
                   onActivity={openActivity} />
               )}
               {route === 'activity' && (
                 <ActivityScreen accent={accent}
-                  onBack={backToCapital} />
+                  onBack={backToHub} />
               )}
               {route === 'settings' && (
                 <SettingsScreen accent={accent}
-                  onBack={backToCapital}
+                  onBack={backToHub}
                   onSignOut={handleSignOut} />
               )}
             </div>
           </div>
+
+          {showHeaderActions && (
+            <HeaderActions
+              unread={2}
+              initials="JK"
+              onInbox={() => { pkHaptic('select'); setInboxOpen(true); }}
+              onWallet={openWallet}
+              onProfile={openSettings}
+            />
+          )}
+
+          {inboxOpen && <NotificationsPanel onClose={() => setInboxOpen(false)} />}
 
           {showLauncher && (
             <FunctionLauncher

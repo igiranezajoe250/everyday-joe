@@ -125,13 +125,102 @@ function FunctionLauncher({ functions, onSelect, variant = 'hero', bottomOffset 
     return (
       <React.Fragment>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom, 0px))`, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
-          <div style={{ pointerEvents: 'auto' }}>{plusBtn}</div>
+          {/* canvas halo masks any content that scrolls behind the button */}
+          <div style={{ pointerEvents: 'auto', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', width: 96, height: 96, borderRadius: '50%', background: `radial-gradient(circle, ${canvas} 52%, rgba(250,246,241,0) 72%)` }} />
+            <div style={{ position: 'relative' }}>{plusBtn}</div>
+          </div>
         </div>
         {overlay}
       </React.Fragment>
     );
   }
   return (<React.Fragment>{plusBtn}{overlay}</React.Fragment>);
+}
+
+// ── Global header actions: notifications · wallet · profile ──
+// Rendered top-right on every main screen so payment balance and quick
+// profile access are always one tap away.
+function ActionIcon({ onClick, label, badge, children }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label} style={{
+      position: 'relative', width: 38, height: 38, borderRadius: '50%',
+      border: `1px solid ${ink12}`, background: paper, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+    }}>
+      {children}
+      {badge ? (
+        <span style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: '#C8102E', color: '#fff', fontFamily: CC_MONO, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${canvas}` }}>{badge}</span>
+      ) : null}
+    </button>
+  );
+}
+
+function HeaderActions({ onInbox, onWallet, onProfile, unread = 0, initials = 'JK' }) {
+  return (
+    <div style={{ position: 'absolute', top: PK_NATIVE ? 'calc(max(16px, env(safe-area-inset-top, 16px)) + 8px)' : 62, right: 16, zIndex: 45, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <ActionIcon onClick={onInbox} label="Notifications" badge={unread}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </ActionIcon>
+      <ActionIcon onClick={onWallet} label="Wallet">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill={ink} stroke="none"/></svg>
+      </ActionIcon>
+      <button onClick={onProfile} aria-label="Profile" style={{ width: 38, height: 38, borderRadius: '50%', border: `1px solid ${ink25}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: CC_MONO, fontSize: 11, fontWeight: 700, color: ink70, padding: 0 }}>{initials}</button>
+    </div>
+  );
+}
+
+// Inbox: notifications + messages received from the app.
+function NotificationsPanel({ onClose }) {
+  const [tab, setTab] = React.useState('all');
+  const items = [
+    { id: 1, type: 'notif',   title: 'Savings interest credited', body: 'RWF 28,600 added to your savings.', time: '2h', unread: true },
+    { id: 2, type: 'message', title: 'Aline N. · Moto',           body: 'I’m 3 minutes away — meet at the gate?', time: '10m', unread: true },
+    { id: 3, type: 'notif',   title: 'Payment sent',              body: 'RWF 5,000 to Eric Kwizera.', time: '1d', unread: false },
+    { id: 4, type: 'message', title: 'Green Hills School',        body: 'Receipt for school fees attached.', time: '2d', unread: false },
+    { id: 5, type: 'notif',   title: 'New trusted shop',          body: 'House of Tayo just joined Everyday.', time: '3d', unread: false },
+  ];
+  const shown = tab === 'messages' ? items.filter((i) => i.type === 'message') : items;
+  return (
+    <div className="pk-rise" style={{ position: 'absolute', inset: 0, zIndex: 70, background: canvas, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: PK_NATIVE ? 'max(16px, env(safe-area-inset-top, 16px))' : 54, flexShrink: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px 0' }}>
+        <span style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Inbox</span>
+        <IconBtn onClick={onClose}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </IconBtn>
+      </div>
+      <div style={{ display: 'flex', gap: 8, padding: '16px 20px 6px' }}>
+        {[['all', 'All'], ['messages', 'Messages']].map(([k, l]) => {
+          const on = tab === k;
+          return (
+            <button key={k} onClick={() => setTab(k)} style={{ height: 34, padding: '0 16px', borderRadius: 999, border: on ? '0' : `1px solid ${ink12}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>{l}</button>
+          );
+        })}
+      </div>
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: '6px 20px 24px' }}>
+        {shown.map((it, idx) => (
+          <div key={it.id} style={{ display: 'flex', gap: 13, padding: '15px 0', borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, alignItems: 'flex-start' }}>
+            <span style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}>
+              {it.type === 'message' ? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
+              ) : (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+              )}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700, color: ink }}>{it.title}</span>
+                <span style={{ fontFamily: CC_MONO, fontSize: 10.5, color: ink40, flexShrink: 0 }}>{it.time}</span>
+              </div>
+              <div style={{ fontSize: 13, color: ink55, marginTop: 3, lineHeight: 1.4 }}>{it.body}</div>
+            </div>
+            {it.unread && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#C8102E', flexShrink: 0, marginTop: 6 }} />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, onCommute, onSettings }) {
@@ -144,19 +233,9 @@ function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, 
       height: '100%', display: 'flex', flexDirection: 'column',
       background: canvas, position: 'relative', overflow: 'hidden',
     }}>
-      {/* Top bar */}
-      <div style={{ padding: web ? '24px 40px 0' : '14px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Top bar — actions live in the global header cluster (top-right) */}
+      <div style={{ padding: web ? '24px 40px 0' : '14px 24px 0', display: 'flex', alignItems: 'center' }}>
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
-        <button onClick={onSettings} aria-label="Settings" style={{
-          width: 38, height: 38, borderRadius: 11, background: paper,
-          border: `1px solid ${ink12}`, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.6" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-          </svg>
-        </button>
       </div>
 
       {/* Centre: greeting + the premium + */}
@@ -886,7 +965,8 @@ function PayScreen({ web, onBack }) {
       {header}
       <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '12px 60px 40px' : '6px 28px 34px' }}>
         <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 430, margin: '0 auto', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ paddingTop: web ? 28 : 18 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 12 }}>
+          <div>
             <div style={{ fontSize: web ? 44 : 36, fontWeight: 820, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Send money.</div>
           </div>
 
@@ -958,8 +1038,9 @@ function PayScreen({ web, onBack }) {
             )}
           </div>
 
-          {/* Primary action — stands alone with space, dashed ghost until ready */}
-          <div style={{ marginTop: 'auto', paddingTop: 44 }}>
+          </div>
+          {/* Primary action — pinned low, clear of the bottom-centre + */}
+          <div style={{ flexShrink: 0, paddingTop: 28, paddingBottom: 96 }}>
             <button disabled={!canPay} onClick={submitPayment} style={{
               width: '100%', height: 58, borderRadius: 18,
               background: canPay ? ink : 'transparent',
@@ -1002,10 +1083,21 @@ function CommuteScreen({ web, onBack }) {
   const [destsOpen, setDestsOpen] = React.useState(false);
   const [selectedMoto, setSelectedMoto] = React.useState('aline');
   const suggestions = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium'];
+  const [rideFilter, setRideFilter] = React.useState('all');
   const motos = [
-    { id: 'aline', name: 'Aline N.', rating: '4.9', vehicle: 'Clean moto', eta: '3 min' },
-    { id: 'eric', name: 'Eric K.', rating: '4.8', vehicle: 'Helmet ready', eta: '5 min' },
+    { id: 'aline',  name: 'Aline N.',   type: 'moto',    rating: '4.9', vehicle: 'Clean moto',     eta: '3 min' },
+    { id: 'eric',   name: 'Eric K.',    type: 'moto',    rating: '4.8', vehicle: 'Helmet ready',    eta: '5 min' },
+    { id: 'jp',     name: 'Jean-Paul',  type: 'car',     rating: '4.9', vehicle: 'Toyota · AC',     eta: '7 min' },
+    { id: 'claud',  name: 'Claudine',   type: 'car',     rating: '4.7', vehicle: 'Saloon · 4 seats', eta: '9 min' },
+    { id: 'diane',  name: 'Diane M.',   type: 'profile', rating: '',    vehicle: 'Saved contact',   eta: '—' },
   ];
+  const rideFilters = [
+    { id: 'all',     label: 'All' },
+    { id: 'moto',    label: 'Moto' },
+    { id: 'car',     label: 'Car' },
+    { id: 'profile', label: 'Profile' },
+  ];
+  const filteredMotos = rideFilter === 'all' ? motos : motos.filter((m) => m.type === rideFilter);
   const selectedMotoProfile = motos.find((m) => m.id === selectedMoto) || motos[0];
   const routeLabel = destination || 'Choose destination';
 
@@ -1198,49 +1290,68 @@ function CommuteScreen({ web, onBack }) {
                 ))}
               </div>
             ) : (
-              /* Collapsible recents — hidden until opened */
+              /* Find a person to ride with, then the recents — hidden while typing */
               <div style={{ marginTop: 18 }}>
-                <RecentSection title="Recent profiles" count={motos.length} open={profilesOpen} onToggle={() => setProfilesOpen((o) => !o)}>
-                  {motos.map((moto, midx) => {
-                    const on = moto.id === selectedMoto;
+                {/* Call a saved rider/contact to negotiate a pickup */}
+                <div style={{ borderTop: `1px dashed ${DASH}`, paddingTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <DashField label="Find someone to ride with" value={contactNumber} onChange={setContactNumber} placeholder="Search a saved number" inputMode="tel" />
+                    </div>
+                    <button onClick={linkContact} disabled={!contactNumber.trim()} style={{ flexShrink: 0, border: 0, background: 'transparent', color: contactNumber.trim() ? ink : ink25, cursor: contactNumber.trim() ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, padding: '8px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      Call
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: ink40, lineHeight: 1.4 }}>Call a saved rider to negotiate and have them come to you.</div>
+                </div>
+
+                {/* Filter — All · Moto · Car · Profile */}
+                <div style={{ marginTop: 18, display: 'flex', gap: 8 }}>
+                  {rideFilters.map((f) => {
+                    const on = rideFilter === f.id;
                     return (
-                      <button key={moto.id} onClick={() => setSelectedMoto(moto.id)} style={{ width: '100%', border: 0, borderTop: midx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1px dashed ${DASH}`, color: on ? paper : ink55, fontSize: 11, fontWeight: 800, fontFamily: CC_MONO }}>{moto.name.charAt(0)}</span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{moto.name}</span>
-                          <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 1 }}>{moto.vehicle} · {moto.eta}</span>
-                        </span>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Chosen' : 'Choose'}</span>
+                      <button key={f.id} onClick={() => { pkHaptic('select'); setRideFilter(f.id); }} aria-label={f.label} style={{ flex: 1, height: 54, borderRadius: 14, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                        <RideTypeIcon type={f.id} />
+                        <span style={{ fontSize: 10.5, fontWeight: 700 }}>{f.label}</span>
                       </button>
                     );
                   })}
-                </RecentSection>
-                <RecentSection title="Recent destinations" count={suggestions.length} open={destsOpen} onToggle={() => setDestsOpen((o) => !o)}>
-                  {suggestions.map((item, sidx) => {
-                    const on = item === destination;
-                    return (
-                      <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                        <span style={{ fontSize: 14, fontWeight: on ? 760 : 600, color: on ? ink : ink70 }}>{item}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Set'}</span>
-                      </button>
-                    );
-                  })}
-                </RecentSection>
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <RecentSection title="Recent profiles" count={filteredMotos.length} open={profilesOpen} onToggle={() => setProfilesOpen((o) => !o)}>
+                    {filteredMotos.length === 0 && (<div style={{ fontSize: 13, color: ink40, padding: '10px 0' }}>No {rideFilter} profiles yet.</div>)}
+                    {filteredMotos.map((moto, midx) => {
+                      const on = moto.id === selectedMoto;
+                      return (
+                        <button key={moto.id} onClick={() => setSelectedMoto(moto.id)} style={{ width: '100%', border: 0, borderTop: midx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? ink : 'transparent', border: on ? '0' : `1px dashed ${DASH}`, color: on ? paper : ink55 }}>
+                            <RideTypeIcon type={moto.type} size={16} />
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{moto.name}</span>
+                            <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 1 }}>{moto.vehicle}{moto.eta && moto.eta !== '—' ? ` · ${moto.eta}` : ''}</span>
+                          </span>
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Chosen' : (moto.type === 'profile' ? 'Call' : 'Choose')}</span>
+                        </button>
+                      );
+                    })}
+                  </RecentSection>
+                  <RecentSection title="Recent destinations" count={suggestions.length} open={destsOpen} onToggle={() => setDestsOpen((o) => !o)}>
+                    {suggestions.map((item, sidx) => {
+                      const on = item === destination;
+                      return (
+                        <button key={item} onClick={() => chooseDestination(item)} style={{ width: '100%', border: 0, borderTop: sidx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                          <span style={{ fontSize: 14, fontWeight: on ? 760 : 600, color: on ? ink : ink70 }}>{item}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#2FAE9B' : ink25 }}>{on ? 'Selected' : 'Set'}</span>
+                        </button>
+                      );
+                    })}
+                  </RecentSection>
+                </div>
               </div>
             )}
-
-            {/* Call someone on Everyday — a moto or a saved contact */}
-            <div style={{ marginTop: 22, borderTop: `1px dashed ${DASH}`, paddingTop: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <DashField label="Phone number from contacts" value={contactNumber} onChange={setContactNumber} placeholder="Their number on Everyday" inputMode="tel" />
-                </div>
-                <button onClick={linkContact} disabled={!contactNumber.trim()} style={{ flexShrink: 0, border: 0, background: 'transparent', color: contactNumber.trim() ? ink : ink25, cursor: contactNumber.trim() ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, padding: '8px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  Call
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Connections summary */}
@@ -1264,6 +1375,9 @@ function CommuteScreen({ web, onBack }) {
               </div>
             )}
           </div>
+
+          {/* Spacer so the bottom-centre + launcher never overlaps content */}
+          {!web && <div aria-hidden="true" style={{ flexShrink: 0, height: 96 }} />}
         </div>
       </div>
     </div>
@@ -1271,6 +1385,14 @@ function CommuteScreen({ web, onBack }) {
 }
 
 // Collapsible recents section — header toggles a dashed-divided list open.
+// Ride-type glyphs for the commute filter: all · moto · car · profile.
+function RideTypeIcon({ type, size = 17 }) {
+  if (type === 'moto') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M8.5 16.5h4l3-6h3.5M14 8h3l1.5 5M7 10.5h5.5"/></svg>);
+  if (type === 'car') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 13l1.8-4.6A2 2 0 0 1 6.7 7h10.6a2 2 0 0 1 1.9 1.4L21 13v4h-2.2M3 17v-4m2.2 4H3m18 0h-2.2M5.2 17h13.6"/><circle cx="7.2" cy="17" r="1.6"/><circle cx="16.8" cy="17" r="1.6"/></svg>);
+  if (type === 'profile') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>);
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg>);
+}
+
 function RecentSection({ title, count, open, onToggle, children }) {
   return (
     <div style={{ borderTop: `1px dashed ${DASH}` }}>
@@ -1395,20 +1517,6 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
           </IconBtn>}
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
         </div>}
-        right={<>
-          <IconBtn onClick={onWallet}>
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <rect x="2" y="4" width="12" height="9" rx="1.5" stroke={ink} strokeWidth="1.3" fill="none"/>
-              <path d="M2 7h12" stroke={ink} strokeWidth="1.3"/>
-              <circle cx="11" cy="10" r="1" fill={ink}/>
-            </svg>
-          </IconBtn>
-          <button onClick={onProfile} aria-label="Profile" style={{
-            background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
-          }}>
-            <Avatar initials={p.user.initials} size={36} />
-          </button>
-        </>}
       />
 
       <div className="cc-scroll" style={{
