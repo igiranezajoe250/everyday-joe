@@ -261,7 +261,7 @@ function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, 
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved · how much has it grown · how much can I access.
 
-function EverydayFunctionScreen({ mode, web, onBack }) {
+function EverydayFunctionScreen({ mode, web, onBack, player }) {
   const modes = {
     shop: {
       title: 'Shop',
@@ -303,7 +303,7 @@ function EverydayFunctionScreen({ mode, web, onBack }) {
     return <PlanScreen web={web} onBack={onBack} />;
   }
   if (mode === 'listen') {
-    return <ListenScreen web={web} onBack={onBack} />;
+    return <ListenScreen web={web} onBack={onBack} player={player} />;
   }
   if (mode === 'commute') {
     return <CommuteScreen web={web} onBack={onBack} />;
@@ -723,60 +723,131 @@ function PlanScreen({ web, onBack }) {
   );
 }
 
-function ListenScreen({ web, onBack }) {
-  const channels = [
-    { name: 'Everyday Briefing', meta: 'Continue listening', episodes: ['Morning in Kigali', 'What to know before noon', 'Evening recap'] },
-    { name: 'Kigali Business', meta: 'New episode today', episodes: ['Retail moves this week', 'Founder notes', 'Markets in 10 minutes'] },
-    { name: 'Creator Talks', meta: 'Fresh conversations', episodes: ['Building a loyal audience', 'Studio routines', 'Pricing your work'] },
-    { name: 'Money Habits', meta: 'Saved for you', episodes: ['Small savings that compound', 'Borrowing with care', 'Planning school fees'] },
-    { name: 'Morning Focus', meta: 'Daily reset', episodes: ['A calm start', 'Deep work block', 'Five minute reflection'] },
-    { name: 'Rwanda Culture', meta: 'Popular nearby', episodes: ['Stories from Nyamirambo', 'Food, music, memory', 'Weekend guide'] },
+// ────────────────────────────── LISTEN ──────────────────────────────
+// Two-pane listening, kept as-is in spirit: a lightweight source rail on the
+// left, the content canvas on the right. Completed with Long Form / Shorts,
+// lightweight discovery, a dedicated full player + transcript, a persistent
+// mini player, and resume-where-you-left-off. Playback state is lifted to App
+// so audio keeps going while you use the rest of the app.
+
+const CC_LISTEN = [
+  { id: 'briefing', name: 'Everyday Briefing', author: 'EBC Studio', desc: 'Your daily brief on Kigali — in ten minutes.', hue: '#5B7CFA',
+    episodes: [
+      { id: 'b1', title: 'Morning in Kigali', min: 12, date: 'Jun 11', type: 'long',  tag: 'new' },
+      { id: 'b2', title: 'What to know before noon', min: 9, date: 'Jun 10', type: 'short', tag: 'popular' },
+      { id: 'b3', title: 'Evening recap', min: 14, date: 'Jun 9', type: 'long', tag: 'highlighted' },
+      { id: 'b4', title: 'The weekend ahead', min: 6, date: 'Jun 7', type: 'short' },
+    ] },
+  { id: 'business', name: 'Kigali Business', author: 'BK Media', desc: 'Markets, founders, and money moves.', hue: '#2FAE9B',
+    episodes: [
+      { id: 'k1', title: 'Retail moves this week', min: 22, date: 'Jun 11', type: 'long', tag: 'new' },
+      { id: 'k2', title: 'Founder notes', min: 8, date: 'Jun 9', type: 'short', tag: 'highlighted' },
+      { id: 'k3', title: 'Markets in ten minutes', min: 11, date: 'Jun 8', type: 'long', tag: 'popular' },
+      { id: 'k4', title: 'Quick: the franc today', min: 4, date: 'Jun 7', type: 'short' },
+    ] },
+  { id: 'creator', name: 'Creator Talks', author: 'Studio Hill', desc: 'Conversations with people who build.', hue: '#A37BF2',
+    episodes: [
+      { id: 'c1', title: 'Building a loyal audience', min: 34, date: 'Jun 10', type: 'long', tag: 'popular' },
+      { id: 'c2', title: 'Studio routines', min: 19, date: 'Jun 8', type: 'long', tag: 'new' },
+      { id: 'c3', title: 'Pricing your work', min: 7, date: 'Jun 6', type: 'short', tag: 'highlighted' },
+    ] },
+  { id: 'money', name: 'Money Habits', author: 'Everyday', desc: 'Small habits that compound.', hue: '#E2941F',
+    episodes: [
+      { id: 'm1', title: 'Small savings that compound', min: 16, date: 'Jun 11', type: 'long', tag: 'highlighted' },
+      { id: 'm2', title: 'Borrowing with care', min: 13, date: 'Jun 9', type: 'long', tag: 'new' },
+      { id: 'm3', title: 'Planning school fees', min: 5, date: 'Jun 7', type: 'short', tag: 'popular' },
+    ] },
+  { id: 'focus', name: 'Morning Focus', author: 'Calm Co.', desc: 'A calm start to deep work.', hue: '#2A6FDB',
+    episodes: [
+      { id: 'f1', title: 'A calm start', min: 10, date: 'Jun 11', type: 'short', tag: 'new' },
+      { id: 'f2', title: 'Deep work block', min: 25, date: 'Jun 10', type: 'long', tag: 'popular' },
+      { id: 'f3', title: 'Five minute reflection', min: 5, date: 'Jun 8', type: 'short', tag: 'highlighted' },
+    ] },
+  { id: 'culture', name: 'Rwanda Culture', author: 'Umuco FM', desc: 'Stories, food, music, memory.', hue: '#C8102E',
+    episodes: [
+      { id: 'r1', title: 'Stories from Nyamirambo', min: 28, date: 'Jun 10', type: 'long', tag: 'popular' },
+      { id: 'r2', title: 'Food, music, memory', min: 21, date: 'Jun 8', type: 'long', tag: 'highlighted' },
+      { id: 'r3', title: 'Weekend guide', min: 6, date: 'Jun 7', type: 'short', tag: 'new' },
+    ] },
+];
+
+function ccFmtTime(s) { s = Math.max(0, Math.floor(s)); const m = Math.floor(s / 60); const ss = String(s % 60).padStart(2, '0'); return `${m}:${ss}`; }
+
+// Look up a channel / build the normalized "now playing" item the App player holds.
+function ccChannel(id) { return CC_LISTEN.find((c) => c.id === id) || null; }
+function ccBuildItem(chId, epIdx) {
+  const c = ccChannel(chId); if (!c) return null;
+  const e = c.episodes[epIdx]; if (!e) return null;
+  return { ch: chId, channel: c.name, hue: c.hue, ep: epIdx, id: e.id, title: e.title, dur: (e.min || 10) * 60 };
+}
+
+// A simple synced transcript generated for the demo. Lines carry a fractional
+// position so the active line tracks playback and tapping a line seeks.
+function ccTranscript(item) {
+  if (!item) return [];
+  const lines = [
+    'Welcome back — you’re listening to ' + item.channel + '.',
+    'Today we’re getting into “' + item.title + '”.',
+    'Let’s set the scene before we dig in.',
+    'Here’s the one thing worth remembering.',
+    'It’s easy to overlook, but it matters.',
+    'A quick example from this week in Kigali.',
+    'Notice how the small choices add up.',
+    'That brings us to the practical part.',
+    'Try this the next time it comes up.',
+    'We’ll keep it short and useful.',
+    'Thanks for listening — see you in the next one.',
   ];
+  return lines.map((text, i) => ({ t: i / lines.length, text }));
+}
+
+// Hue monogram avatar for a channel (no images in the prototype).
+function ChannelAvatar({ ch, size = 40, square = false }) {
+  const initials = ch.name.split(' ').slice(0, 2).map((w) => w[0]).join('');
+  return (
+    <span style={{ width: size, height: size, borderRadius: square ? Math.round(size * 0.26) : '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ch.hue, color: '#fff', fontFamily: CC_MONO, fontWeight: 800, fontSize: Math.round(size * 0.34), letterSpacing: '0.02em' }}>{initials}</span>
+  );
+}
+
+// Episode thumbnail that doubles as the play affordance.
+function EpisodeThumb({ hue, playing, size = 44 }) {
+  return (
+    <span style={{ width: size, height: size, borderRadius: Math.round(size * 0.26), flexShrink: 0, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: hue + '22', color: hue }}>
+      {playing
+        ? (<svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2.5" width="2.6" height="9" rx="1"/><rect x="8.4" y="2.5" width="2.6" height="9" rx="1"/></svg>)
+        : (<svg width="15" height="15" viewBox="0 0 14 14" fill="currentColor"><path d="M4 2.5v9l7-4.5-7-4.5z"/></svg>)}
+    </span>
+  );
+}
+
+function ListenScreen({ web, onBack, player }) {
+  const channels = CC_LISTEN;
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [railOpen, setRailOpen] = React.useState(true);
-  const [playing, setPlaying] = React.useState(null);   // episode index within channel
-  const [paused, setPaused] = React.useState(false);
-  const [progress, setProgress] = React.useState(0);     // 0..1
-  const [speed, setSpeed] = React.useState(1);
-  const [subscribed, setSubscribed] = React.useState(false);
+  const [subscribed, setSubscribed] = React.useState({});
+  const [contentTab, setContentTab] = React.useState('long'); // long · short
+  const [disc, setDisc] = React.useState('');                  // '' · popular · new · highlighted
+  const [loading, setLoading] = React.useState(false);
   const channel = channels[activeIdx];
-  const epDuration = (idx) => (18 + idx * 5) * 60;       // seconds
+  const pl = player && player.state;
 
-  // Advance playback while playing.
+  // Lightweight loading state when switching sources.
   React.useEffect(() => {
-    if (playing == null || paused) return;
-    const dur = epDuration(playing);
-    const id = setInterval(() => {
-      setProgress((p) => {
-        const np = p + speed / dur;
-        if (np >= 1) { setPaused(true); return 1; }
-        return np;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [playing, paused, speed, activeIdx]);
+    setLoading(true);
+    const id = setTimeout(() => setLoading(false), 380);
+    return () => clearTimeout(id);
+  }, [activeIdx]);
 
-  const playEpisode = (idx) => {
-    pkHaptic('select');
-    if (playing === idx) { setPaused((x) => !x); return; }
-    setPlaying(idx); setProgress(0); setPaused(false);
-  };
-  const seek = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    setProgress(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)));
-  };
-  const skip = (sec) => {
-    if (playing == null) return;
-    const dur = epDuration(playing);
-    setProgress((p) => Math.max(0, Math.min(1, p + sec / dur)));
-  };
-  const fmt = (s) => { s = Math.floor(s); const m = Math.floor(s / 60); const ss = String(s % 60).padStart(2, '0'); return `${m}:${ss}`; };
+  const selectChannel = (idx) => { pkHaptic('select'); setActiveIdx(idx); setDisc(''); };
+  const isFollowing = !!subscribed[channel.id];
+  const discs = [['popular', 'Popular'], ['new', 'New'], ['highlighted', 'Highlighted']];
 
-  const PlayIcon = ({ on }) => (on
-    ? (<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><rect x="3" y="2.5" width="2.6" height="9" rx="1"/><rect x="8.4" y="2.5" width="2.6" height="9" rx="1"/></svg>)
-    : (<svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M4 2.5v9l7-4.5-7-4.5z"/></svg>));
+  const episodes = channel.episodes
+    .filter((e) => e.type === contentTab)
+    .filter((e) => !disc || e.tag === disc); // already authored newest-first
 
-  const nowDur = playing != null ? epDuration(playing) : 0;
+  // Resume row — show the user's last episode if it’s in progress.
+  const resume = pl && pl.progress > 0.02 && pl.progress < 0.99 ? pl : null;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
@@ -786,8 +857,8 @@ function ListenScreen({ web, onBack }) {
       </div>} />
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: railOpen ? (web ? 22 : 14) : 12, padding: web ? '14px 28px 26px' : '8px 16px 18px' }}>
-        {/* Left rail — collapsible channels */}
-        <div style={{ width: railOpen ? (web ? 196 : 124) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px dashed ${DASH}`, paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
+        {/* Left rail — sources only: avatar + name */}
+        <div style={{ width: railOpen ? (web ? 208 : 132) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px dashed ${DASH}`, paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
           {railOpen ? (
             <React.Fragment>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 10px' }}>
@@ -800,12 +871,12 @@ function ListenScreen({ web, onBack }) {
                 {channels.map((c, idx) => {
                   const on = idx === activeIdx;
                   return (
-                    <button key={c.name} onClick={() => { pkHaptic('select'); setActiveIdx(idx); }} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                      <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: on ? ink : 'transparent', flexShrink: 0 }} />
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 13, fontWeight: on ? 760 : 600, color: on ? ink : ink70, lineHeight: 1.3 }}>{c.name}</span>
-                        <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 2 }}>{c.meta}</span>
+                    <button key={c.id} onClick={() => selectChannel(idx)} style={{ width: '100%', textAlign: 'left', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '11px 0', display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span style={{ position: 'relative', flexShrink: 0 }}>
+                        <ChannelAvatar ch={c} size={web ? 34 : 30} />
+                        {on && <span style={{ position: 'absolute', inset: -3, borderRadius: '50%', border: `1.5px solid ${ink}` }} />}
                       </span>
+                      <span style={{ minWidth: 0, fontSize: 13, fontWeight: on ? 760 : 600, color: on ? ink : ink70, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
                     </button>
                   );
                 })}
@@ -818,77 +889,218 @@ function ListenScreen({ web, onBack }) {
           )}
         </div>
 
-        {/* Main */}
-        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: 80 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: web ? 30 : 24, fontWeight: 760, letterSpacing: '-0.03em', color: ink }}>{channel.name}</div>
-              <div style={{ marginTop: 6, fontSize: 13.5, color: ink55 }}>{channel.meta}</div>
+        {/* Main canvas */}
+        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: pl ? 92 : 24 }}>
+          {/* Compact profile header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <ChannelAvatar ch={channel} size={web ? 56 : 48} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: web ? 24 : 19, fontWeight: 800, letterSpacing: '-0.02em', color: ink, lineHeight: 1.12 }}>{channel.name}</div>
+              <div style={{ fontSize: 12.5, color: ink40, marginTop: 2 }}>{channel.author}</div>
             </div>
-            <button onClick={() => { pkHaptic('select'); setSubscribed((s) => !s); }} style={{ flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 999, border: subscribed ? '0' : `1px dashed ${DASH}`, background: subscribed ? ink : 'transparent', color: subscribed ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>{subscribed ? 'Following' : 'Follow'}</button>
+            <button onClick={() => { pkHaptic('select'); setSubscribed((s) => ({ ...s, [channel.id]: !s[channel.id] })); }} style={{ flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 999, border: isFollowing ? '0' : `1px dashed ${DASH}`, background: isFollowing ? ink : 'transparent', color: isFollowing ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>{isFollowing ? 'Following' : 'Follow'}</button>
           </div>
+          <div style={{ marginTop: 8, fontSize: 13, color: ink55, lineHeight: 1.45 }}>{channel.desc}</div>
 
-          {/* Now playing */}
-          {playing != null && (
-            <div className="pk-rise" style={{ marginTop: 20, paddingBottom: 20, borderBottom: `1px dashed ${DASH}` }}>
-              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Now playing</div>
-              <div style={{ marginTop: 8, fontSize: 18, fontWeight: 760, letterSpacing: '-0.02em', color: ink }}>{channel.episodes[playing]}</div>
-
-              {/* Scrubber */}
-              <div onClick={seek} style={{ marginTop: 16, height: 14, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                <div style={{ position: 'relative', width: '100%', height: 3, background: ink12, borderRadius: 999 }}>
-                  <div style={{ position: 'absolute', insetBlock: 0, left: 0, width: `${progress * 100}%`, background: ink, borderRadius: 999 }} />
-                  <div style={{ position: 'absolute', top: '50%', left: `${progress * 100}%`, width: 11, height: 11, borderRadius: '50%', background: ink, transform: 'translate(-50%, -50%)' }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontFamily: CC_MONO, fontSize: 11, color: ink40 }}>
-                <span>{fmt(progress * nowDur)}</span>
-                <span>-{fmt(nowDur - progress * nowDur)}</span>
-              </div>
-
-              {/* Transport */}
-              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 26 }}>
-                <button onClick={() => skip(-15)} aria-label="Back 15 seconds" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8a8 8 0 1 1-1 4"/><path d="M4 4v4h4"/></svg>
-                  <span style={{ fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, color: ink55 }}>15</span>
-                </button>
-                <button onClick={() => playEpisode(playing)} aria-label={paused ? 'Play' : 'Pause'} style={{ width: 58, height: 58, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px rgba(10,10,10,0.22)' }}>
-                  {paused
-                    ? (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>)
-                    : (<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>)}
-                </button>
-                <button onClick={() => skip(30)} aria-label="Forward 30 seconds" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 8a8 8 0 1 0 1 4"/><path d="M20 4v4h-4"/></svg>
-                  <span style={{ fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, color: ink55 }}>30</span>
-                </button>
-              </div>
-
-              {/* Speed */}
-              <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
-                <button onClick={() => setSpeed((s) => (s >= 2 ? 1 : s === 1 ? 1.5 : 2))} style={{ border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: CC_MONO, fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 999 }}>{speed}x speed</button>
-              </div>
-            </div>
+          {/* Continue listening — resume the last episode */}
+          {resume && (
+            <button onClick={() => player.open()} className="pk-rise" style={{ marginTop: 16, width: '100%', border: `1px dashed ${DASH}`, borderRadius: 14, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <EpisodeThumb hue={resume.hue} playing={resume.playing} size={40} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>Continue listening</span>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 720, color: ink, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{resume.title}</span>
+                <span style={{ display: 'block', height: 3, borderRadius: 999, background: ink12, marginTop: 7, position: 'relative' }}><span style={{ position: 'absolute', insetBlock: 0, left: 0, width: `${Math.round(resume.progress * 100)}%`, background: resume.hue, borderRadius: 999 }} /></span>
+              </span>
+              <span style={{ fontFamily: CC_MONO, fontSize: 11, color: ink40, flexShrink: 0 }}>-{ccFmtTime(resume.dur - resume.progress * resume.dur)}</span>
+            </button>
           )}
 
-          {/* Episodes */}
-          <div style={{ marginTop: 20 }}>
-            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Episodes</div>
-            {channel.episodes.map((ep, idx) => {
-              const isCur = playing === idx;
-              return (
-                <button key={ep} onClick={() => playEpisode(idx)} style={{ width: '100%', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCur && !paused ? ink : 'transparent', border: isCur && !paused ? '0' : `1px dashed ${DASH}`, color: isCur && !paused ? paper : ink }}>
-                    <PlayIcon on={isCur && !paused} />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 15, fontWeight: isCur ? 760 : 650, color: ink, letterSpacing: '-0.01em' }}>{ep}</span>
-                    <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{isCur ? (paused ? 'Paused' : 'Now playing') : `${18 + idx * 5} min`}</span>
-                  </span>
-                </button>
-              );
+          {/* Long Form / Shorts — content nav inside the canvas */}
+          <div style={{ marginTop: 18, display: 'flex', gap: 8 }}>
+            {[['long', 'Long Form'], ['short', 'Shorts']].map(([k, l]) => {
+              const on = contentTab === k;
+              return <button key={k} onClick={() => { pkHaptic('select'); setContentTab(k); }} style={{ height: 36, padding: '0 16px', borderRadius: 999, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 760 }}>{l}</button>;
             })}
           </div>
+
+          {/* Discovery — lightweight filters */}
+          <div style={{ marginTop: 10, display: 'flex', gap: 7 }}>
+            {discs.map(([k, l]) => {
+              const on = disc === k;
+              return <button key={k} onClick={() => { pkHaptic('select'); setDisc(on ? '' : k); }} style={{ height: 30, padding: '0 12px', borderRadius: 999, border: on ? '0' : `1px dashed ${DASH}`, background: on ? channel.hue : 'transparent', color: on ? '#fff' : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700 }}>{l}</button>;
+            })}
+          </div>
+
+          {/* Episodes — newest first */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Episodes{disc ? ` · ${disc}` : ''}</div>
+            {loading ? (
+              [0, 1, 2].map((i) => (
+                <div key={i} style={{ borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span className="pk-shimmer" style={{ width: 44, height: 44, borderRadius: 11, flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>
+                    <span className="pk-shimmer" style={{ display: 'block', width: '58%', height: 13, borderRadius: 6 }} />
+                    <span className="pk-shimmer" style={{ display: 'block', width: '34%', height: 11, borderRadius: 6, marginTop: 8 }} />
+                  </span>
+                </div>
+              ))
+            ) : episodes.length === 0 ? (
+              <div style={{ padding: '34px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 760, color: ink }}>No {contentTab === 'short' ? 'shorts' : 'long-form episodes'}{disc ? ` in ${disc}` : ''} yet</div>
+                <div style={{ marginTop: 4, fontSize: 12.5, color: ink40 }}>Try another tab or clear the filter.</div>
+                {disc && <button onClick={() => setDisc('')} style={{ marginTop: 14, height: 36, padding: '0 16px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>Clear filter</button>}
+              </div>
+            ) : (
+              episodes.map((ep, idx) => {
+                const epIdx = channel.episodes.indexOf(ep);
+                const isCur = pl && pl.ch === channel.id && pl.ep === epIdx;
+                return (
+                  <button key={ep.id} onClick={() => player.load(channel.id, epIdx)} style={{ width: '100%', border: 0, borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '13px 0', display: 'flex', alignItems: 'center', gap: 13 }}>
+                    <EpisodeThumb hue={channel.hue} playing={isCur && pl.playing} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 14.5, fontWeight: isCur ? 780 : 650, color: ink, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.title}</span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 2, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>{isCur ? (pl.playing ? 'Now playing' : 'Paused') : `${ep.min} min · ${ep.date}`}</span>
+                    </span>
+                    {ep.tag && !isCur && <span style={{ flexShrink: 0, fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: channel.hue, padding: '3px 7px', borderRadius: 999, background: channel.hue + '18' }}>{ep.tag}</span>}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Transport glyphs reused by the player.
+function ListenTransport({ player, big }) {
+  const pl = player.state; if (!pl) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: big ? 22 : 18 }}>
+      <button onClick={() => player.prev()} aria-label="Previous" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', padding: 4 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="2.4" height="14" rx="1"/><path d="M20 5v14l-11-7z"/></svg>
+      </button>
+      <button onClick={() => player.skip(-15)} aria-label="Back 15 seconds" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: 2 }}>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8a8 8 0 1 1-1 4"/><path d="M4 4v4h4"/></svg>
+        <span style={{ fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, color: ink55 }}>15</span>
+      </button>
+      <button onClick={() => player.toggle()} aria-label={pl.playing ? 'Pause' : 'Play'} style={{ width: big ? 70 : 58, height: big ? 70 : 58, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px rgba(10,10,10,0.22)' }}>
+        {pl.playing
+          ? (<svg width={big ? 26 : 22} height={big ? 26 : 22} viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>)
+          : (<svg width={big ? 26 : 22} height={big ? 26 : 22} viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>)}
+      </button>
+      <button onClick={() => player.skip(30)} aria-label="Forward 30 seconds" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: 2 }}>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 8a8 8 0 1 0 1 4"/><path d="M20 4v4h-4"/></svg>
+        <span style={{ fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, color: ink55 }}>30</span>
+      </button>
+      <button onClick={() => player.next()} aria-label="Next" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', padding: 4 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5v14l11-7z"/><rect x="16.6" y="5" width="2.4" height="14" rx="1"/></svg>
+      </button>
+    </div>
+  );
+}
+
+// Dedicated full-screen playback experience, with a Transcript tab.
+function ListenPlayer({ player }) {
+  const [tab, setTab] = React.useState('player');
+  const transRef = React.useRef(null);
+  const pl = player.state;
+  React.useEffect(() => { setTab('player'); }, [pl && pl.id]);
+  if (!pl) return null;
+  const ch = ccChannel(pl.ch) || { hue: ink, name: pl.channel };
+  const cur = pl.progress * pl.dur;
+  const transcript = ccTranscript(pl);
+  const activeLine = transcript.reduce((a, l, i) => (l.t <= pl.progress ? i : a), 0);
+
+  const seek = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    player.seek((e.clientX - r.left) / r.width);
+  };
+  const cycleSpeed = () => { const order = [1, 1.25, 1.5, 2]; const i = order.indexOf(pl.speed || 1); player.setSpeed(order[(i + 1) % order.length]); };
+
+  return (
+    <div className="pk-rise" style={{ position: 'absolute', inset: 0, zIndex: 80, background: canvas, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: PK_NATIVE ? 'max(16px, env(safe-area-inset-top, 16px))' : 54, flexShrink: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 18px 0' }}>
+        <IconBtn onClick={() => player.minimize()}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l5 5 5-5"/></svg>
+        </IconBtn>
+        <span style={{ fontFamily: CC_MONO, fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>{ch.name}</span>
+        <IconBtn onClick={() => player.close()}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </IconBtn>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, padding: '14px 22px 0', justifyContent: 'center' }}>
+        {[['player', 'Now Playing'], ['transcript', 'Transcript']].map(([k, l]) => {
+          const on = tab === k;
+          return <button key={k} onClick={() => setTab(k)} style={{ height: 32, padding: '0 14px', borderRadius: 999, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700 }}>{l}</button>;
+        })}
+      </div>
+
+      {tab === 'player' ? (
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '18px 26px max(26px, env(safe-area-inset-bottom, 20px))', textAlign: 'center' }}>
+          {/* Artwork */}
+          <div style={{ width: '100%', maxWidth: 300, aspectRatio: '1 / 1', borderRadius: 26, background: `linear-gradient(150deg, ${ch.hue} 0%, ${ch.hue}AA 60%, ${ch.hue}66 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 24px 60px rgba(10,10,10,0.22)', color: '#fff' }}>
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.92 }}><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="7" rx="2"/><rect x="17" y="13" width="4" height="7" rx="2"/></svg>
+          </div>
+          <div style={{ marginTop: 24, fontSize: 21, fontWeight: 820, letterSpacing: '-0.02em', color: ink, maxWidth: 340 }}>{pl.title}</div>
+          <div style={{ marginTop: 5, fontSize: 13.5, color: ink55 }}>{ch.name}</div>
+
+          {/* Scrubber */}
+          <div onClick={seek} style={{ width: '100%', maxWidth: 360, marginTop: 24, height: 16, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+            <div style={{ position: 'relative', width: '100%', height: 3, background: ink12, borderRadius: 999 }}>
+              <div style={{ position: 'absolute', insetBlock: 0, left: 0, width: `${pl.progress * 100}%`, background: ink, borderRadius: 999 }} />
+              <div style={{ position: 'absolute', top: '50%', left: `${pl.progress * 100}%`, width: 12, height: 12, borderRadius: '50%', background: ink, transform: 'translate(-50%, -50%)' }} />
+            </div>
+          </div>
+          <div style={{ width: '100%', maxWidth: 360, display: 'flex', justifyContent: 'space-between', marginTop: 7, fontFamily: CC_MONO, fontSize: 11, color: ink40 }}>
+            <span>{ccFmtTime(cur)}</span>
+            <span>-{ccFmtTime(pl.dur - cur)}</span>
+          </div>
+
+          <div style={{ marginTop: 22 }}><ListenTransport player={player} big /></div>
+
+          <button onClick={cycleSpeed} style={{ marginTop: 22, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: CC_MONO, fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 999 }}>{pl.speed || 1}x speed</button>
+        </div>
+      ) : (
+        <div ref={transRef} className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: '18px 26px max(26px, env(safe-area-inset-bottom, 20px))', maxWidth: 640, margin: '0 auto', width: '100%' }}>
+          {transcript.map((l, i) => {
+            const on = i === activeLine;
+            return (
+              <button key={i} onClick={() => player.seek(l.t + 0.001)} style={{ display: 'block', width: '100%', textAlign: 'left', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 0' }}>
+                <span style={{ fontSize: 16, lineHeight: 1.5, fontWeight: on ? 760 : 500, color: on ? ink : ink40, transition: 'color 200ms ease' }}>{l.text}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Persistent mini player — title + play/pause; tap to reopen the full player.
+function MiniPlayer({ player }) {
+  const pl = player.state; if (!pl) return null;
+  const ch = ccChannel(pl.ch) || { hue: ink };
+  return (
+    <div className="pk-rise" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40, background: 'rgba(250,246,241,0.92)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderTop: `1px dashed ${DASH}`, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div style={{ height: 3, background: ink06 }}><div style={{ height: '100%', width: `${pl.progress * 100}%`, background: ch.hue }} /></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px' }}>
+        <button onClick={() => player.open()} aria-label="Open player" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 11, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0 }}>
+          <EpisodeThumb hue={ch.hue} playing={pl.playing} size={38} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 760, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.title}</span>
+            <span style={{ display: 'block', fontSize: 11, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pl.channel}</span>
+          </span>
+        </button>
+        <button onClick={() => player.toggle()} aria-label={pl.playing ? 'Pause' : 'Play'} style={{ width: 40, height: 40, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {pl.playing
+            ? (<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>)
+            : (<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>)}
+        </button>
       </div>
     </div>
   );

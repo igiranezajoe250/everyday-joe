@@ -155,6 +155,48 @@ function App() {
   const [inboxOpen, setInboxOpen] = React.useState(false);
   const showHeaderActions = route !== 'money';
 
+  // ── Global audio player ──
+  // Lifted here so playback (and the mini player) persist while the user moves
+  // through the rest of the app. `pl` is the current episode; the timer keeps
+  // the simulated audio advancing regardless of which screen is mounted, and
+  // the last position is persisted so listening resumes on a later visit.
+  const [pl, setPl] = React.useState(() => {
+    const saved = PKStore.get('listen_now', null);
+    return saved ? { ...saved, playing: false } : null;
+  });
+  const [playerOpen, setPlayerOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (!pl || !pl.playing) return;
+    const id = setInterval(() => {
+      setPl((p) => {
+        if (!p || !p.playing) return p;
+        const np = p.progress + (p.speed || 1) / p.dur;
+        if (np >= 1) return { ...p, progress: 1, playing: false };
+        return { ...p, progress: np };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [pl && pl.playing, pl && pl.speed, pl && pl.ch, pl && pl.ep, pl && pl.dur]);
+  React.useEffect(() => {
+    try { if (pl) PKStore.set('listen_now', { ...pl, playing: false }); } catch (e) {}
+  }, [pl && pl.ch, pl && pl.ep, pl && pl.progress]);
+  const player = {
+    state: pl,
+    isOpen: playerOpen,
+    load: (chId, epIdx) => { const it = ccBuildItem(chId, epIdx); if (!it) return; pkHaptic('select'); setPl((prev) => ({ ...it, progress: 0, playing: true, speed: (prev && prev.speed) || 1 })); setPlayerOpen(true); },
+    toggle: () => { pkHaptic('select'); setPl((p) => (p ? { ...p, playing: !p.playing } : p)); },
+    seek: (f) => setPl((p) => (p ? { ...p, progress: Math.max(0, Math.min(1, f)) } : p)),
+    skip: (sec) => setPl((p) => (p ? { ...p, progress: Math.max(0, Math.min(1, p.progress + sec / p.dur)) } : p)),
+    setSpeed: (s) => setPl((p) => (p ? { ...p, speed: s } : p)),
+    next: () => setPl((p) => { if (!p) return p; const it = ccBuildItem(p.ch, p.ep + 1); return it ? { ...it, progress: 0, playing: true, speed: p.speed } : { ...p, playing: false }; }),
+    prev: () => setPl((p) => { if (!p) return p; if (p.progress > 0.05) return { ...p, progress: 0 }; const it = ccBuildItem(p.ch, p.ep - 1); return it ? { ...it, progress: 0, playing: true, speed: p.speed } : { ...p, progress: 0 }; }),
+    open: () => { pkHaptic('select'); setPl((p) => (p ? { ...p, playing: true } : p)); setPlayerOpen(true); },
+    minimize: () => setPlayerOpen(false),
+    close: () => { setPlayerOpen(false); setPl(null); try { PKStore.set('listen_now', null); } catch (e) {} },
+  };
+  // Mini player shows whenever something is loaded and the full player is closed.
+  const showMini = !!pl && !playerOpen && route !== 'money';
+
   const showTab = false;
 
   return (
@@ -231,6 +273,7 @@ function App() {
                   mode="listen"
                   web={PK_WEB}
                   onBack={backToHub}
+                  player={player}
                 />
               )}
               {route === 'commute' && (
@@ -290,13 +333,19 @@ function App() {
               variant="fab"
               functions={pkSelectedFunctions()}
               onSelect={openFunctionById}
-              bottomOffset={route === 'pay' || route === 'plan' ? 92 : route === 'shop' ? 80 : 22}
+              bottomOffset={(route === 'pay' || route === 'plan' ? 92 : route === 'shop' ? 80 : 22) + (showMini ? 66 : 0)}
             />
           )}
+
+          {/* Persistent mini player — keeps audio one tap away while you browse */}
+          {showMini && <MiniPlayer player={player} />}
 
           {showTab && (
             <TabBar active={tab} onChange={goTab} accent={accent} native={PK_NATIVE} />
           )}
+
+          {/* Dedicated full-screen playback (overlays everything, like the inbox) */}
+          {playerOpen && pl && <ListenPlayer player={player} />}
           </React.Fragment>
           )}
         </div>
