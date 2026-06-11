@@ -1,9 +1,12 @@
 # GitHub Copilot instructions — Everyday App
 
-**Read [`PRODUCT_CONSTITUTION.md`](../PRODUCT_CONSTITUTION.md) before suggesting or
-writing any code.** It is the highest-level source of truth for this product and
-overrides any conflicting instruction. The same guidance is mirrored for other
-tools in [`AGENTS.md`](../AGENTS.md) and [`CLAUDE.md`](../CLAUDE.md).
+**Before suggesting or writing any code, read in order:**
+[`PRODUCT_CONSTITUTION.md`](../PRODUCT_CONSTITUTION.md) →
+[`PROJECT_BRIEF.md`](../PROJECT_BRIEF.md) →
+[`AI_CONTEXT.md`](../AI_CONTEXT.md); then [`CONTRIBUTING.md`](../CONTRIBUTING.md) for
+run/test/deploy. The Constitution is the highest-level source of truth and overrides
+any conflicting instruction. The same guidance is mirrored for other tools in
+[`AGENTS.md`](../AGENTS.md) and [`CLAUDE.md`](../CLAUDE.md).
 
 Core, non-negotiable principles (authoritative detail in the Constitution):
 

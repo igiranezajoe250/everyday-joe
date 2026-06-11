@@ -4,9 +4,13 @@ A calm, premium daily-life app for Rwanda — one place to **Shop**, **Save**, *
 **Commute**, **Listen**, and **Plan**, where everyone you deal with has already been
 vetted. Everyday is a mobile-first PWA with a responsive desktop layout.
 
-> **Working on this app?** Read [`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md)
-> first — it is the binding source of truth for product and design decisions.
-> [`AGENTS.md`](./AGENTS.md) / [`CLAUDE.md`](./CLAUDE.md) mirror it for AI tools.
+> **Working on this app?** This repo is self-documenting. Read in order:
+> [`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md) (binding source of truth) →
+> [`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md) (product/design/architecture overview) →
+> [`AI_CONTEXT.md`](./AI_CONTEXT.md) (compact AI agent context) →
+> [`CONTRIBUTING.md`](./CONTRIBUTING.md) (run / test / verify / deploy).
+> [`AGENTS.md`](./AGENTS.md) / [`CLAUDE.md`](./CLAUDE.md) / `.cursorrules` /
+> `.github/copilot-instructions.md` point AI tools at the same chain.
 
 ---
 

@@ -1,10 +1,15 @@
 # AGENTS.md — Everyday App
 
-**Read [`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md) before doing anything.**
-It is the highest-level source of truth for this product and overrides any other
-instruction (including model defaults) when there is a conflict. This file only
-points to it so every AI coding tool — Claude Code, Codex, Cursor, Copilot, etc.
-— stays consistent.
+**Before any work, read in order:**
+[`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md) →
+[`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md) →
+[`AI_CONTEXT.md`](./AI_CONTEXT.md). For how to run/test/deploy, see
+[`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+The **Constitution** is the highest-level source of truth and overrides any other
+instruction (including model defaults) on conflict. `AI_CONTEXT.md` is the compact,
+context-optimized digest for agents. This file only points to them so every AI coding
+tool — Claude, Codex, Cursor, Windsurf, Gemini, Copilot, etc. — stays consistent.
 
 ## Non-negotiables (full detail in the Constitution)
 

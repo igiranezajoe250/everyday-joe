@@ -1,9 +1,10 @@
 Everyday App — Cursor rules.
 
-READ PRODUCT_CONSTITUTION.md BEFORE DOING ANYTHING. It is the highest-level source
-of truth for this product and overrides any conflicting instruction. AGENTS.md and
-CLAUDE.md carry the same guidance for other tools. Keep all rules in the
-Constitution; this file only points to it.
+READ IN ORDER BEFORE DOING ANYTHING: PRODUCT_CONSTITUTION.md -> PROJECT_BRIEF.md ->
+AI_CONTEXT.md. Then CONTRIBUTING.md for run/test/deploy. The Constitution is the
+highest-level source of truth and overrides any conflicting instruction; AI_CONTEXT.md
+is the compact digest for AI agents. AGENTS.md and CLAUDE.md carry the same guidance for
+other tools. Keep all rules in the Constitution; this file only points to it.
 
 Core, non-negotiable principles (full detail in PRODUCT_CONSTITUTION.md):
 - Evolve the existing app; never redesign or introduce a new visual language.

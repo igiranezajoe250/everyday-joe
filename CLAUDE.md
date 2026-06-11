@@ -1,9 +1,12 @@
 # CLAUDE.md — Everyday App
 
-**Before any work, read [`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md).**
-It is the highest-level source of truth and takes precedence over any conflicting
-instruction. See also [`AGENTS.md`](./AGENTS.md) — the same guidance shared across
-AI coding tools.
+**Before any work, read in order:**
+[`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md) →
+[`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md) →
+[`AI_CONTEXT.md`](./AI_CONTEXT.md); then [`CONTRIBUTING.md`](./CONTRIBUTING.md) for
+run/test/deploy. The Constitution is the highest-level source of truth and takes
+precedence over any conflicting instruction. See also [`AGENTS.md`](./AGENTS.md) — the
+same guidance shared across AI coding tools.
 
 ## The short version (authoritative detail is in the Constitution)
 

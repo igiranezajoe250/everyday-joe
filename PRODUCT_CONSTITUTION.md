@@ -9,6 +9,25 @@
 > `.github/copilot-instructions.md`) all defer to this file. Keep this file as the
 > single canonical copy; do not fork its rules into the pointers.
 
+## The document system
+
+This repository is **self-documenting**. The reference set, in precedence order:
+
+1. **[`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md)** *(this file)* — the binding
+   governing document: philosophy, design principles, decision framework, rules for
+   future development. **Everything defers to it.**
+2. **[`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md)** — the human-readable overview for
+   designers, PMs, developers, and new contributors: what Everyday is, why it exists,
+   how it works and is structured, the design language, deployment model, status, roadmap.
+3. **[`AI_CONTEXT.md`](./AI_CONTEXT.md)** — compact operational context optimized for AI
+   agents (Claude, Codex, Cursor, Windsurf, Gemini, Copilot, future agents).
+4. **[`CONTRIBUTING.md`](./CONTRIBUTING.md)** — how to run, test, verify responsiveness,
+   verify production readiness, and deploy.
+
+**AI-first development requirement:** any AI-generated work must read, in order,
+`PRODUCT_CONSTITUTION.md` → `PROJECT_BRIEF.md` → `AI_CONTEXT.md` **before** making any
+design, product, engineering, or architectural decision.
+
 ## Purpose
 
 This document is the permanent reference for the Everyday App.
