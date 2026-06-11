@@ -5,6 +5,34 @@ node_modules/
 out/
 dist/
 coverage/
+__pycache__/
+*.py[cod]
 .env*
 !.env.example
 .expo/
+.kokoro-env/
+kokoro-env/
+kokoro-temp/
+# Local dev tool configs
+.claude/
+next-pwa/next-env.d.ts
+local-voice/tmp/
+local-voice/service/*.go.*
+local-voice/**/*.wav
+local-voice/**/*.webm
+local-voice/**/*.ogg
+local-voice/**/*.mp3
+local-voice/**/*.m4a
+# Model caches — multi-GB binary downloads, never commit
+local-voice/digital-umuganda/hf-cache/
+local-voice/digital-umuganda/models--*/
+local-voice/digital-umuganda/snapshots/
+local-voice/digital-umuganda/blobs/
+local-voice/digital-umuganda/refs/
+local-voice/kokoro/hf-cache/
+*.safetensors
+*.bin
+*.onnx
+*.pt
+*.pth
+*.gguf

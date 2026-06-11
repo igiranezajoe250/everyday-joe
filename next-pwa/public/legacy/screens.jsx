@@ -156,9 +156,21 @@ function ActionIcon({ onClick, label, badge, children }) {
   );
 }
 
-function HeaderActions({ onInbox, onWallet, onProfile, unread = 0, initials = 'JK' }) {
+function HeaderActions({ onInbox, onWallet, onProfile, onOperator, isOperator, unread = 0, initials = 'JK', showOperator = false }) {
   return (
     <div style={{ position: 'absolute', top: PK_NATIVE ? 'calc(max(16px, env(safe-area-inset-top, 16px)) + 8px)' : 62, right: 16, zIndex: 45, display: 'flex', alignItems: 'center', gap: 8 }}>
+      {showOperator && (
+        <button onClick={onOperator} aria-label={isOperator ? 'Switch to client mode' : 'Switch to operator mode'} title={isOperator ? 'Client mode' : 'Operator mode'} style={{
+          position: 'relative', height: 38, padding: '0 14px', borderRadius: 999,
+          border: `1px solid ${isOperator ? ink : ink12}`, background: isOperator ? ink : paper,
+          color: isOperator ? paper : ink, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontFamily: 'inherit', fontSize: 12, fontWeight: 700, letterSpacing: '0.01em',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+          <span>{isOperator ? 'Operator' : 'Client'}</span>
+        </button>
+      )}
       <ActionIcon onClick={onInbox} label="Notifications" badge={unread}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
       </ActionIcon>
@@ -223,6 +235,281 @@ function NotificationsPanel({ onClose }) {
   );
 }
 
+function BountyButton({ onOpen, bottomOffset = 18 }) {
+  const [hover, setHover] = React.useState(false);
+  const [down, setDown] = React.useState(false);
+  const [compact, setCompact] = React.useState(() => {
+    try { return window.innerWidth < 720; } catch (e) { return true; }
+  });
+  React.useEffect(() => {
+    const onResize = () => setCompact(window.innerWidth < 720);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return (
+    <button
+      onClick={onOpen}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setHover(false); setDown(false); }}
+      onMouseDown={() => setDown(true)}
+      onMouseUp={() => setDown(false)}
+      aria-label="Open Bounty"
+      title="Bounty"
+      style={{
+      position: 'absolute',
+      right: compact ? 16 : 18,
+      bottom: `calc(${bottomOffset}px + env(safe-area-inset-bottom, 0px))`,
+      zIndex: 46,
+      height: compact ? 42 : 44,
+      padding: compact ? '0 13px 0 12px' : '0 14px 0 13px',
+      borderRadius: 999,
+      border: `1px solid ${hover ? ink25 : ink12}`,
+      background: hover ? paperSoft : paper,
+      color: ink,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontFamily: 'inherit',
+      fontSize: 13,
+      fontWeight: 760,
+      boxShadow: hover ? '0 10px 26px rgba(10,10,10,0.13)' : '0 8px 22px rgba(10,10,10,0.09)',
+      transform: down ? 'scale(0.97)' : 'none',
+      transition: 'background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease',
+    }}>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/>
+        <circle cx="9" cy="11.5" r="0.9" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="11.5" r="0.9" fill="currentColor" stroke="none"/>
+        <circle cx="15" cy="11.5" r="0.9" fill="currentColor" stroke="none"/>
+      </svg>
+      <span>Bounty</span>
+    </button>
+  );
+}
+
+function BountyPanel({ onClose, onRoute }) {
+  const first = { id: 'b0', role: 'assistant', text: 'Tell me what you want to do. I can help with Moto, Shop, Pay, Save, Plan, or Listen.' };
+  const [messages, setMessages] = usePersisted('bounty_messages', [first]);
+  const [input, setInput] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [recording, setRecording] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [compact, setCompact] = React.useState(() => {
+    try { return window.innerWidth < 720; } catch (e) { return true; }
+  });
+  const chunksRef = React.useRef([]);
+  const recorderRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const onResize = () => setCompact(window.innerWidth < 720);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  React.useEffect(() => () => stopStream(), []);
+
+  // Consume any home-bar preload — when the user typed in the home bar with
+  // Bounty selected, or hit the mic, hand the intent off here.
+  React.useEffect(() => {
+    let preload = null;
+    try { preload = window.__EVERYDAY_BOUNTY_PRELOAD__; window.__EVERYDAY_BOUNTY_PRELOAD__ = null; } catch (e) {}
+    if (!preload) return;
+    if (preload.text) {
+      sendText(preload.text);
+    } else if (preload.mode === 'voice') {
+      startRecording();
+    }
+    // image/upload preload: nothing to auto-trigger yet — surfaced in the next pass.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const stopStream = () => {
+    try { if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    streamRef.current = null;
+  };
+
+  const pushAssistant = (base, data) => {
+    const reply = {
+      id: 'b' + Date.now() + '-a',
+      role: 'assistant',
+      text: data.text,
+      route: data.route,
+      action: data.action,
+      model: data.model,
+    };
+    setMessages([...base, reply]);
+  };
+
+  const sendText = async (raw) => {
+    const text = String(raw || '').trim();
+    if (!text || busy) return;
+    setError('');
+    const userMsg = { id: 'b' + Date.now() + '-u', role: 'user', text };
+    const next = [...messages, userMsg];
+    setMessages(next);
+    setInput('');
+    setBusy(true);
+    try {
+      const data = await ccSendBountyMessage(text, next);
+      pushAssistant(next, data);
+    } catch (e) {
+      pushAssistant(next, { text: e && e.message ? e.message : 'Bounty could not respond.', model: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startRecording = async () => {
+    if (recording || busy) return;
+    setError('');
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') throw new Error('Microphone recording is not available in this browser.');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const mime = MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const rec = new MediaRecorder(stream, { mimeType: mime });
+      recorderRef.current = rec;
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stopStream();
+        setRecording(false);
+        const blob = new Blob(chunksRef.current, { type: mime });
+        if (!blob.size) return;
+        setBusy(true);
+        try {
+          const tx = await ccTranscribeVoice(blob);
+          setBusy(false);
+          await sendText(tx.text);
+        } catch (e) {
+          setBusy(false);
+          setError(e && e.message ? e.message : 'Voice transcription failed.');
+        }
+      };
+      rec.start();
+      setRecording(true);
+      pkHaptic('medium');
+    } catch (e) {
+      stopStream();
+      setRecording(false);
+      setError(e && e.message ? e.message : 'Microphone permission was not granted.');
+    }
+  };
+
+  const stopRecording = () => {
+    try {
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+    } catch (e) {
+      stopStream();
+      setRecording(false);
+    }
+  };
+
+  const handleRoute = (route) => {
+    if (!route) return;
+    pkHaptic('select');
+    onRoute && onRoute(route);
+    onClose && onClose();
+  };
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 76, display: 'flex', justifyContent: compact ? 'center' : 'flex-end', alignItems: compact ? 'flex-end' : 'stretch', pointerEvents: 'auto' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(10,10,10,0.24)' }} />
+      <div className="pk-rise" style={{
+        position: 'relative',
+        width: compact ? '100%' : 420,
+        maxWidth: compact ? '100%' : 'calc(100% - 32px)',
+        height: compact ? 'min(86%, 680px)' : '100%',
+        background: canvas,
+        borderLeft: compact ? 'none' : `1px solid ${ink12}`,
+        borderTopLeftRadius: compact ? 26 : 0,
+        borderTopRightRadius: compact ? 26 : 0,
+        boxShadow: compact ? '0 -20px 60px rgba(10,10,10,0.22)' : '-24px 0 70px rgba(10,10,10,0.18)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        <div style={{ height: compact ? 10 : (PK_NATIVE ? 'max(16px, env(safe-area-inset-top, 16px))' : 54), flexShrink: 0 }} />
+        {compact && <div style={{ width: 40, height: 4, borderRadius: 999, background: ink12, margin: '0 auto 10px', flexShrink: 0 }} />}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: compact ? '0 18px 8px' : '8px 20px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ width: 34, height: 34, borderRadius: '50%', background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </span>
+            <span style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Bounty</span>
+          </div>
+          <IconBtn onClick={onClose}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+          </IconBtn>
+        </div>
+
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: compact ? '12px 18px 12px' : '18px 20px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {messages.map((m) => {
+            const mine = m.role === 'user';
+            return (
+              <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth: compact ? '86%' : '82%',
+                  background: mine ? ink : paper,
+                  color: mine ? paper : ink,
+                  border: mine ? 0 : `1px solid ${ink12}`,
+                  borderRadius: 18,
+                  padding: '11px 13px',
+                  fontSize: 14,
+                  lineHeight: 1.45,
+                  boxShadow: mine ? 'none' : '0 1px 0 rgba(10,10,10,0.02)',
+                }}>
+                  <div>{m.text}</div>
+                  {m.route && m.action && (
+                    <button onClick={() => handleRoute(m.route)} style={{
+                      marginTop: 10,
+                      height: 32,
+                      padding: '0 12px',
+                      borderRadius: 999,
+                      border: `1px solid ${ink}`,
+                      background: 'transparent',
+                      color: ink,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 12,
+                      fontWeight: 760,
+                    }}>{m.action}</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {busy && (
+            <div style={{ alignSelf: 'flex-start', fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, padding: '6px 2px' }}>
+              {recording ? 'Listening' : 'Thinking'}
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '8px 18px max(18px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${ink06}`, background: canvas }}>
+          {error && <div style={{ fontSize: 12.5, color: '#A33', margin: '0 2px 8px', lineHeight: 1.35 }}>{error}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, padding: 7 }}>
+            <button onClick={recording ? stopRecording : startRecording} disabled={busy && !recording} aria-label={recording ? 'Stop recording' : 'Start recording'} style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: recording ? ink : ink06, color: recording ? paper : ink, cursor: busy && !recording ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <HomeIcon kind="voice" size={17} color="currentColor" />
+            </button>
+            <input value={input} onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); sendText(input); } }}
+              placeholder={recording ? 'Listening...' : 'Ask Bounty'}
+              disabled={busy || recording}
+              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15.5, fontWeight: 500, padding: '0 4px' }} />
+            <button onClick={() => sendText(input)} disabled={!input.trim() || busy || recording} aria-label="Send to Bounty" style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: 'transparent', color: input.trim() && !busy && !recording ? ink : ink25, cursor: input.trim() && !busy && !recording ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Small glyphs for the Home input modes and contextual cards.
 function HomeIcon({ kind, size = 16, color }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color || 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' };
@@ -267,22 +554,66 @@ function buildHomeSuggestions(nav) {
   return out.slice(0, 6);
 }
 
-function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenNote }) {
+function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenBounty, onOpenNote }) {
   const [text, setText] = React.useState('');
   const [modeOpen, setModeOpen] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
+  const [target, setTarget] = React.useState('bounty');
   const inputRef = React.useRef(null);
   const ready = text.trim().length > 0;
 
-  const submit = () => { const t = text.trim(); if (!t) return; pkHaptic('medium'); onCapture({ mode: 'write', text: t }); setText(''); };
-  const pickMode = (m) => {
-    setModeOpen(false);
-    if (m === 'write') { if (inputRef.current) inputRef.current.focus(); return; }
-    pkHaptic('select');
-    onCapture({ mode: m });
+  const targets = [
+    { key: 'bounty',  label: 'Bounty',  sub: 'Anywhere in the app',   icon: 'bounty',  run: null },
+    { key: 'shop',    label: 'Shop',    sub: 'Find trusted shops',    icon: 'shop',    run: onShop },
+    { key: 'save',    label: 'Save',    sub: 'Track savings',         icon: 'save',    run: onSave },
+    { key: 'pay',     label: 'Pay',     sub: 'Pay or schedule',       icon: 'pay',     run: onPay },
+    { key: 'plan',    label: 'Plan',    sub: 'Notes and files',       icon: 'note',    run: onPlan },
+    { key: 'listen',  label: 'Listen',  sub: 'Channels and shows',    icon: 'listen',  run: onListen },
+    { key: 'commute', label: 'Commute', sub: 'Book a ride',           icon: 'commute', run: onCommute },
+  ];
+  const current = targets.find((t) => t.key === target) || targets[0];
+  const isBounty = current.key === 'bounty';
+  const placeholder = isBounty ? 'Ask anything' : `Ask about ${current.label}`;
+
+  const submit = () => {
+    const t = text.trim();
+    if (!t) return;
+    pkHaptic('medium');
+    // Bounty handles text through the agent panel; specific targets go to Plan capture.
+    if (isBounty && onOpenBounty) {
+      try { window.__EVERYDAY_BOUNTY_PRELOAD__ = { text: t }; } catch (e) {}
+      onOpenBounty();
+    } else {
+      onCapture({ mode: 'write', text: t, target: current.key });
+    }
+    setText('');
   };
-  const modes = [['write', 'Write'], ['voice', 'Voice'], ['image', 'Image'], ['upload', 'Upload']];
-  const suggestions = buildHomeSuggestions({ onShop, onSave, onPay, onPlan, onListen, onCommute, onOpenNote });
+  const pickTarget = (k) => {
+    pkHaptic('select');
+    setTarget(k);
+    setModeOpen(false);
+    if (inputRef.current) inputRef.current.focus();
+  };
+  const openTarget = () => {
+    if (current.run) { pkHaptic('select'); current.run(); }
+  };
+  const triggerMode = (m) => {
+    pkHaptic('select');
+    // Voice/image/upload for Bounty open the Bounty panel where the mic and
+    // attachment flow live; specific targets route into the Plan capture pad.
+    if (isBounty && onOpenBounty) {
+      try { window.__EVERYDAY_BOUNTY_PRELOAD__ = { mode: m }; } catch (e) {}
+      onOpenBounty();
+    } else {
+      onCapture({ mode: m, target: current.key });
+    }
+  };
+
+  const inlineModes = [
+    { key: 'voice',  label: 'Voice',  icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>) },
+    { key: 'image',  label: 'Image',  icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-7 7"/></svg>) },
+    { key: 'upload', label: 'Upload', icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>) },
+  ];
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative', overflow: 'hidden' }}>
@@ -291,7 +622,7 @@ function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, 
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
       </div>
 
-      {/* Centre: greeting + the Ask-anything bar + contextual cards */}
+      {/* Centre: greeting + the Ask-anything bar */}
       <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: web ? '0 28px' : '0 18px', textAlign: 'center' }}>
         <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, Joseph</div>
         <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 320, marginBottom: 30 }}>
@@ -299,62 +630,80 @@ function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, 
         </div>
 
         {/* Ask-anything bar */}
-        <div style={{ width: '100%', maxWidth: 640, position: 'relative' }}>
+        <div style={{ width: '100%', maxWidth: 680, position: 'relative' }}>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', gap: 6,
             background: paper, border: `1px solid ${focus ? ink : ink12}`,
-            borderRadius: 16, padding: '7px 9px 7px 9px',
+            borderRadius: 16, padding: '7px 8px 7px 8px',
             boxShadow: focus ? '0 12px 34px rgba(10,10,10,0.07)' : '0 1px 0 rgba(10,10,10,0.02)',
             transition: 'border-color 180ms ease, box-shadow 180ms ease',
           }}>
-            {/* Left: a worded button — click to choose what you want */}
-            <button onClick={() => { pkHaptic('select'); setModeOpen((o) => !o); }} aria-label="Choose action" aria-haspopup="menu" aria-expanded={modeOpen} style={{ flexShrink: 0, height: 36, padding: '0 8px 0 13px', borderRadius: 999, border: 0, background: ink06, color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>
-              Write
+            {/* Target selector */}
+            <button onClick={() => { pkHaptic('select'); setModeOpen((o) => !o); }} aria-label="Choose destination" aria-haspopup="menu" aria-expanded={modeOpen} style={{ flexShrink: 0, height: 36, padding: '0 8px 0 13px', borderRadius: 999, border: 0, background: ink06, color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>
+              {current.label}
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: modeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M4 6l4 4 4-4"/></svg>
             </button>
+
+            {/* Open shortcut — only when a specific section is chosen */}
+            {!isBounty && (
+              <button onClick={openTarget} aria-label={`Open ${current.label}`} style={{ flexShrink: 0, height: 36, padding: '0 12px', borderRadius: 999, border: `1px solid ${ink12}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, transition: 'background 160ms ease, border-color 160ms ease' }}>
+                Open
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+              </button>
+            )}
 
             <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
               onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
-              placeholder="Ask anything" enterKeyHint="go"
+              placeholder={placeholder} enterKeyHint="go"
               style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '0 6px' }} />
 
-            {/* Right: minimalist send (replaces the microphone) */}
-            <button onClick={submit} disabled={!ready} aria-label="Send" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: 'transparent', color: ready ? ink : ink25, cursor: ready ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 160ms ease' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            {/* Inline mode icons — voice / image / upload */}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+              {inlineModes.map((m) => (
+                <button key={m.key} onClick={() => triggerMode(m.key)} aria-label={m.label} title={m.label} style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: 'transparent', color: ink55, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 160ms ease, background 160ms ease' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = ink; e.currentTarget.style.background = ink06; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = ink55; e.currentTarget.style.background = 'transparent'; }}>
+                  {m.icon}
+                </button>
+              ))}
+            </span>
+
+            {/* Send — far right */}
+            <button onClick={submit} disabled={!ready} aria-label="Send" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: ready ? ink : 'transparent', color: ready ? paper : ink25, cursor: ready ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 160ms ease, color 160ms ease' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
           </div>
 
-          {/* + modes popover */}
+          {/* Destinations popover */}
           {modeOpen && (
             <React.Fragment>
               <div onClick={() => setModeOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-              <div className="pk-rise" style={{ position: 'absolute', top: 56, left: 0, zIndex: 41, minWidth: 200, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
-                {modes.map(([m, label], i) => (
-                  <button key={m} onClick={() => pickMode(m)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10 }}>
-                    <span style={{ color: ink, display: 'flex' }}><HomeIcon kind={m} size={17} /></span>
-                    <span style={{ fontSize: 14, fontWeight: 650, color: ink }}>{label}</span>
-                    {m === 'write' && <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: ink40 }}>Default</span>}
-                  </button>
-                ))}
+              <div className="pk-rise" style={{ position: 'absolute', top: 56, left: 0, zIndex: 41, minWidth: 260, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
+                {targets.map((t) => {
+                  const on = t.key === target;
+                  return (
+                    <button key={t.key} onClick={() => pickTarget(t.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: on ? ink06 : 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10, transition: 'background 140ms ease' }}
+                      onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = ink06; }}
+                      onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
+                      <span style={{ color: ink, display: 'flex', flexShrink: 0 }}>
+                        {t.key === 'bounty' ? (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
+                        ) : (
+                          <HomeIcon kind={t.icon} size={17} />
+                        )}
+                      </span>
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{t.label}</span>
+                        <span style={{ display: 'block', fontSize: 11.5, color: ink40, fontWeight: 500, marginTop: 1 }}>{t.sub}</span>
+                      </span>
+                      {t.key === 'bounty' && <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: ink40, flexShrink: 0 }}>Default</span>}
+                    </button>
+                  );
+                })}
               </div>
             </React.Fragment>
           )}
-        </div>
-
-        {/* Recent — a clean, short history list */}
-        <div style={{ width: '100%', maxWidth: 560, marginTop: 24, textAlign: 'left' }}>
-          <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, padding: '0 2px 2px' }}>Recent</div>
-          {suggestions.map((s, i) => (
-            <button key={s.key} onClick={() => { pkHaptic('select'); s.run && s.run(); }} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '11px 2px', display: 'flex', alignItems: 'center', gap: 11 }}>
-              <span style={{ color: ink55, display: 'flex', flexShrink: 0 }}><HomeIcon kind={s.icon} size={15} /></span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span style={{ fontWeight: 700 }}>{s.label}</span>
-                {s.sub ? <span style={{ color: ink40, fontWeight: 500 }}> · {s.sub}</span> : null}
-              </span>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>
-            </button>
-          ))}
         </div>
       </div>
 
@@ -371,7 +720,7 @@ function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, 
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved · how much has it grown · how much can I access.
 
-function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, intent, onIntentHandled }) {
+function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, intent, onIntentHandled, isOperator = false }) {
   const modes = {
     shop: {
       title: 'Shop',
@@ -407,7 +756,7 @@ function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, in
   const m = modes[mode] || modes.shop;
 
   if (mode === 'shop') {
-    return <ShopScreen web={web} onBack={onBack} />;
+    return <ShopScreen web={web} onBack={onBack} isOperator={isOperator} />;
   }
   if (mode === 'plan') {
     return <PlanScreen web={web} onBack={onBack} bottomInset={bottomInset} intent={intent} onIntentHandled={onIntentHandled} />;
@@ -605,12 +954,14 @@ function SearchSurface({ value, onChange, placeholder, modes = [] }) {
   );
 }
 
-function ShopScreen({ web, onBack }) {
+function ShopScreen({ web, onBack, isOperator = false }) {
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState('All');
   const [catOpen, setCatOpen] = React.useState(false);
   const [shopCount, setShopCount] = React.useState(5);
   const [focus, setFocus] = React.useState(false);
+  const [opTab, setOpTab] = React.useState('orders');
+  const isOp = isOperator;
   const categories = ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
   const brands = [
     { name: 'House of Tayo', cat: 'Women' },
@@ -640,6 +991,99 @@ function ShopScreen({ web, onBack }) {
   const catShown = catOpen ? categories : categories.slice(0, 4);
   const selectCat = (c) => { pkHaptic('select'); setCategory(c); setShopCount(5); };
   const onSearch = (v) => { setQuery(v); setShopCount(5); };
+
+  const opOrders = [
+    { id: 'ORD-1042', customer: 'Alice M.', items: 2, total: '18,500 RWF', status: 'New', time: '12 min ago' },
+    { id: 'ORD-1041', customer: 'Jean-Paul K.', items: 1, total: '7,200 RWF', status: 'Preparing', time: '34 min ago' },
+    { id: 'ORD-1040', customer: 'Grace U.', items: 3, total: '31,000 RWF', status: 'Ready', time: '1h ago' },
+    { id: 'ORD-1039', customer: 'David N.', items: 1, total: '12,800 RWF', status: 'Delivered', time: '3h ago' },
+    { id: 'ORD-1038', customer: 'Claudine I.', items: 4, total: '45,600 RWF', status: 'Delivered', time: '5h ago' },
+  ];
+  const opProducts = [
+    { name: 'Ankara Wrap Dress', stock: 12, price: '14,500 RWF', sold: 38 },
+    { name: 'Kitenge Headwrap', stock: 3, price: '4,200 RWF', sold: 91 },
+    { name: 'Handwoven Basket Bag', stock: 0, price: '18,000 RWF', sold: 24 },
+    { name: 'Beaded Statement Necklace', stock: 7, price: '8,500 RWF', sold: 56 },
+    { name: 'Organic Shea Butter Set', stock: 19, price: '6,800 RWF', sold: 112 },
+  ];
+  const statusColor = (s) => ({ New: '#2D7FF9', Preparing: '#E5A100', Ready: '#18A957', Delivered: ink40 }[s] || ink40);
+
+  if (isOp) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Shop</span>
+        </div>} />
+
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '14px 18px 96px' }}>
+          <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
+            <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Your shop.</div>
+            <div style={{ fontSize: 14, color: ink55, marginTop: 8, fontWeight: 600 }}>House of Tayo · Kigali, Rwanda</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 24 }}>
+              {[
+                { label: 'Today', value: '3', sub: 'orders' },
+                { label: 'Revenue', value: '56.7K', sub: 'RWF today' },
+                { label: 'Low stock', value: '2', sub: 'items' },
+              ].map((s) => (
+                <div key={s.label} style={{ padding: '14px 12px', borderRadius: 14, border: `1px dashed ${DASH}`, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: ink, letterSpacing: '-0.03em' }}>{s.value}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: ink40, marginTop: 2 }}>{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, marginTop: 28, marginBottom: 16 }}>
+              {['orders', 'products'].map((t) => {
+                const on = opTab === t;
+                return (
+                  <button key={t} onClick={() => { pkHaptic('select'); setOpTab(t); }} style={{ height: 34, padding: '0 16px', borderRadius: 999, border: on ? 0 : `1px solid ${ink12}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, textTransform: 'capitalize' }}>{t}</button>
+                );
+              })}
+            </div>
+
+            {opTab === 'orders' && opOrders.map((o, i) => (
+              <button key={o.id} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{o.customer}</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: statusColor(o.status), background: statusColor(o.status) + '18', padding: '2px 8px', borderRadius: 999 }}>{o.status}</span>
+                  </span>
+                  <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{o.id} · {o.items} item{o.items > 1 ? 's' : ''} · {o.total} · {o.time}</span>
+                </span>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+              </button>
+            ))}
+
+            {opTab === 'products' && (
+              <React.Fragment>
+                {opProducts.map((p, i) => (
+                  <button key={p.name} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{p.name}</span>
+                        {p.stock === 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5393580', background: '#E5393512', padding: '2px 8px', borderRadius: 999 }}>Out of stock</span>}
+                        {p.stock > 0 && p.stock <= 5 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 8px', borderRadius: 999 }}>Low</span>}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{p.price} · {p.stock} in stock · {p.sold} sold</span>
+                    </span>
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                  </button>
+                ))}
+                <button style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  </span>
+                  Add product
+                </button>
+              </React.Fragment>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
@@ -787,6 +1231,91 @@ function PlanAttachmentIcon({ kind, size = 16 }) {
   return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/></svg>);
 }
 
+function ccProfileLanguage() {
+  const raw = PKStore.get('profile_language', 'en');
+  const value = String(raw || 'en').toLowerCase();
+  return (value === 'rw' || value === 'kinyarwanda') ? 'rw' : 'en';
+}
+
+// Local voice base URL. Frontend prefers env override (set on Vercel via
+// NEXT_PUBLIC_VOICE_BASE for a tunneled service). Falls back to the local Go
+// service at 127.0.0.1:8787 which only works when the user has it running.
+function ccVoiceBase() {
+  try {
+    if (typeof window !== 'undefined' && window.__EVERYDAY_VOICE_BASE__) {
+      return String(window.__EVERYDAY_VOICE_BASE__).replace(/\/$/, '');
+    }
+  } catch (e) {}
+  return 'http://127.0.0.1:8787';
+}
+
+// One-shot reachability probe — used to gate UI like the mic button and show
+// a clear "Local voice offline" banner instead of a silent 'Failed to fetch'.
+let _voiceReachableCache = null;
+async function ccVoiceReachable(force) {
+  if (!force && _voiceReachableCache !== null) return _voiceReachableCache;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 1500);
+    const res = await fetch(ccVoiceBase() + '/health', { signal: ctrl.signal });
+    clearTimeout(t);
+    _voiceReachableCache = res.ok;
+  } catch (e) {
+    _voiceReachableCache = false;
+  }
+  return _voiceReachableCache;
+}
+
+async function ccTranscribeVoice(blob) {
+  if (!blob) throw new Error('No audio was captured.');
+  const language = ccProfileLanguage();
+  const form = new FormData();
+  const ext = blob.type && blob.type.includes('ogg') ? 'ogg' : blob.type && blob.type.includes('wav') ? 'wav' : 'webm';
+  form.append('audio', blob, `everyday-voice.${ext}`);
+  form.append('language', language);
+  let res;
+  try {
+    res = await fetch(ccVoiceBase() + '/api/voice/transcribe', { method: 'POST', body: form });
+  } catch (e) {
+    _voiceReachableCache = false;
+    throw new Error('Local voice service is offline. Start it on your machine to use the microphone.');
+  }
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) {
+    const msg = data && data.error ? data.error : 'Voice transcription failed.';
+    throw new Error(msg);
+  }
+  if (!data || !data.text) throw new Error('Voice transcription returned no text.');
+  return data;
+}
+
+async function ccSendBountyMessage(message, history) {
+  let res;
+  try {
+    res = await fetch(ccVoiceBase() + '/api/agent/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        language: ccProfileLanguage(),
+        history: (history || []).slice(-8).map((m) => ({ role: m.role, text: m.text })),
+      }),
+    });
+  } catch (e) {
+    _voiceReachableCache = false;
+    throw new Error('Bounty runs on a local service that is not reachable right now. Start it on your machine to chat.');
+  }
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) {
+    const msg = data && data.error ? data.error : 'Bounty is not available.';
+    throw new Error(msg);
+  }
+  if (!data || !data.text) throw new Error('Bounty returned no response.');
+  return data;
+}
+
 function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   const [folders, setFolders] = usePersisted('plan_folders', PLAN_FOLDERS_0);
   const [files, setFiles] = usePersisted('plan_files', PLAN_FILES_0);
@@ -887,17 +1416,19 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   };
   const removeAttachment = (aid) => touch(openFile.id, { attachments: (openFile.attachments || []).filter((a) => a.id !== aid) });
 
-  const saveVoice = (sec) => {
-    setRecording(false);
-    const transcript = ccTranscriptForVoice();
+  const saveVoice = async (sec, blob) => {
+    const result = await ccTranscribeVoice(blob);
+    const transcript = result.text;
     let target = openFile;
     if (!target) {
       const id = planId('pf');
       target = { id, folderId: activeFolder, title: 'Voice note', body: '', updated: Date.now(), attachments: [], voice: [] };
       setFiles((list) => [target, ...list]); setOpenId(id); setView('editor');
     }
-    const v = { id: planId('vn'), dur: sec, transcript };
-    setFiles((list) => list.map((f) => (f.id === target.id ? { ...f, voice: [...(f.voice || []), v], title: f.title || 'Voice note', updated: Date.now() } : f)));
+    const nextBody = (target.body || '').trim() ? target.body : transcript;
+    const v = { id: planId('vn'), dur: sec, transcript, language: result.language, model: result.model };
+    setFiles((list) => list.map((f) => (f.id === target.id ? { ...f, body: nextBody, voice: [...(f.voice || []), v], title: f.title || 'Voice note', updated: Date.now() } : f)));
+    setRecording(false);
     pkHaptic('success');
   };
 
@@ -1209,7 +1740,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
 
       <input ref={fileInputRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt" onChange={onPickAttachment} style={{ display: 'none' }} />
 
-      {recording && <PlanRecorder onCancel={() => setRecording(false)} onSave={saveVoice} />}
+      {recording && <PlanRecorder onCancel={() => setRecording(false)} onSave={saveVoice} language={ccProfileLanguage()} />}
     </div>
   );
 }
@@ -1245,43 +1776,102 @@ function planAgo(ts) {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// A transcript generated for a saved voice note (no mic in the prototype).
-function ccTranscriptForVoice() {
-  const samples = [
-    'Reminder to move some money into savings before the weekend.',
-    'Idea: ask the app to suggest a moto before the 9am meeting at Kigali Heights.',
-    'Pick up groceries at Kimironko on the way home, stay within budget.',
-    'Note to self — listen to that episode on building a loyal audience.',
-    'Plan the week: finish the report, call family, rest on Sunday.',
-  ];
-  return samples[Math.floor(Math.random() * samples.length)];
-}
-
-// Voice recorder overlay — simulated capture (timer + live bars), saves a
-// transcribed voice note. (Microphone is disabled in the prototype.)
-function PlanRecorder({ onCancel, onSave }) {
+// Voice recorder overlay. The visual shell stays the same; capture now records
+// microphone audio and sends it to the local voice service.
+function PlanRecorder({ onCancel, onSave, language }) {
   const [sec, setSec] = React.useState(0);
   const [paused, setPaused] = React.useState(false);
-  React.useEffect(() => { if (paused) return; const id = setInterval(() => setSec((s) => s + 1), 1000); return () => clearInterval(id); }, [paused]);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [permission, setPermission] = React.useState('starting');
+  const recorderRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+  const chunksRef = React.useRef([]);
+
+  React.useEffect(() => { if (paused || saving) return; const id = setInterval(() => setSec((s) => s + 1), 1000); return () => clearInterval(id); }, [paused, saving]);
+  React.useEffect(() => {
+    let cancelled = false;
+    const start = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') throw new Error('Microphone recording is not available in this browser.');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (cancelled) { stream.getTracks().forEach((track) => track.stop()); return; }
+        streamRef.current = stream;
+        const preferred = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+        const recorder = new MediaRecorder(stream, { mimeType: preferred });
+        chunksRef.current = [];
+        recorder.ondataavailable = (event) => { if (event.data && event.data.size > 0) chunksRef.current.push(event.data); };
+        recorder.start();
+        recorderRef.current = recorder;
+        setPermission('ready');
+      } catch (e) {
+        setPermission('error');
+        setError(e && e.message ? e.message : 'Microphone permission was not granted.');
+      }
+    };
+    start();
+    return () => {
+      cancelled = true;
+      try { if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop(); } catch (e) {}
+      if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const stopAndSave = () => {
+    if (saving || permission !== 'ready') return;
+    setSaving(true);
+    setError('');
+    const recorder = recorderRef.current;
+    const finish = async () => {
+      try {
+        const type = recorder && recorder.mimeType ? recorder.mimeType : 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type });
+        await onSave(Math.max(1, sec), blob);
+      } catch (e) {
+        setSaving(false);
+        setError(e && e.message ? e.message : 'Voice transcription failed.');
+      }
+    };
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.onstop = finish;
+      recorder.stop();
+      if (streamRef.current) streamRef.current.getTracks().forEach((track) => track.stop());
+    } else {
+      finish();
+    }
+  };
+  const togglePause = () => {
+    const recorder = recorderRef.current;
+    try {
+      if (!paused && recorder && recorder.state === 'recording') recorder.pause();
+      if (paused && recorder && recorder.state === 'paused') recorder.resume();
+    } catch (e) {}
+    setPaused((p) => !p);
+  };
+
   return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(10,10,10,0.34)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={onCancel}>
+    <div style={{ position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(10,10,10,0.34)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={saving ? undefined : onCancel}>
       <div className="pk-rise" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: paper, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: '10px 24px max(26px, env(safe-area-inset-bottom, 20px))', boxShadow: '0 -20px 60px rgba(10,10,10,0.22)' }}>
         <div style={{ width: 40, height: 4, borderRadius: 999, background: ink12, margin: '8px auto 18px' }} />
-        <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>Recording</div>
-        <div style={{ textAlign: 'center', fontFamily: CC_MONO, fontSize: 13, color: ink55, marginTop: 4 }}>{ccFmtTime(sec)}</div>
+        <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>{saving ? 'Transcribing' : permission === 'error' ? 'Microphone unavailable' : 'Recording'}</div>
+        <div style={{ textAlign: 'center', fontFamily: CC_MONO, fontSize: 13, color: ink55, marginTop: 4 }}>{ccFmtTime(sec)} - {language === 'rw' ? 'Kinyarwanda' : 'English'}</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 48, marginTop: 16 }}>
           {Array.from({ length: 28 }).map((_, i) => (
-            <span key={i} style={{ width: 3, borderRadius: 2, background: paused ? ink25 : ink, height: paused ? 6 : 6 + Math.abs(Math.sin((i + sec) * 0.7)) * 34, transition: 'height 220ms ease' }} />
+            <span key={i} style={{ width: 3, borderRadius: 2, background: paused || saving || permission !== 'ready' ? ink25 : ink, height: paused || saving || permission !== 'ready' ? 6 : 6 + Math.abs(Math.sin((i + sec) * 0.7)) * 34, transition: 'height 220ms ease' }} />
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 22 }}>
-          <button onClick={onCancel} style={{ height: 48, padding: '0 20px', borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760 }}>Cancel</button>
-          <button onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Resume' : 'Pause'} style={{ width: 56, height: 56, borderRadius: '50%', border: `1.5px solid ${ink}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={onCancel} disabled={saving} style={{ height: 48, padding: '0 20px', borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, opacity: saving ? 0.55 : 1 }}>Cancel</button>
+          <button onClick={togglePause} disabled={saving || permission !== 'ready'} aria-label={paused ? 'Resume' : 'Pause'} style={{ width: 56, height: 56, borderRadius: '50%', border: `1.5px solid ${ink}`, background: 'transparent', color: ink, cursor: saving || permission !== 'ready' ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: saving || permission !== 'ready' ? 0.45 : 1 }}>
             {paused ? <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>}
           </button>
-          <button onClick={() => onSave(Math.max(1, sec))} style={{ height: 48, padding: '0 22px', borderRadius: 14, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, boxShadow: '0 12px 28px rgba(10,10,10,0.2)' }}>Save note</button>
+          <button onClick={stopAndSave} disabled={saving || permission !== 'ready'} style={{ height: 48, padding: '0 22px', borderRadius: 14, border: 0, background: ink, color: paper, cursor: saving || permission !== 'ready' ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, boxShadow: '0 12px 28px rgba(10,10,10,0.2)', opacity: saving || permission !== 'ready' ? 0.55 : 1 }}>{saving ? 'Saving' : 'Save note'}</button>
         </div>
-        <div style={{ marginTop: 14, fontSize: 11, color: ink40, textAlign: 'center', lineHeight: 1.4 }}>Saved with an automatic transcript so it’s searchable.</div>
+        {error ? (
+          <div style={{ marginTop: 14, fontSize: 11.5, color: '#C8102E', textAlign: 'center', lineHeight: 1.4, fontWeight: 650 }}>{error}</div>
+        ) : (
+          <div style={{ marginTop: 14, fontSize: 11, color: ink40, textAlign: 'center', lineHeight: 1.4 }}>Saved with a local transcript so it's searchable.</div>
+        )}
       </div>
     </div>
   );
@@ -6564,6 +7154,7 @@ function FlowDone({ title, sub, mode, amount, picks, cfg, pickerLabelFor }) {
 Object.assign(window, {
   CapitalScreen, VentureFeedScreen, DetailScreen, CheckoutScreen,
   OpsDetailScreen, MoneyFlowScreen, WalletScreen, SettingsScreen,
+  BountyButton, BountyPanel,
 });
 
 // ────────────────────────────── WALLET ──────────────────────────────
@@ -6714,6 +7305,9 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
 function SettingsScreen({ accent, onBack, onSignOut }) {
   const user = CC_PORTFOLIO.user;
   const [confirmSignOut, setConfirmSignOut] = React.useState(false);
+  const [language, setLanguage] = usePersisted('profile_language', 'en');
+  const languageLabel = language === 'rw' ? 'Kinyarwanda' : 'English';
+  const toggleLanguage = () => { pkHaptic('select'); setLanguage((cur) => (cur === 'rw' ? 'en' : 'rw')); };
   return (
     <div style={{ paddingBottom: 24 }}>
       <ScreenHeader
@@ -6743,15 +7337,18 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
           <div key={g.group}>
             <Eyebrow style={{ marginBottom: 10, padding: '0 4px' }}>{g.group}</Eyebrow>
             <RoundedCard padding={0} radius={20}>
-              {g.items.map((it, i) => (
+              {g.items.map((it, i) => {
+                const isLanguage = it.id === 'la';
+                const meta = isLanguage ? languageLabel : it.meta;
+                return (
                 <div key={it.id}
-                  onClick={it.id === 'so' ? () => setConfirmSignOut(true) : undefined}
+                  onClick={it.id === 'so' ? () => setConfirmSignOut(true) : isLanguage ? toggleLanguage : undefined}
                   style={{
                   display: 'flex', alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '16px 20px',
                   borderBottom: i < g.items.length - 1 ? `1px solid ${ink12}` : 'none',
-                  cursor: 'pointer',
+                  cursor: it.id === 'so' || isLanguage ? 'pointer' : 'default',
                 }}>
                   <div style={{
                     fontSize: 15,
@@ -6760,11 +7357,11 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                   }}>
-                    {it.meta && (
+                    {meta && (
                       <span style={{
                         fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: ink55,
-                      }}>{it.meta}</span>
+                      }}>{meta}</span>
                     )}
                     {!it.destructive && (
                       <svg width="8" height="14" viewBox="0 0 8 14" style={{ color: ink40 }}>
@@ -6774,7 +7371,7 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
             </RoundedCard>
           </div>
         ))}

@@ -73,7 +73,26 @@ cd next-pwa
 npm run build      # compiles the Next.js shell; must pass
 ```
 
-## 6. Commit & deploy
+## 6. Local voice + Bounty agent (optional)
+
+Bounty's chat, microphone transcription (Kokoro/English, Digital Umuganda/Kinyarwanda),
+and the LLM brain run from a local Go service. See [`local-voice/README.md`](./local-voice/README.md)
+for the full setup. Quick start once dependencies are installed:
+
+```powershell
+cd local-voice\service
+$env:DIGITAL_UMUGANDA_MODEL="DigitalUmuganda/whisper-large-v3-kinyarwanda"
+$env:BOUNTY_LLM_URL="http://127.0.0.1:11434/api/chat"
+$env:BOUNTY_LLM_MODEL="phi3:mini"
+go run .
+```
+
+On a Vercel deploy the frontend can't reach `127.0.0.1:8787`, so voice and Bounty will show
+a "Local voice is offline" message and degrade gracefully. To expose your local service
+publicly (your laptop must stay on), run `ngrok http 8787` and set
+`NEXT_PUBLIC_VOICE_BASE=https://<your-tunnel>.ngrok.io` in the Vercel project env.
+
+## 7. Commit & deploy
 
 - Branch from `main`, keep commits focused, write a clear message describing the *why*.
 - **Deploy:** push to **`main`** → Vercel auto-deploys to production. Pull requests get
@@ -82,7 +101,7 @@ npm run build      # compiles the Next.js shell; must pass
 - Optional manual deploy: `npm i -g vercel`, then `cd next-pwa && vercel` (preview) /
   `vercel --prod` (production).
 
-## 7. Definition of done
+## 8. Definition of done
 
 A change is done when the section it touches feels **complete, consistent, and
 production-ready** — indistinguishable in quality from the rest of Everyday, with every state

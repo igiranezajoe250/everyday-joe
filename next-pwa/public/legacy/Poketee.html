@@ -127,6 +127,8 @@
           || window.navigator.standalone === true
           || new URLSearchParams(location.search).get('app') === '1';
         if (standalone) document.documentElement.classList.add('pk-native');
+        var vb = new URLSearchParams(location.search).get('voiceBase');
+        if (vb) window.__EVERYDAY_VOICE_BASE__ = vb;
       } catch (e) {}
     })();
   </script>

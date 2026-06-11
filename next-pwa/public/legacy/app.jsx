@@ -163,6 +163,8 @@ function App() {
   // reached *from* this cluster, so showing it there would be redundant and
   // would collide with their own headers.
   const [inboxOpen, setInboxOpen] = React.useState(false);
+  const [bountyOpen, setBountyOpen] = React.useState(false);
+  const [isOperator, setIsOperator] = usePersisted('cc_is_operator', false);
   const HEADER_ACTION_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
   const showHeaderActions = HEADER_ACTION_ROUTES.includes(route);
 
@@ -209,6 +211,21 @@ function App() {
   const showMini = !!pl && !playerOpen && route !== 'money';
 
   const showTab = false;
+  const bountyBottomOffset = 84 + (showMini ? 66 : 0);
+
+  const openBountyRoute = (id) => {
+    const target = id === 'moto' ? 'commute' : id === 'save' ? 'capital' : id;
+    if (target === 'wallet') { openWallet(); return; }
+    if (target === 'settings') { openSettings(); return; }
+    if (target === 'activity') { openActivity(); return; }
+    if (target === 'capital' || target === 'shop' || target === 'pay' || target === 'plan' || target === 'listen' || target === 'commute' || target === 'credit') {
+      setTab(target);
+      setRoute(target);
+      return;
+    }
+    setTab('hub');
+    setRoute('hub');
+  };
 
   return (
     <React.Fragment>
@@ -246,6 +263,7 @@ function App() {
                   onListen={() => openModeFromHub('listen')}
                   onCommute={() => openModeFromHub('commute')}
                   onCapture={captureToPlan}
+                  onOpenBounty={() => { pkHaptic('select'); setBountyOpen(true); }}
                   onOpenNote={openPlanNote}
                 />
               )}
@@ -254,6 +272,7 @@ function App() {
                   mode="shop"
                   web={PK_WEB}
                   onBack={backToHub}
+                  isOperator={isOperator}
                 />
               )}
               {route === 'capital' && (
@@ -337,10 +356,25 @@ function App() {
               onInbox={() => { pkHaptic('select'); setInboxOpen(true); }}
               onWallet={openWallet}
               onProfile={openSettings}
+              showOperator={route === 'shop'}
+              isOperator={isOperator}
+              onOperator={() => { pkHaptic('select'); setIsOperator((v) => !v); }}
             />
           )}
 
           {inboxOpen && <NotificationsPanel onClose={() => setInboxOpen(false)} />}
+
+          <BountyButton
+            onOpen={() => { pkHaptic('select'); setBountyOpen(true); }}
+            bottomOffset={bountyBottomOffset}
+          />
+
+          {bountyOpen && (
+            <BountyPanel
+              onClose={() => setBountyOpen(false)}
+              onRoute={openBountyRoute}
+            />
+          )}
 
           {showLauncher && (
             <FunctionLauncher
