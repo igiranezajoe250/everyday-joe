@@ -223,29 +223,141 @@ function NotificationsPanel({ onClose }) {
   );
 }
 
-function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, onCommute, onSettings }) {
-  const actions = { shop: onShop, save: onSave, pay: onPay, plan: onPlan, listen: onListen, commute: onCommute };
-  const fns = functions && functions.length ? functions : pkSelectedFunctions();
-  const handleSelect = (id) => { const a = actions[id]; if (a) a(); };
+// Small glyphs for the Home input modes and contextual cards.
+function HomeIcon({ kind, size = 16, color }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color || 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (kind === 'write')   return (<svg {...p}><path d="M4 20h4L18 10l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>);
+  if (kind === 'voice')   return (<svg {...p}><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>);
+  if (kind === 'image')   return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5L5 20"/></svg>);
+  if (kind === 'upload')  return (<svg {...p}><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></svg>);
+  if (kind === 'listen')  return (<svg {...p}><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="7" rx="2"/><rect x="17" y="13" width="4" height="7" rx="2"/></svg>);
+  if (kind === 'note')    return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/></svg>);
+  if (kind === 'doc')     return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/><path d="M9.5 13h5M9.5 16.5h5"/></svg>);
+  if (kind === 'save')    return (<svg {...p}><path d="M12 3v18M16.5 6H9.8a3.2 3.2 0 0 0 0 6.4h4.4a3.2 3.2 0 0 1 0 6.4H7"/></svg>);
+  if (kind === 'commute') return (<svg {...p}><path d="M3 13l1.8-4.6A2 2 0 0 1 6.7 7h10.6a2 2 0 0 1 1.9 1.4L21 13v4h-2.2M5.2 17H3v-4m18 0v4h-2.2"/><circle cx="7.2" cy="17" r="1.6"/><circle cx="16.8" cy="17" r="1.6"/></svg>);
+  if (kind === 'pay')     return (<svg {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>);
+  return (<svg {...p}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>);
+}
+
+// Build a small set of contextual "continue" cards from real persisted state,
+// then fill with evergreen entry points. Kept light — never a dashboard.
+function buildHomeSuggestions(nav) {
+  const out = [];
+  const seen = new Set();
+  const push = (s) => { if (!seen.has(s.key)) { seen.add(s.key); out.push(s); } };
+
+  try {
+    const ln = PKStore.get('listen_now', null);
+    if (ln && ln.title) push({ key: 'listen', icon: 'listen', label: 'Resume listening', sub: ln.title, run: nav.onListen });
+    const files = PKStore.get('plan_files', null);
+    if (Array.isArray(files)) {
+      const live = files.filter((f) => f && !f.trashed).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+      if (live[0]) push({ key: 'note', icon: 'note', label: 'Continue note', sub: live[0].title || 'Untitled note', run: () => nav.onOpenNote(live[0].id) });
+      const withDoc = live.find((f) => (f.attachments || []).length);
+      if (withDoc) push({ key: 'doc', icon: 'doc', label: 'Review document', sub: (withDoc.attachments[0] && withDoc.attachments[0].name) || withDoc.title, run: () => nav.onOpenNote(withDoc.id) });
+    }
+  } catch (e) {}
+
+  // Evergreen entry points so the main destinations stay one tap away.
+  push({ key: 'save', icon: 'save', label: 'Continue savings plan', sub: 'On track for December', run: nav.onSave });
+  push({ key: 'commute', icon: 'commute', label: 'Plan a commute', sub: 'Where to next?', run: nav.onCommute });
+  push({ key: 'pay', icon: 'pay', label: 'Send a payment', sub: 'Pay or schedule', run: nav.onPay });
+  push({ key: 'shop', icon: 'shop', label: 'Find a trusted shop', sub: 'Vetted near you', run: nav.onShop });
+
+  return out.slice(0, 5);
+}
+
+function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenNote }) {
+  const [text, setText] = React.useState('');
+  const [modeOpen, setModeOpen] = React.useState(false);
+  const [focus, setFocus] = React.useState(false);
+  const inputRef = React.useRef(null);
+  const ready = text.trim().length > 0;
+
+  const submit = () => { const t = text.trim(); if (!t) return; pkHaptic('medium'); onCapture({ mode: 'write', text: t }); setText(''); };
+  const pickMode = (m) => {
+    setModeOpen(false);
+    if (m === 'write') { if (inputRef.current) inputRef.current.focus(); return; }
+    pkHaptic('select');
+    onCapture({ mode: m });
+  };
+  const modes = [['write', 'Write'], ['voice', 'Voice'], ['image', 'Image'], ['upload', 'Upload']];
+  const suggestions = buildHomeSuggestions({ onShop, onSave, onPay, onPlan, onListen, onCommute, onOpenNote });
 
   return (
-    <div style={{
-      height: '100%', display: 'flex', flexDirection: 'column',
-      background: canvas, position: 'relative', overflow: 'hidden',
-    }}>
-      {/* Top bar — actions live in the global header cluster (top-right) */}
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative', overflow: 'hidden' }}>
+      {/* Top wordmark — actions live in the global header cluster (top-right) */}
       <div style={{ padding: web ? '24px 40px 0' : '14px 24px 0', display: 'flex', alignItems: 'center' }}>
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
       </div>
 
-      {/* Centre: greeting + the premium + */}
-      <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 28px', textAlign: 'center' }}>
+      {/* Centre: greeting + the Ask-anything bar + contextual cards */}
+      <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: web ? '0 28px' : '0 18px', textAlign: 'center' }}>
         <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, Joseph</div>
-        <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 280, marginBottom: 36 }}>
+        <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 320, marginBottom: 30 }}>
           What would you like to do today?
         </div>
-        <FunctionLauncher variant="hero" functions={fns} onSelect={handleSelect} />
-        <div style={{ fontSize: 13, color: ink40, marginTop: 22 }}>Tap to choose a function</div>
+
+        {/* Ask-anything bar */}
+        <div style={{ width: '100%', maxWidth: 640, position: 'relative' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: paper, border: `1px solid ${focus ? ink : ink12}`,
+            borderRadius: 16, padding: '7px 9px 7px 9px',
+            boxShadow: focus ? '0 12px 34px rgba(10,10,10,0.07)' : '0 1px 0 rgba(10,10,10,0.02)',
+            transition: 'border-color 180ms ease, box-shadow 180ms ease',
+          }}>
+            {/* Left: + → input modes */}
+            <button onClick={() => { pkHaptic('select'); setModeOpen((o) => !o); }} aria-label="Input options" aria-expanded={modeOpen} style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 260ms cubic-bezier(.16,.84,.28,1)', transform: modeOpen ? 'rotate(45deg)' : 'none' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+
+            <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
+              onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+              placeholder="Ask anything" enterKeyHint="go"
+              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '0 4px' }} />
+
+            {/* Right: microphone (kept) + send when typing */}
+            <button onClick={() => pickMode('voice')} aria-label="Voice" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: 'transparent', color: ink55, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+            </button>
+            {ready && (
+              <button onClick={submit} aria-label="Send" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+            )}
+          </div>
+
+          {/* + modes popover */}
+          {modeOpen && (
+            <React.Fragment>
+              <div onClick={() => setModeOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+              <div className="pk-rise" style={{ position: 'absolute', top: 56, left: 0, zIndex: 41, minWidth: 200, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
+                {modes.map(([m, label], i) => (
+                  <button key={m} onClick={() => pickMode(m)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10 }}>
+                    <span style={{ color: ink, display: 'flex' }}><HomeIcon kind={m} size={17} /></span>
+                    <span style={{ fontSize: 14, fontWeight: 650, color: ink }}>{label}</span>
+                    {m === 'write' && <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: ink40 }}>Default</span>}
+                  </button>
+                ))}
+              </div>
+            </React.Fragment>
+          )}
+        </div>
+
+        {/* Contextual activity cards */}
+        <div style={{ width: '100%', maxWidth: 640, marginTop: 18, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 9 }}>
+          {suggestions.map((s) => (
+            <button key={s.key} onClick={() => { pkHaptic('select'); s.run && s.run(); }} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px dashed ${DASH}`, background: 'transparent', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', padding: '9px 13px', textAlign: 'left', maxWidth: 260 }}>
+              <span style={{ color: ink, display: 'flex', flexShrink: 0 }}><HomeIcon kind={s.icon} size={16} /></span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: ink, whiteSpace: 'nowrap' }}>{s.label}</span>
+                {s.sub && <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>{s.sub}</span>}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Footer */}
@@ -261,7 +373,7 @@ function EverydayHub({ web, functions, onShop, onSave, onPay, onPlan, onListen, 
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved · how much has it grown · how much can I access.
 
-function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0 }) {
+function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, intent, onIntentHandled }) {
   const modes = {
     shop: {
       title: 'Shop',
@@ -300,7 +412,7 @@ function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0 }) 
     return <ShopScreen web={web} onBack={onBack} />;
   }
   if (mode === 'plan') {
-    return <PlanScreen web={web} onBack={onBack} bottomInset={bottomInset} />;
+    return <PlanScreen web={web} onBack={onBack} bottomInset={bottomInset} intent={intent} onIntentHandled={onIntentHandled} />;
   }
   if (mode === 'listen') {
     return <ListenScreen web={web} onBack={onBack} player={player} />;
@@ -677,7 +789,7 @@ function PlanAttachmentIcon({ kind, size = 16 }) {
   return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/></svg>);
 }
 
-function PlanScreen({ web, onBack, bottomInset = 0 }) {
+function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   const [folders, setFolders] = usePersisted('plan_folders', PLAN_FOLDERS_0);
   const [files, setFiles] = usePersisted('plan_files', PLAN_FILES_0);
   const [activeFolder, setActiveFolder] = React.useState(() => (PLAN_FOLDERS_0[0] && PLAN_FOLDERS_0[0].id));
@@ -695,6 +807,22 @@ function PlanScreen({ web, onBack, bottomInset = 0 }) {
   const fileInputRef = React.useRef(null);
 
   React.useEffect(() => { const id = setTimeout(() => setLoading(false), 320); return () => clearTimeout(id); }, []);
+
+  // One-shot capture intent handed in from the Home "Ask anything" bar.
+  React.useEffect(() => {
+    if (!intent) return;
+    if (intent.mode === 'open' && intent.openId) {
+      setOpenId(intent.openId); setView('editor');
+    } else {
+      const id = planId('pf');
+      const file = { id, folderId: activeFolder, title: '', body: intent.text || '', updated: Date.now(), attachments: [], voice: [] };
+      setFiles((listv) => [file, ...listv]);
+      setOpenId(id); setView('editor'); setMovePicker(false);
+      if (intent.mode === 'voice') setTimeout(() => setRecording(true), 80);
+      if (intent.mode === 'image' || intent.mode === 'upload') setTimeout(() => fileInputRef.current && fileInputRef.current.click(), 140);
+    }
+    onIntentHandled && onIntentHandled();
+  }, [intent]);
 
   const live = files.filter((f) => !f.trashed);
   const trashed = files.filter((f) => f.trashed);

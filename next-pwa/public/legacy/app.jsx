@@ -138,6 +138,12 @@ function App() {
   const openSaveFromHub = () => { pkHaptic('select'); setTab('capital'); setRoute('capital'); };
   const openCreditFromHub = () => { pkHaptic('select'); setTab('credit'); setRoute('credit'); };
 
+  // Home "Ask anything" bar captures into Plan (the brain). A one-shot intent is
+  // handed to the Plan screen, which acts on it once and clears it.
+  const [planIntent, setPlanIntent] = React.useState(null);
+  const captureToPlan = (intent) => { setPlanIntent(intent || { mode: 'write' }); setTab('plan'); setRoute('plan'); };
+  const openPlanNote = (id) => { setPlanIntent({ mode: 'open', openId: id }); setTab('plan'); setRoute('plan'); };
+
   // Route a function id (from the + launcher) to its page. 'save' lives on the
   // 'capital' route; every other function id is its own route.
   const openFunctionById = (id) => {
@@ -233,14 +239,14 @@ function App() {
               {route === 'hub' && (
                 <EverydayHub
                   web={PK_WEB}
-                  functions={pkSelectedFunctions()}
                   onShop={() => openModeFromHub('shop')}
                   onSave={openSaveFromHub}
                   onPay={() => openModeFromHub('pay')}
                   onPlan={() => openModeFromHub('plan')}
                   onListen={() => openModeFromHub('listen')}
                   onCommute={() => openModeFromHub('commute')}
-                  onSettings={openSettings}
+                  onCapture={captureToPlan}
+                  onOpenNote={openPlanNote}
                 />
               )}
               {route === 'shop' && (
@@ -272,6 +278,8 @@ function App() {
                   web={PK_WEB}
                   onBack={backToHub}
                   bottomInset={showMini ? 66 : 0}
+                  intent={planIntent}
+                  onIntentHandled={() => setPlanIntent(null)}
                 />
               )}
               {route === 'listen' && (
