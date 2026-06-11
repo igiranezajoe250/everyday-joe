@@ -1271,7 +1271,7 @@ function DetailRow({ label, value, accent = false, last = false }) {
 }
 
 function CommuteScreen({ web, onBack }) {
-  // step: plan · results · detail · confirm · success · share · share-confirm · share-success
+  // step: plan · results · detail · negotiate · success · share · share-confirm · share-success
   const [step, setStep] = React.useState('plan');
   const [origin, setOrigin] = React.useState('');
   const [destination, setDestination] = React.useState('');
@@ -1289,6 +1289,15 @@ function CommuteScreen({ web, onBack }) {
   const [selected, setSelected] = React.useState(null);
   const [destsOpen, setDestsOpen] = React.useState(false);
 
+  // fare negotiation: offer your price, driver accepts or counters; the ride is
+  // only booked once you agree and pay. (Quick path skips this and settles on
+  // arrival.) negoStatus: idle · thinking · countered · agreed
+  const [offer, setOffer] = React.useState('');
+  const [negoStatus, setNegoStatus] = React.useState('idle');
+  const [counter, setCounter] = React.useState(0);
+  const [agreedPrice, setAgreedPrice] = React.useState(0);
+  const [payMode, setPayMode] = React.useState('prepaid'); // prepaid · on-arrival
+
   // ride-with-someone sub-flow
   const [mateQuery, setMateQuery] = React.useState('');
   const [mate, setMate] = React.useState(null);
@@ -1298,7 +1307,7 @@ function CommuteScreen({ web, onBack }) {
     pkHaptic('select');
     if (step === 'results') setStep('plan');
     else if (step === 'detail') setStep('results');
-    else if (step === 'confirm') setStep('detail');
+    else if (step === 'negotiate') setStep('detail');
     else if (step === 'success') setStep('plan');
     else if (step === 'share') setStep('plan');
     else if (step === 'share-confirm') setStep('share');
@@ -1340,8 +1349,38 @@ function CommuteScreen({ web, onBack }) {
     return rs;
   }, [typeFilter, sort, topRated, verifiedOnly]);
 
-  const openRide = (r) => { pkHaptic('select'); setSelected(r); setStep('detail'); };
-  const confirmRide = () => { pkHaptic('success'); setStep('success'); };
+  const openRide = (r) => {
+    pkHaptic('select');
+    setSelected(r);
+    setOffer(String(r.price));
+    setNegoStatus('idle'); setCounter(0); setAgreedPrice(0);
+    setStep('detail');
+  };
+  const firstNameOf = (full) => (full || '').split(/[\s+]/)[0] || 'the driver';
+
+  // Quick path: call now, ride is booked, fare is settled on arrival.
+  const callOnArrival = () => {
+    pkHaptic('success');
+    setPayMode('on-arrival');
+    setAgreedPrice(selected.price);
+    setStep('success');
+  };
+  // Offer path: open the negotiation screen.
+  const startNegotiate = () => { pkHaptic('select'); setNegoStatus('idle'); setStep('negotiate'); };
+  const sendOffer = () => {
+    const v = parseInt(String(offer).replace(/[^\d]/g, ''), 10);
+    if (!v || v <= 0 || negoStatus === 'thinking') return;
+    pkHaptic('medium');
+    setNegoStatus('thinking');
+    setTimeout(() => {
+      const floor = Math.round(selected.price * 0.85); // driver won't go below 85%
+      if (v >= floor) { setAgreedPrice(Math.min(v, selected.price)); setNegoStatus('agreed'); pkHaptic('success'); }
+      else { setCounter(Math.max(floor, Math.round((v + selected.price) / 2))); setNegoStatus('countered'); pkHaptic('light'); }
+    }, 900);
+  };
+  const acceptCounter = () => { pkHaptic('success'); setAgreedPrice(counter); setNegoStatus('agreed'); };
+  // Pay the agreed fare; the driver only heads over now.
+  const payPrepaid = () => { pkHaptic('success'); setPayMode('prepaid'); setStep('success'); };
 
   const mates = React.useMemo(() => {
     const q = mateQuery.trim().toLowerCase();
@@ -1561,42 +1600,112 @@ function CommuteScreen({ web, onBack }) {
               <span style={{ fontSize: 12.5, color: ink55, lineHeight: 1.45 }}>Driver is ID-verified. Share your live trip and reach support any time from the ride.</span>
             </div>
 
-            <button onClick={() => { pkHaptic('select'); setStep('confirm'); }} style={{ marginTop: 22, width: '100%', height: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 760, boxShadow: '0 16px 38px rgba(10,10,10,0.22)' }}>Continue · {ccPrice(r.price)}</button>
+            <div style={{ marginTop: 22, display: 'grid', gap: 10 }}>
+              <button onClick={startNegotiate} style={{ width: '100%', minHeight: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 760, boxShadow: '0 16px 38px rgba(10,10,10,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 16px' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.5 12 9.5s5 1.1 5 3-2.2 3-5 3-5-1.1-5-3"/></svg>
+                Offer your price
+              </button>
+              <button onClick={callOnArrival} style={{ width: '100%', minHeight: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+                Call &amp; pay on arrival
+              </button>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11.5, color: ink40, lineHeight: 1.45, textAlign: 'center' }}>Offer a fare and {firstNameOf(r.name)} comes once you agree and pay — or call now and settle the price when they reach you.</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // ──────────────────────────── CONFIRM ────────────────────────────
-  if (step === 'confirm' && selected) {
+  // ─────────────────────────── NEGOTIATE ───────────────────────────
+  // Offer your price → driver accepts or counters → pay → they head over.
+  if (step === 'negotiate' && selected) {
     const r = selected;
+    const fn = firstNameOf(r.name);
+    const offerNum = parseInt(String(offer).replace(/[^\d]/g, ''), 10) || 0;
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
         {header}
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: ctaPad }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Confirm your ride.</div>
-              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Review the details before you book.</div>
+              <div style={{ fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Name your fare.</div>
+              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Offer a price for {fn}. They’ll accept or counter — and only head over once you both agree and you’ve paid.</div>
 
-              <div style={{ marginTop: 24 }}>
-                <button onClick={goPlan} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', borderBottom: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <span><span style={{ display: 'block', fontSize: 11, color: ink40, fontFamily: CC_MONO, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Pickup</span><span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, marginTop: 3 }}>{origin || 'Current location'}</span></span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: ink40 }}>Change</span>
-                </button>
-                <button onClick={goPlan} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '12px 0', borderBottom: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                  <span><span style={{ display: 'block', fontSize: 11, color: ink40, fontFamily: CC_MONO, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Drop-off</span><span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, marginTop: 3 }}>{destination}</span></span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: ink40 }}>Change</span>
-                </button>
-                <DetailRow label="Ride" value={`${r.name} · ${r.vehicle.split(' · ')[0]}`} />
-                <DetailRow label="Pickup ETA" value={`${r.eta} min`} />
-                <DetailRow label="Pay with" value="Everyday Wallet" />
-                <DetailRow label="Total" value={ccPrice(r.price)} accent last />
+              <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 13 }}>
+                <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={18} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 15, fontWeight: 800, color: ink }}>{r.name}</span>{r.verified && <Verified />}</div>
+                  <div style={{ fontSize: 12, color: ink40, marginTop: 1 }}>{destination} · {r.duration} min</div>
+                </div>
+                <span style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>Listed</span>
+                  <span style={{ display: 'block', fontSize: 14.5, fontWeight: 800, color: ink }}>{ccPrice(r.price)}</span>
+                </span>
               </div>
+
+              <div style={{ marginTop: 22 }}>
+                <DashField label="Your offer" big inputMode="numeric" value={offer}
+                  onChange={(v) => { setOffer(v.replace(/[^\d]/g, '')); if (negoStatus !== 'idle') setNegoStatus('idle'); }}
+                  prefix={(<span style={{ alignSelf: 'center', fontFamily: CC_MONO, fontSize: 14, fontWeight: 700, color: ink40, letterSpacing: '0.04em' }}>RWF</span>)} />
+                {/* quick offers — contextual nudges around the listed fare */}
+                {(negoStatus === 'idle' || negoStatus === 'countered') && (
+                  <div style={{ display: 'flex', gap: 7, marginTop: 14 }}>
+                    {[0.8, 0.9, 1].map((m) => {
+                      const val = Math.round(r.price * m / 50) * 50;
+                      const on = offerNum === val;
+                      return <button key={m} onClick={() => { pkHaptic('select'); setOffer(String(val)); setNegoStatus('idle'); }} style={{ flex: 1, height: 38, borderRadius: 10, border: on ? '0' : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>{ccPrice(val)}</button>;
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {negoStatus === 'thinking' && (
+                <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, color: ink55 }}>
+                  <svg className="pk-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="2" strokeLinecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
+                  <span style={{ fontSize: 13 }}>Sending your offer to {fn}…</span>
+                </div>
+              )}
+
+              {negoStatus === 'countered' && (
+                <div className="pk-rise" style={{ marginTop: 20, padding: '16px 16px', borderRadius: 16, background: ink06 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 760, color: ink }}>{fn} counters</span>
+                    <span style={{ fontSize: 18, fontWeight: 850, letterSpacing: '-0.02em', color: ink }}>{ccPrice(counter)}</span>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12.5, color: ink55, lineHeight: 1.45 }}>That’s a fair meeting point. Accept it, or send a higher offer.</div>
+                  <button onClick={acceptCounter} style={{ marginTop: 14, width: '100%', height: 46, borderRadius: 12, border: 0, background: '#2FAE9B', color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760 }}>Accept {ccPrice(counter)}</button>
+                </div>
+              )}
+
+              {negoStatus === 'agreed' && (
+                <div className="pk-rise" style={{ marginTop: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderRadius: 16, background: 'rgba(47,174,155,0.10)' }}>
+                    <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2FAE9B', color: paper }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: ink }}>Agreed at {ccPrice(agreedPrice)}</div>
+                      <div style={{ fontSize: 12, color: ink55, marginTop: 1 }}>Pay now and {fn} heads to {origin || 'your pickup'}.</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 16 }}>
+                    <DetailRow label="Pickup" value={origin || 'Current location'} />
+                    <DetailRow label="Drop-off" value={destination} />
+                    <DetailRow label="Pay with" value="Everyday Wallet" />
+                    <DetailRow label="Agreed fare" value={ccPrice(agreedPrice)} accent last />
+                  </div>
+                </div>
+              )}
             </div>
 
-            <button onClick={confirmRide} style={{ marginTop: 24, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)' }}>Confirm ride · {ccPrice(r.price)}</button>
+            {negoStatus === 'agreed' ? (
+              <button onClick={payPrepaid} style={{ marginTop: 22, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)' }}>Pay {ccPrice(agreedPrice)} &amp; confirm</button>
+            ) : (
+              <button onClick={sendOffer} disabled={negoStatus === 'thinking' || !offerNum} style={{ marginTop: 22, width: '100%', height: 58, borderRadius: 18, border: negoStatus === 'thinking' || !offerNum ? `2px dashed ${ink12}` : 0, background: negoStatus === 'thinking' || !offerNum ? 'transparent' : ink, color: negoStatus === 'thinking' || !offerNum ? ink25 : paper, cursor: negoStatus === 'thinking' || !offerNum ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: negoStatus === 'thinking' || !offerNum ? 'none' : '0 18px 40px rgba(10,10,10,0.22)', transition: 'background 180ms ease, color 180ms ease' }}>
+                {negoStatus === 'thinking' ? `Waiting for ${fn}…` : negoStatus === 'countered' ? 'Send new offer' : 'Send offer'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1606,6 +1715,8 @@ function CommuteScreen({ web, onBack }) {
   // ──────────────────────────── SUCCESS ────────────────────────────
   if (step === 'success' && selected) {
     const r = selected;
+    const price = agreedPrice || r.price;
+    const prepaid = payMode === 'prepaid';
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
         {header}
@@ -1614,8 +1725,8 @@ function CommuteScreen({ web, onBack }) {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#2FAE9B', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 40px rgba(47,174,155,0.30)' }}>
               <svg width="30" height="30" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <div style={{ marginTop: 22, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>{r.name} is on the way.</div>
-            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>Arriving in about {r.eta} minutes.</div>
+            <div style={{ marginTop: 22, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>{prepaid ? `${r.name} is on the way.` : `${r.name} is coming to you.`}</div>
+            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>{prepaid ? `Paid · arriving in about ${r.eta} minutes.` : `Arriving in about ${r.eta} minutes — settle the fare when they reach you.`}</div>
 
             <div style={{ marginTop: 22 }}>
               <CommuteMap origin={origin} destination={destination} phase="route" height={160} radius={20} />
@@ -1625,9 +1736,13 @@ function CommuteScreen({ web, onBack }) {
               <span style={{ width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={20} /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 15.5, fontWeight: 800, color: ink }}>{r.name}</span>{r.verified && <Verified />}</div>
-                <div style={{ fontSize: 12.5, color: ink40, marginTop: 1 }}>{r.vehicle} · {ccPrice(r.price)}</div>
+                <div style={{ fontSize: 12.5, color: ink40, marginTop: 1 }}>{r.vehicle} · {ccPrice(price)}</div>
               </div>
-              <span style={{ fontFamily: CC_MONO, fontSize: 11, fontWeight: 700, color: '#2FAE9B', padding: '5px 9px', borderRadius: 999, background: 'rgba(47,174,155,0.12)' }}>EN ROUTE</span>
+              <span style={{ fontFamily: CC_MONO, fontSize: 11, fontWeight: 700, color: '#2FAE9B', padding: '5px 9px', borderRadius: 999, background: 'rgba(47,174,155,0.12)' }}>{prepaid ? 'EN ROUTE' : 'HEADING OVER'}</span>
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <DetailRow label={prepaid ? 'Paid' : 'Pay on arrival'} value={prepaid ? `${ccPrice(price)} · Wallet` : ccPrice(price)} accent={!prepaid} last />
             </div>
 
             <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
