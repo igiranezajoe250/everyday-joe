@@ -806,6 +806,16 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
 
   React.useEffect(() => { const id = setTimeout(() => setLoading(false), 320); return () => clearTimeout(id); }, []);
 
+  // When the rail is collapsed, the folder icons float in, then fade after 3s —
+  // the open/close toggle always stays.
+  const [railIcons, setRailIcons] = React.useState(false);
+  React.useEffect(() => {
+    if (railOpen) { setRailIcons(false); return; }
+    setRailIcons(true);
+    const id = setTimeout(() => setRailIcons(false), 3000);
+    return () => clearTimeout(id);
+  }, [railOpen]);
+
   // One-shot capture intent handed in from the Home "Ask anything" bar.
   React.useEffect(() => {
     if (!intent) return;
@@ -973,14 +983,31 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               </div>
             </React.Fragment>
           ) : (
-            <button onClick={() => setRailOpen(true)} aria-label="Show folders" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* Open/close toggle — always stays */}
+              <button onClick={() => setRailOpen(true)} aria-label="Show folders" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+              </button>
+              {/* Floating function icons — fade out after 3s; tap to jump */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginTop: 12, opacity: railIcons ? 1 : 0, transform: railIcons ? 'none' : 'translateY(-6px)', transition: 'opacity 400ms ease, transform 400ms ease', pointerEvents: railIcons ? 'auto' : 'none' }}>
+                <button onClick={() => { pkHaptic('select'); setView('insights'); }} aria-label="Insights" title="Insights" style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 3, display: 'flex', color: view === 'insights' ? ink : ink55 }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.2-1 2H9c0-.8-.4-1.4-1-2A6 6 0 0 1 12 3zM9 18h6M10 21h4"/></svg>
+                </button>
+                {folders.map((fl) => {
+                  const on = fl.id === activeFolder && view !== 'insights' && view !== 'trash';
+                  return (
+                    <button key={fl.id} onClick={() => selectFolder(fl.id)} aria-label={fl.name} title={fl.name} style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 3, display: 'flex' }}>
+                      <FolderIcon kind={fl.icon} size={17} color={on ? ink : ink55} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
         {/* Main canvas */}
-        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: 96 + bottomInset }}>
+        <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: (view === 'files' ? 150 : 96) + bottomInset }}>
           {/* ── INSIGHTS ── */}
           {view === 'insights' ? (
             <div className="pk-stagger">
@@ -1103,13 +1130,8 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               {err && <div style={{ marginTop: 10, fontSize: 12, color: '#C8102E', fontWeight: 600 }}>{err}</div>}
             </div>
           ) : (
-            /* ── FILE LIST (default) ── */
+            /* ── FILE LIST (default) — search lives in the pinned bottom bar ── */
             <div>
-              {/* Search */}
-              <DashField value={query} onChange={setQuery} placeholder="Search notes, voice, attachments"
-                prefix={(<span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>)}
-                suffix={query.trim() ? (<button onClick={() => setQuery('')} aria-label="Clear" style={{ border: 0, background: 'transparent', color: ink25, cursor: 'pointer', display: 'flex', flexShrink: 0, padding: 4 }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>) : null} />
-
               {query.trim() ? (
                 <div style={{ marginTop: 18 }}>
                   <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>{searchHits.length} result{searchHits.length === 1 ? '' : 's'}</div>
@@ -1156,6 +1178,17 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
           )}
         </div>
       </div>
+
+      {/* Search — pinned to the bottom, above the + buttons */}
+      {view === 'files' && (
+        <div style={{ position: 'absolute', left: web ? 28 : 16, right: web ? 28 : 16, bottom: `calc(${(web ? 24 : 20) + bottomInset + 64}px + env(safe-area-inset-bottom, 0px))`, zIndex: 30, maxWidth: web ? 760 : 'none', margin: web ? '0 auto' : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: paper, border: `1px solid ${ink12}`, borderRadius: 14, padding: '8px 12px', boxShadow: '0 10px 30px rgba(10,10,10,0.10)' }}>
+            <span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search notes, voice, attachments" style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15, fontWeight: 500, padding: 0 }} />
+            {query.trim() ? (<button onClick={() => setQuery('')} aria-label="Clear" style={{ border: 0, background: 'transparent', color: ink25, cursor: 'pointer', display: 'flex', flexShrink: 0, padding: 4 }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>) : null}
+          </div>
+        </div>
+      )}
 
       {/* Quick capture FAB (bottom-right) */}
       {fabOpen && <div onClick={() => setFabOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 44 }} />}
