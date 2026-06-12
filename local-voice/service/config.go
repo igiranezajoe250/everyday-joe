@@ -25,6 +25,9 @@ type Config struct {
 	// GoogleAIKey enables online Gemma 3 4B via Google AI Studio.
 	// When set it takes priority over AgentLLMURL (Ollama).
 	GoogleAIKey string
+	// APIBase is the base URL of the Everyday Next.js API (for section agent tool calls).
+	// Defaults to http://localhost:3000 for local dev; set to your Vercel URL in prod.
+	APIBase string
 }
 
 func LoadConfig() Config {
@@ -44,6 +47,7 @@ func LoadConfig() Config {
 		AgentModel:            env("BOUNTY_LLM_MODEL", "gemma3:4b"),
 		AgentModelRW:          env("BOUNTY_LLM_MODEL_RW", ""),
 		GoogleAIKey:           env("GOOGLE_AI_KEY", ""),
+		APIBase:               env("EVERYDAY_API_BASE", "http://localhost:3000"),
 	}
 }
 

@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,9 +18,7 @@ type agentRequest struct {
 	Message  string         `json:"message"`
 	Language string         `json:"language"`
 	History  []agentMessage `json:"history"`
-	// Context is an opaque snapshot of the user's live app state — wallet,
-	// recent transactions, plan files, shop catalog. The frontend pulls it
-	// from EverydayStore and forwards it so the model can reason over real data.
+	// Context is an opaque snapshot of the user's live app state forwarded from EverydayStore.
 	Context json.RawMessage `json:"context,omitempty"`
 }
 
@@ -51,7 +47,7 @@ type ollamaResponse struct {
 	Message ollamaMessage `json:"message"`
 }
 
-// ── Google AI Studio (Gemma 3 online) types ───────────────────────────────────
+// ── Google AI Studio types ────────────────────────────────────────────────────
 
 type googlePart struct {
 	Text string `json:"text"`
@@ -75,9 +71,9 @@ type googleResponse struct {
 	Candidates []googleCandidate `json:"candidates"`
 }
 
-// ── Handler ───────────────────────────────────────────────────────────────────
+// ── Bounty orchestrator ───────────────────────────────────────────────────────
 
-func handleAgentChat(cfg Config) http.HandlerFunc {
+func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSON(w, http.StatusMethodNotAllowed, voiceError{Error: "method not allowed"})
@@ -100,20 +96,31 @@ func handleAgentChat(cfg Config) http.HandlerFunc {
 		route, action, fallback := inferBountyIntent(msg, lang)
 		text, model := fallback, "bounty-local"
 
-		switch {
-		case cfg.GoogleAIKey != "":
-			// Online path: Google AI Studio → Gemma 3 4B
-			if llmText, err := askGoogleAI(cfg, req, route); err == nil && strings.TrimSpace(llmText) != "" {
-				text, model = strings.TrimSpace(llmText), "gemma-3-4b-it"
+		// A2A dispatch: delegate to the section agent if intent is clear
+		if route != "" {
+			if agent, ok := agents[route]; ok {
+				task := agent.Handle(cfg, a2aTaskSend{
+					ID:      fmt.Sprintf("bounty-%d", time.Now().UnixMilli()),
+					Message: a2aMsg{Role: "user", Parts: []a2aPart{{Type: "text", Text: msg}}},
+					Context: req.Context,
+				})
+				if len(task.Artifacts) > 0 && len(task.Artifacts[0].Parts) > 0 {
+					text = task.Artifacts[0].Parts[0].Text
+					model = "gemma3-" + route
+				}
 			}
-		case cfg.AgentLLMURL != "":
-			// Local path: Ollama → gemma3:4b (or configured model)
-			llmModel := cfg.AgentModel
-			if lang == "rw" && strings.TrimSpace(cfg.AgentModelRW) != "" {
-				llmModel = cfg.AgentModelRW
-			}
-			if llmText, err := askLocalLLM(cfg, req, route, llmModel); err == nil && strings.TrimSpace(llmText) != "" {
-				text, model = strings.TrimSpace(llmText), llmModel
+		} else {
+			// No clear section route — use Bounty's own Gemma 3 call
+			system := buildBountyPrompt(req, lang)
+			switch {
+			case cfg.GoogleAIKey != "":
+				if reply, err := callGemma3Online(cfg, system, msg, req.History); err == nil && strings.TrimSpace(reply) != "" {
+					text, model = strings.TrimSpace(reply), "gemma-3-4b-it"
+				}
+			case cfg.AgentLLMURL != "":
+				if reply, err := callGemma3Local(cfg, system, msg, req.History); err == nil && strings.TrimSpace(reply) != "" {
+					text, model = strings.TrimSpace(reply), cfg.AgentModel
+				}
 			}
 		}
 
@@ -127,7 +134,7 @@ func handleAgentChat(cfg Config) http.HandlerFunc {
 	}
 }
 
-// ── Intent routing (offline fallback) ────────────────────────────────────────
+// ── Intent routing (deterministic fallback) ───────────────────────────────────
 
 func inferBountyIntent(message, language string) (route, action, text string) {
 	m := strings.ToLower(message)
@@ -159,115 +166,43 @@ func inferBountyIntent(message, language string) (route, action, text string) {
 	return route, action, text
 }
 
-// ── Google AI Studio (online, Gemma 3 4B) ────────────────────────────────────
+// ── System prompts ────────────────────────────────────────────────────────────
 
-func askGoogleAI(cfg Config, req agentRequest, route string) (string, error) {
-	system := buildSystemPrompt(req)
-
-	var contents []googleContent
-	for _, h := range req.History {
-		role := strings.ToLower(strings.TrimSpace(h.Role))
-		// Google AI uses "model" (not "assistant")
-		if role == "assistant" {
-			role = "model"
-		} else {
-			role = "user"
-		}
-		if strings.TrimSpace(h.Text) != "" {
-			contents = append(contents, googleContent{
-				Role:  role,
-				Parts: []googlePart{{Text: h.Text}},
-			})
-		}
-	}
-	userMsg := req.Message
-	if route != "" {
-		userMsg += "\nLikely app route: " + route
-	}
-	contents = append(contents, googleContent{
-		Role:  "user",
-		Parts: []googlePart{{Text: userMsg}},
-	})
-
-	payload := googleRequest{
-		SystemInstruction: &googleContent{Parts: []googlePart{{Text: system}}},
-		Contents:          contents,
-	}
-	body, _ := json.Marshal(payload)
-
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemma-3-4b-it:generateContent?key=%s", cfg.GoogleAIKey)
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Post(url, "application/json", bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return "", fmt.Errorf("google AI returned %s: %s", resp.Status, string(raw))
-	}
-	var out googleResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&out); err != nil {
-		return "", err
-	}
-	if len(out.Candidates) == 0 || len(out.Candidates[0].Content.Parts) == 0 {
-		return "", errors.New("google AI: empty response")
-	}
-	return out.Candidates[0].Content.Parts[0].Text, nil
-}
-
-// ── Ollama (local, gemma3:4b) ─────────────────────────────────────────────────
-
-func askLocalLLM(cfg Config, req agentRequest, route, modelName string) (string, error) {
-	system := buildSystemPrompt(req)
-	messages := []ollamaMessage{{Role: "system", Content: system}}
-	for _, h := range req.History {
-		role := strings.ToLower(strings.TrimSpace(h.Role))
-		if role != "assistant" {
-			role = "user"
-		}
-		if strings.TrimSpace(h.Text) != "" {
-			messages = append(messages, ollamaMessage{Role: role, Content: h.Text})
-		}
-	}
-	userMsg := req.Message
-	if route != "" {
-		userMsg += "\nLikely app route: " + route
-	}
-	messages = append(messages, ollamaMessage{Role: "user", Content: userMsg})
-
-	if strings.TrimSpace(modelName) == "" {
-		modelName = cfg.AgentModel
-	}
-	body, _ := json.Marshal(ollamaRequest{Model: modelName, Messages: messages, Stream: false})
-	client := &http.Client{Timeout: 45 * time.Second}
-	resp, err := client.Post(cfg.AgentLLMURL, "application/json", bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", errors.New("local LLM returned " + resp.Status)
-	}
-	var out ollamaResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&out); err != nil {
-		return "", err
-	}
-	return out.Message.Content, nil
-}
-
-// ── Shared system prompt ──────────────────────────────────────────────────────
-
-func buildSystemPrompt(req agentRequest) string {
-	system := "You are Bounty, Everyday's concise local agent for Rwanda. Help the user complete tasks in the app. Mention the app area to use when relevant. Keep replies short and practical. Never make up numbers or data."
-	if strings.EqualFold(req.Language, "rw") {
+func buildBountyPrompt(req agentRequest, lang string) string {
+	system := "You are Bounty, Everyday's concise orchestrator agent for Rwanda. Help the user complete tasks in the app. When a request belongs to Shop, Pay, Save, Plan, Listen, or Commute, say which area to use. Keep replies short and practical. Never invent data."
+	if lang == "rw" {
 		system += " The user prefers Kinyarwanda. Reply in Kinyarwanda when possible, otherwise reply in English with a short Kinyarwanda greeting."
 	}
-	if len(req.Context) > 2 { // skip empty {} / null
-		system += "\n\nLive user context (Supabase snapshot — wallet balances are RWF, transactions are dated):\n" + string(req.Context) + "\n\nGround every numeric claim in this context. If the context does not have the answer, say so plainly instead of guessing."
+	if len(req.Context) > 2 {
+		system += "\n\nLive user context (wallet balances in RWF, transactions dated):\n" + string(req.Context) + "\n\nGround every numeric claim in this context. If it is not in context, say so."
 	}
 	return system
 }
+
+// ── Google AI Studio (online) ─────────────────────────────────────────────────
+
+func askGoogleAI(cfg Config, req agentRequest, route string) (string, error) {
+	system := buildBountyPrompt(req, normalizeLanguage(req.Language))
+	userMsg := req.Message
+	if route != "" {
+		userMsg += "\nLikely app route: " + route
+	}
+	return callGemma3Online(cfg, system, userMsg, req.History)
+}
+
+// ── Ollama (local) ────────────────────────────────────────────────────────────
+
+func askLocalLLM(cfg Config, req agentRequest, route, modelName string) (string, error) {
+	system := buildBountyPrompt(req, normalizeLanguage(req.Language))
+	userMsg := req.Message
+	if route != "" {
+		userMsg += "\nLikely app route: " + route
+	}
+	return callGemma3Local(cfg, system, userMsg, req.History)
+}
+
+// ── Low-level callers (used by both Bounty and section agents) ────────────────
+// These live in sections.go: callGemma3Online, callGemma3Local
 
 func hasAny(value string, words ...string) bool {
 	for _, word := range words {
@@ -276,4 +211,37 @@ func hasAny(value string, words ...string) bool {
 		}
 	}
 	return false
+}
+
+// ── Vercel API proxy (for agent tool calls) ───────────────────────────────────
+
+type vercelProxy struct {
+	base   string
+	client *http.Client
+}
+
+func newProxy(base string) *vercelProxy {
+	return &vercelProxy{
+		base:   base,
+		client: &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+func (p *vercelProxy) get(path, token string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, p.base+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("%s → %s", path, resp.Status)
+	}
+	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }
