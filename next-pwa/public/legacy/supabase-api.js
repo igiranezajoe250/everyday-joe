@@ -1,0 +1,466 @@
+(function () {
+  var PROJECT_URL = "https://eovubrcjtclkcuzvmzbk.supabase.co";
+  var state = {
+    ready: false,
+    configured: false,
+    client: null,
+    config: null,
+    error: null,
+  };
+
+  function normalizeProfile(row, user) {
+    if (!row && !user) return null;
+    var email = row && row.email ? row.email : user && user.email ? user.email : "";
+    var name = row && row.display_name ? row.display_name : "";
+    if (!name && email) name = email.split("@")[0].replace(/[._-]+/g, " ");
+    return {
+      id: row && row.id ? row.id : user && user.id,
+      display_name: name || "Everyday user",
+      phone: row && row.phone ? row.phone : user && user.phone ? user.phone : "",
+      email: email,
+      avatar_url: row && row.avatar_url ? row.avatar_url : "",
+      language: row && row.language ? row.language : "en",
+      country: row && row.country ? row.country : "RW",
+      city: row && row.city ? row.city : "Kigali",
+      onboarding_completed: !!(row && row.onboarding_completed),
+      created_at: row && row.created_at,
+      updated_at: row && row.updated_at,
+    };
+  }
+
+  function profilePayload(user, patch) {
+    var meta = user && user.user_metadata ? user.user_metadata : {};
+    return Object.assign({
+      id: user && user.id,
+      display_name: meta.display_name || meta.name || "",
+      phone: user && user.phone ? user.phone : "",
+      email: user && user.email ? user.email : "",
+      language: "en",
+      country: "RW",
+      city: "Kigali",
+      onboarding_completed: false,
+      updated_at: new Date().toISOString(),
+    }, patch || {});
+  }
+
+  function requireClient() {
+    if (!state.client) throw new Error(state.error || "Supabase is not configured yet.");
+    return state.client;
+  }
+
+  async function init() {
+    if (state.ready) return state;
+    try {
+      var res = await fetch("/api/everyday-config", { cache: "no-store" });
+      var cfg = res.ok ? await res.json() : {};
+      var url = cfg.supabaseUrl || PROJECT_URL;
+      var anonKey = cfg.supabaseAnonKey || "";
+      state.config = { supabaseUrl: url, supabaseAnonKey: anonKey ? "present" : "" };
+      if (!anonKey) {
+        state.ready = true;
+        state.configured = false;
+        return state;
+      }
+      if (!window.supabase || !window.supabase.createClient) {
+        throw new Error("Supabase browser client did not load.");
+      }
+      state.client = window.supabase.createClient(url, anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      });
+      state.ready = true;
+      state.configured = true;
+      return state;
+    } catch (err) {
+      state.ready = true;
+      state.configured = false;
+      state.error = err && err.message ? err.message : "Could not initialize Supabase.";
+      return state;
+    }
+  }
+
+  async function getSession() {
+    await init();
+    if (!state.client) return { session: null, user: null, configured: false };
+    var result = await state.client.auth.getSession();
+    if (result.error) throw result.error;
+    var session = result.data && result.data.session;
+    return { session: session || null, user: session && session.user ? session.user : null, configured: true };
+  }
+
+  async function signIn(email, password) {
+    var client = requireClient();
+    var result = await client.auth.signInWithPassword({ email: email, password: password });
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function signUp(email, password, displayName) {
+    var client = requireClient();
+    var result = await client.auth.signUp({
+      email: email,
+      password: password,
+      options: { data: { display_name: displayName || "" } },
+    });
+    if (result.error) throw result.error;
+    if (result.data && result.data.user && result.data.session) {
+      await upsertProfile(profilePayload(result.data.user, {
+        display_name: displayName || "",
+        onboarding_completed: false,
+      }));
+    }
+    return result.data;
+  }
+
+  async function signInWithGoogle(redirectTo) {
+    var client = requireClient();
+    var result = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectTo || window.location.href,
+      },
+    });
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function signInAnonymously() {
+    var client = requireClient();
+    var result = await client.auth.signInAnonymously();
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function sendEmailOtp(email, shouldCreateUser) {
+    var client = requireClient();
+    var result = await client.auth.signInWithOtp({
+      email: email,
+      options: {
+        shouldCreateUser: shouldCreateUser !== false,
+        emailRedirectTo: window.location.href,
+      },
+    });
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function sendPhoneOtp(phone, shouldCreateUser) {
+    var client = requireClient();
+    var result = await client.auth.signInWithOtp({
+      phone: phone,
+      options: {
+        shouldCreateUser: shouldCreateUser !== false,
+      },
+    });
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function verifyEmailOtp(email, token) {
+    var client = requireClient();
+    var result = await client.auth.verifyOtp({
+      email: email,
+      token: token,
+      type: "email",
+    });
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function verifyPhoneOtp(phone, token) {
+    var client = requireClient();
+    var result = await client.auth.verifyOtp({
+      phone: phone,
+      token: token,
+      type: "sms",
+    });
+    if (result.error) throw result.error;
+    return result.data;
+  }
+
+  async function signOut() {
+    var client = requireClient();
+    var result = await client.auth.signOut();
+    if (result.error) throw result.error;
+  }
+
+  function onAuthStateChange(cb) {
+    if (!state.client) return function () {};
+    var result = state.client.auth.onAuthStateChange(function (_event, session) {
+      cb(session || null);
+    });
+    return function () {
+      try { result.data.subscription.unsubscribe(); } catch (e) {}
+    };
+  }
+
+  async function getProfile() {
+    var client = requireClient();
+    var sessionResult = await client.auth.getSession();
+    if (sessionResult.error) throw sessionResult.error;
+    var session = sessionResult.data && sessionResult.data.session;
+    var user = session && session.user;
+    if (!user) return null;
+    var result = await client.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) {
+      var created = await upsertProfile(profilePayload(user));
+      return created;
+    }
+    return normalizeProfile(result.data, user);
+  }
+
+  async function upsertProfile(patch) {
+    var client = requireClient();
+    var sessionResult = await client.auth.getSession();
+    if (sessionResult.error) throw sessionResult.error;
+    var session = sessionResult.data && sessionResult.data.session;
+    var user = session && session.user;
+    if (!user) throw new Error("Sign in before updating your profile.");
+    var payload = profilePayload(user, patch);
+    var result = await client.from("profiles").upsert(payload, { onConflict: "id" }).select("*").single();
+    if (result.error) throw result.error;
+    return normalizeProfile(result.data, user);
+  }
+
+  async function updateProfile(patch) {
+    return upsertProfile(Object.assign({}, patch || {}, { updated_at: new Date().toISOString() }));
+  }
+
+  function normalizeFolder(row) {
+    return {
+      id: row.id,
+      name: row.name || "Untitled",
+      icon: row.icon || "folder",
+    };
+  }
+
+  function normalizeFile(row) {
+    return {
+      id: row.id,
+      folderId: row.folder_id,
+      title: row.title || "",
+      body: row.body || "",
+      updated: row.updated || 0,
+      attachments: Array.isArray(row.attachments) ? row.attachments : [],
+      voice: Array.isArray(row.voice) ? row.voice : [],
+      trashed: !!row.trashed,
+    };
+  }
+
+  async function currentUser() {
+    var client = requireClient();
+    var sessionResult = await client.auth.getSession();
+    if (sessionResult.error) throw sessionResult.error;
+    var session = sessionResult.data && sessionResult.data.session;
+    var user = session && session.user;
+    if (!user) throw new Error("Sign in before syncing Everyday data.");
+    return user;
+  }
+
+  async function seedPlan(user) {
+    var client = requireClient();
+    var now = Date.now();
+    var folders = [
+      { id: "personal", user_id: user.id, name: "Personal", icon: "user" },
+      { id: "work", user_id: user.id, name: "Work", icon: "work" },
+      { id: "finance", user_id: user.id, name: "Finance", icon: "wallet" },
+      { id: "ideas", user_id: user.id, name: "Ideas", icon: "bulb" },
+    ];
+    var files = [
+      { id: "pf1", user_id: user.id, folder_id: "finance", title: "Savings goal - RWF 1.5M by December", body: "Put aside RWF 120,000 each month. Keep the emergency fund untouched. This covers school fees and a laptop.", updated: now - 9000000, attachments: [], voice: [], trashed: false },
+      { id: "pf2", user_id: user.id, folder_id: "work", title: "Q3 priorities", body: "Ship the retail report. Weekly founder calls. Prep the markets brief. Meeting Tuesday 9am at Kigali Heights.", updated: now - 5200000, attachments: [], voice: [], trashed: false },
+      { id: "pf3", user_id: user.id, folder_id: "personal", title: "This weekend", body: "Groceries at Kimironko market. Visit family in Nyamirambo. Try that podcast about building a loyal audience.", updated: now - 3000000, attachments: [], voice: [], trashed: false },
+      { id: "pf4", user_id: user.id, folder_id: "ideas", title: "App ideas", body: "A calm place to keep everything in one spot. Voice notes that turn into searchable text. Let the app suggest a ride before a meeting.", updated: now - 1000000, attachments: [], voice: [], trashed: false },
+    ];
+    var folderResult = await client.from("plan_folders").upsert(folders, { onConflict: "user_id,id" });
+    if (folderResult.error) throw folderResult.error;
+    var fileResult = await client.from("plan_files").upsert(files, { onConflict: "user_id,id" });
+    if (fileResult.error) throw fileResult.error;
+    return { folders: folders.map(normalizeFolder), files: files.map(normalizeFile) };
+  }
+
+  async function getPlan() {
+    var client = requireClient();
+    var user = await currentUser();
+    var folderResult = await client.from("plan_folders").select("*").eq("user_id", user.id).order("created_at", { ascending: true });
+    if (folderResult.error) throw folderResult.error;
+    if (!folderResult.data || !folderResult.data.length) return seedPlan(user);
+    var fileResult = await client.from("plan_files").select("*").eq("user_id", user.id).order("updated", { ascending: false });
+    if (fileResult.error) throw fileResult.error;
+    return {
+      folders: folderResult.data.map(normalizeFolder),
+      files: (fileResult.data || []).map(normalizeFile),
+    };
+  }
+
+  async function savePlan(folders, files) {
+    var client = requireClient();
+    var user = await currentUser();
+    var folderRows = (folders || []).map(function (folder) {
+      return {
+        id: folder.id,
+        user_id: user.id,
+        name: folder.name || "Untitled",
+        icon: folder.icon || "folder",
+      };
+    });
+    var fileRows = (files || []).map(function (file) {
+      return {
+        id: file.id,
+        user_id: user.id,
+        folder_id: file.folderId || (folderRows[0] && folderRows[0].id) || "personal",
+        title: file.title || "",
+        body: file.body || "",
+        attachments: Array.isArray(file.attachments) ? file.attachments : [],
+        voice: Array.isArray(file.voice) ? file.voice : [],
+        trashed: !!file.trashed,
+        updated: file.updated || Date.now(),
+      };
+    });
+    var deleteFiles = await client.from("plan_files").delete().eq("user_id", user.id);
+    if (deleteFiles.error) throw deleteFiles.error;
+    var deleteFolders = await client.from("plan_folders").delete().eq("user_id", user.id);
+    if (deleteFolders.error) throw deleteFolders.error;
+    if (folderRows.length) {
+      var folderResult = await client.from("plan_folders").insert(folderRows);
+      if (folderResult.error) throw folderResult.error;
+    }
+    if (fileRows.length) {
+      var fileResult = await client.from("plan_files").insert(fileRows);
+      if (fileResult.error) throw fileResult.error;
+    }
+    return { ok: true };
+  }
+
+  async function bearerHeaders() {
+    var headers = { "Content-Type": "application/json" };
+    if (!state.client) return headers;
+    try {
+      var sessionResult = await state.client.auth.getSession();
+      var token = sessionResult && sessionResult.data && sessionResult.data.session && sessionResult.data.session.access_token;
+      if (token) headers["Authorization"] = "Bearer " + token;
+    } catch (e) {}
+    return headers;
+  }
+
+  async function callService(path, options) {
+    options = options || {};
+    var init = { method: options.method || "GET", cache: "no-store" };
+    var headers = await bearerHeaders();
+    if (options.body !== undefined) init.body = JSON.stringify(options.body);
+    init.headers = Object.assign(headers, options.headers || {});
+    var res = await fetch(path, init);
+    var payload = null;
+    try { payload = await res.json(); } catch (e) {}
+    if (!res.ok) {
+      var msg = (payload && payload.error) || ("Request to " + path + " failed (" + res.status + ")");
+      throw new Error(msg);
+    }
+    return payload;
+  }
+
+  // Commute service — /api/commute
+  async function listCommute() {
+    return callService("/api/commute");
+  }
+
+  // Listen service — /api/listen
+  async function listListen() {
+    return callService("/api/listen");
+  }
+
+  // Save service — /api/save
+  async function getSave() {
+    return callService("/api/save");
+  }
+  async function deposit(amountRwf, title) {
+    return callService("/api/save", { method: "POST", body: { amount_rwf: amountRwf, title: title || "" } });
+  }
+
+  // Plan service — /api/plan (replaces direct supabase plan calls)
+  async function planList() {
+    return callService("/api/plan");
+  }
+  async function planSave(folders, files) {
+    return callService("/api/plan", { method: "POST", body: { folders: folders || [], files: files || [] } });
+  }
+
+  // Shop service — /api/shop
+  async function listShop() {
+    return callService("/api/shop");
+  }
+  async function placeOrder(productId, quantity) {
+    return callService("/api/shop", { method: "POST", body: { product_id: productId, quantity: quantity || 1 } });
+  }
+
+  // Pay service — /api/pay
+  async function getPay() {
+    return callService("/api/pay");
+  }
+  async function sendPayment(amountRwf, recipient, note) {
+    return callService("/api/pay", { method: "POST", body: { amount_rwf: amountRwf, recipient: recipient, note: note || "" } });
+  }
+
+  // Bounty orchestrator — /api/bounty
+  async function bountyAsk(ask) {
+    return callService("/api/bounty", { method: "POST", body: { ask: ask || "" } });
+  }
+
+  window.EverydayAPI = {
+    init: init,
+    state: state,
+    auth: {
+      getSession: getSession,
+      signIn: signIn,
+      signUp: signUp,
+      signInWithGoogle: signInWithGoogle,
+      signInAnonymously: signInAnonymously,
+      sendEmailOtp: sendEmailOtp,
+      sendPhoneOtp: sendPhoneOtp,
+      verifyEmailOtp: verifyEmailOtp,
+      verifyPhoneOtp: verifyPhoneOtp,
+      signOut: signOut,
+      onAuthStateChange: onAuthStateChange,
+    },
+    profile: {
+      get: getProfile,
+      upsert: upsertProfile,
+      update: updateProfile,
+      normalize: normalizeProfile,
+    },
+    plan: {
+      // Legacy direct-Supabase path (kept for fallback); prefer planService.
+      getAll: getPlan,
+      saveAll: savePlan,
+    },
+    planService: {
+      list: planList,
+      save: planSave,
+    },
+    save: {
+      get: getSave,
+      deposit: deposit,
+    },
+    shop: {
+      list: listShop,
+      order: placeOrder,
+    },
+    pay: {
+      get: getPay,
+      send: sendPayment,
+    },
+    commute: {
+      list: listCommute,
+    },
+    listen: {
+      list: listListen,
+    },
+    bounty: {
+      ask: bountyAsk,
+    },
+  };
+})();

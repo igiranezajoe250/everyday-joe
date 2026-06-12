@@ -31,6 +31,86 @@ function App() {
   const [onboarded, setOnboarded] = React.useState(() => PKStore.get('onboarded', false));
   const finishOnboarding = () => { PKStore.set('onboarded', true); setOnboarded(true); };
 
+  const [authReady, setAuthReady] = React.useState(false);
+  const [authConfigured, setAuthConfigured] = React.useState(false);
+  const [session, setSession] = React.useState(null);
+  const [profile, setProfile] = React.useState(null);
+  const [authError, setAuthError] = React.useState('');
+  const [demoAuth, setDemoAuth] = React.useState(() => PKStore.get('demo_auth', false));
+  const demoProfile = {
+    id: 'demo-user',
+    display_name: 'Joseph Karangwa',
+    email: 'demo@everyday.local',
+    phone: '',
+    language: PKStore.get('profile_language', 'en'),
+    country: 'RW',
+    city: 'Kigali',
+    onboarding_completed: true,
+  };
+  const activeProfile = demoAuth ? demoProfile : profile;
+
+  const refreshAuth = React.useCallback(async () => {
+    if (!window.EverydayAPI) {
+      setAuthReady(true);
+      setAuthConfigured(false);
+      return;
+    }
+    setAuthError('');
+    const apiState = await window.EverydayAPI.init();
+    setAuthConfigured(!!apiState.configured);
+    if (!apiState.configured) {
+      setAuthReady(true);
+      return;
+    }
+    try {
+      const current = await window.EverydayAPI.auth.getSession();
+      setSession(current.session);
+      if (current.session) {
+        const nextProfile = await window.EverydayAPI.profile.get();
+        setProfile(nextProfile);
+        if (nextProfile && nextProfile.language) PKStore.set('profile_language', nextProfile.language);
+        // Hydrate the microservice cache for the real user. Public slices
+        // (shop/listen/commute) always load; private slices (save/pay/plan)
+        // load with the session JWT so RLS scopes them to this user.
+        if (window.EverydayStore) {
+          const userId = (current.session.user && current.session.user.id) || null;
+          window.EverydayStore.hydrateAll({ userId }).catch(() => {});
+        }
+      } else {
+        setProfile(null);
+        if (window.EverydayStore) {
+          // Anonymous: hydrate just the public slices so the catalog still loads.
+          window.EverydayStore.hydrateAll({ userId: null }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      setAuthError(err && err.message ? err.message : 'Could not load your account.');
+    } finally {
+      setAuthReady(true);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    let off = null;
+    refreshAuth().then(() => {
+      if (window.EverydayAPI && window.EverydayAPI.state && window.EverydayAPI.state.configured) {
+        off = window.EverydayAPI.auth.onAuthStateChange((nextSession) => {
+          setSession(nextSession);
+          if (!nextSession) {
+            if (!PKStore.get('demo_auth', false)) {
+              setProfile(null);
+              try { sessionStorage.removeItem('pk_sess'); } catch (e) {}
+              setUnlocked(false);
+            }
+          } else {
+            refreshAuth();
+          }
+        });
+      }
+    });
+    return () => { if (off) off(); };
+  }, [refreshAuth]);
+
   // Lock gate — re-prompts on a true cold start (new session); a refresh
   // inside the same session stays unlocked. Face ID / passcode unlock both
   // set the session flag.
@@ -43,10 +123,53 @@ function App() {
     // Push permission is NOT requested here — asking at unlock is "jumping the
     // gun". It should be triggered by an explicit Notifications opt-in instead.
   };
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    PKStore.del('demo_auth');
+    setDemoAuth(false);
+    if (authConfigured && window.EverydayAPI) {
+      try { await window.EverydayAPI.auth.signOut(); } catch (e) {}
+      setSession(null);
+      setProfile(null);
+    }
+    if (window.EverydayStore) window.EverydayStore.reset();
     try { sessionStorage.removeItem('pk_sess'); } catch (e) {}
     setUnlocked(false);
     setTab('hub'); setRoute('hub');
+  };
+  const handleDemoSignIn = async () => {
+    if (authConfigured && window.EverydayAPI) {
+      try {
+        const data = await window.EverydayAPI.auth.signInAnonymously();
+        const nextProfile = await window.EverydayAPI.profile.update({
+          display_name: 'Joseph Karangwa',
+          language: PKStore.get('profile_language', 'en'),
+          country: 'RW',
+          city: 'Kigali',
+          onboarding_completed: true,
+        });
+        PKStore.del('demo_auth');
+        setDemoAuth(false);
+        setSession(data && data.session ? data.session : null);
+        setProfile(nextProfile);
+        PKStore.set('onboarded', true);
+        try { sessionStorage.setItem('pk_sess', '1'); } catch (e) {}
+        setOnboarded(true);
+        setUnlocked(true);
+        setTab('hub');
+        setRoute('hub');
+        return;
+      } catch (e) {
+        // If anonymous auth is not enabled yet, keep the local demo path usable.
+      }
+    }
+    PKStore.set('demo_auth', true);
+    PKStore.set('onboarded', true);
+    try { sessionStorage.setItem('pk_sess', '1'); } catch (e) {}
+    setDemoAuth(true);
+    setOnboarded(true);
+    setUnlocked(true);
+    setTab('hub');
+    setRoute('hub');
   };
   // Register the service worker for offline — only in the installed/native
   // runtime. In the editable preview we skip it so design edits are never
@@ -238,6 +361,14 @@ function App() {
         }}>
           {!onboarded ? (
             <Onboarding native={PK_NATIVE} accent={accent} onDone={finishOnboarding} />
+          ) : authConfigured && !authReady ? (
+            <div className="pk-rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canvas, color: ink55, fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Loading account</div>
+          ) : authConfigured && !session && !demoAuth ? (
+            <EverydayAuthGate accent={accent} onReady={refreshAuth} onDemo={handleDemoSignIn} />
+          ) : authConfigured && session && !profile && !authError ? (
+            <div className="pk-rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canvas, color: ink55, fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Loading profile</div>
+          ) : authConfigured && session && profile && !profile.onboarding_completed ? (
+            <EverydayProfileSetup profile={profile} accent={accent} onDone={(next) => { setProfile(next); }} />
           ) : !unlocked ? (
             <LockGate accent={accent} native={PK_NATIVE} onUnlock={handleUnlock} />
           ) : (
@@ -256,6 +387,7 @@ function App() {
               {route === 'hub' && (
                 <EverydayHub
                   web={PK_WEB}
+                  profile={activeProfile}
                   onShop={() => openModeFromHub('shop')}
                   onSave={openSaveFromHub}
                   onPay={() => openModeFromHub('pay')}
@@ -343,7 +475,10 @@ function App() {
               )}
               {route === 'settings' && (
                 <SettingsScreen accent={accent}
+                  profile={activeProfile}
+                  authConfigured={authConfigured}
                   onBack={backToHub}
+                  onProfileUpdated={(next) => setProfile(next)}
                   onSignOut={handleSignOut} />
               )}
             </div>
@@ -352,7 +487,7 @@ function App() {
           {showHeaderActions && (
             <HeaderActions
               unread={2}
-              initials="JK"
+              initials={activeProfile ? everydayProfileInitials(activeProfile) : "JK"}
               onInbox={() => { pkHaptic('select'); setInboxOpen(true); }}
               onWallet={openWallet}
               onProfile={openSettings}

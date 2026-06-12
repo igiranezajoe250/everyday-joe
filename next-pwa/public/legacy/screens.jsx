@@ -182,6 +182,286 @@ function HeaderActions({ onInbox, onWallet, onProfile, onOperator, isOperator, u
   );
 }
 
+function everydayProfileName(profile) {
+  const raw = profile && profile.display_name ? String(profile.display_name).trim() : '';
+  if (raw) return raw;
+  const email = profile && profile.email ? String(profile.email) : '';
+  if (email) return email.split('@')[0].replace(/[._-]+/g, ' ');
+  return CC_PORTFOLIO.user.name + ' Karangwa';
+}
+
+function everydayFirstName(profile) {
+  return everydayProfileName(profile).split(/\s+/)[0] || 'there';
+}
+
+function everydayProfileInitials(profile) {
+  const parts = everydayProfileName(profile).split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts[0]) return parts[0].slice(0, 2).toUpperCase();
+  return CC_PORTFOLIO.user.initials;
+}
+
+function EverydayAuthGate({ accent, onReady, onDemo }) {
+  const [accountMode, setAccountMode] = React.useState('signin');
+  const [method, setMethod] = React.useState('email');
+  const [emailMode, setEmailMode] = React.useState('code');
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [pending, setPending] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [notice, setNotice] = React.useState('');
+  const isPassword = method === 'email' && emailMode === 'password';
+  const isEmailCode = method === 'email' && emailMode === 'code';
+  const isPhone = method === 'phone';
+  const isSignUp = accountMode === 'signup';
+  const emailReady = email.trim().includes('@');
+  const nameReady = !isSignUp || !isPassword || name.trim().length >= 2;
+  const phoneReady = phone.trim().replace(/\s+/g, '').length >= 8;
+  const codeReady = code.trim().length >= 4;
+  const ready = pending
+    ? codeReady
+    : isPassword
+      ? emailReady && password.length >= 6 && nameReady
+      : isEmailCode
+        ? emailReady
+        : isPhone
+          ? phoneReady
+          : false;
+
+  const resetStatus = () => {
+    setError('');
+    setNotice('');
+    setCode('');
+    setPending(null);
+  };
+
+  const switchMethod = (next) => {
+    pkHaptic('select');
+    setMethod(next);
+    setEmailMode('code');
+    resetStatus();
+  };
+
+  const switchAccountMode = (next) => {
+    pkHaptic('select');
+    setAccountMode(next);
+    resetStatus();
+  };
+
+  const sendGoogle = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await window.EverydayAPI.auth.signInWithGoogle(window.location.href);
+    } catch (err) {
+      setError(err && err.message ? err.message : 'Google sign-in is not ready yet.');
+      setBusy(false);
+    }
+  };
+
+  const submit = async (e) => {
+    e && e.preventDefault && e.preventDefault();
+    if (!ready || busy) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      if (pending && pending.kind === 'email') {
+        await window.EverydayAPI.auth.verifyEmailOtp(pending.to, code.trim());
+        onReady && onReady();
+      } else if (pending && pending.kind === 'phone') {
+        await window.EverydayAPI.auth.verifyPhoneOtp(pending.to, code.trim());
+        onReady && onReady();
+      } else if (isPassword) {
+        if (isSignUp) await window.EverydayAPI.auth.signUp(email.trim(), password, name.trim());
+        else await window.EverydayAPI.auth.signIn(email.trim(), password);
+        onReady && onReady();
+      } else if (isEmailCode) {
+        await window.EverydayAPI.auth.sendEmailOtp(email.trim(), isSignUp);
+        setPending({ kind: 'email', to: email.trim() });
+        setNotice(isSignUp ? 'We sent a verification code to create your account.' : 'We sent a verification code to your email.');
+      } else if (isPhone) {
+        await window.EverydayAPI.auth.sendPhoneOtp(phone.trim().replace(/\s+/g, ''), isSignUp);
+        setPending({ kind: 'phone', to: phone.trim().replace(/\s+/g, '') });
+        setNotice(isSignUp ? 'We sent a confirmation code to create your account.' : 'We sent a confirmation code to your phone.');
+      }
+    } catch (err) {
+      setError(err && err.message ? err.message : 'Could not continue. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <div style={{ height: PK_NATIVE ? 'max(16px, env(safe-area-inset-top, 16px))' : 54, flexShrink: 0 }} />
+      <div style={{ padding: '14px 24px 0' }}>
+        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
+      </div>
+      <form onSubmit={submit} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px 36px', maxWidth: 440, width: '100%', margin: '0 auto' }}>
+        <Eyebrow style={{ marginBottom: 16 }}>Your everyday trust</Eyebrow>
+        <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.035em', lineHeight: 1.08, color: ink, marginBottom: 28 }}>
+          {pending ? 'Enter your confirmation code.' : isSignUp ? 'Create your account.' : 'Welcome back.'}
+        </div>
+        {!pending && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {[['signin', 'Sign in'], ['signup', 'Sign up']].map(([id, label]) => (
+              <button key={id} type="button" onClick={() => switchAccountMode(id)} style={{
+                flex: 1, height: 40, borderRadius: 999,
+                border: `1px solid ${accountMode === id ? ink : ink12}`,
+                background: accountMode === id ? ink : 'transparent',
+                color: accountMode === id ? paper : ink,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 650,
+              }}>{label}</button>
+            ))}
+          </div>
+        )}
+        {!pending && (
+          <button type="button" onClick={sendGoogle} disabled={busy} style={{
+            height: 48, borderRadius: 999, border: `1px solid ${ink12}`,
+            background: paper, color: ink, cursor: busy ? 'default' : 'pointer',
+            fontFamily: 'inherit', fontSize: 14, fontWeight: 650,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            marginBottom: 16,
+          }}>
+            <span style={{ fontFamily: CC_MONO, fontSize: 13, fontWeight: 800 }}>G</span>
+            {isSignUp ? 'Sign up with Google' : 'Sign in with Google'}
+          </button>
+        )}
+
+        {!pending && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
+            {[['email', 'Email'], ['phone', 'Phone']].map(([id, label]) => (
+              <button key={id} type="button" onClick={() => switchMethod(id)} style={{
+                flex: 1, height: 40, borderRadius: 999,
+                border: `1px solid ${method === id ? ink : ink12}`,
+                background: method === id ? ink : 'transparent',
+                color: method === id ? paper : ink,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 650,
+              }}>{label}</button>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gap: 18 }}>
+          {pending ? (
+            <DashField label="Code" value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 8))} placeholder="Enter the code" inputMode="numeric" autoFocus />
+          ) : isPhone ? (
+            <DashField label="Phone" value={phone} onChange={setPhone} placeholder="+250 7..." type="tel" inputMode="tel" autoFocus />
+          ) : (
+            <React.Fragment>
+              {isSignUp && isPassword && <DashField label="Name" value={name} onChange={setName} placeholder="Your name" autoFocus />}
+              <DashField label="Email" value={email} onChange={setEmail} placeholder="you@example.com" type="email" inputMode="email" autoFocus />
+              {isPassword && <DashField label="Password" value={password} onChange={setPassword} placeholder="At least 6 characters" type="password" />}
+            </React.Fragment>
+          )}
+        </div>
+        {!pending && method === 'email' && (
+          <button type="button" onClick={() => { setEmailMode(isPassword ? 'code' : 'password'); resetStatus(); }} style={{
+            marginTop: 14, border: 0, background: 'transparent', color: ink55,
+            cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 650,
+            textAlign: 'left', padding: 0,
+          }}>{isPassword ? 'Send a code instead' : 'Use password instead'}</button>
+        )}
+        {notice && <div style={{ marginTop: 16, color: ink55, fontSize: 13, lineHeight: 1.45 }}>{notice}</div>}
+        {error && <div style={{ marginTop: 16, color: '#A33', fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
+        <button type="submit" disabled={!ready || busy} style={{
+          marginTop: 28, height: 54, borderRadius: 999, border: 0,
+          background: ready && !busy ? ink : ink12, color: ready && !busy ? paper : ink40,
+          cursor: ready && !busy ? 'pointer' : 'default', fontFamily: 'inherit',
+          fontSize: 15, fontWeight: 650,
+        }}>{busy ? 'Please wait...' : pending ? 'Verify code' : isPassword ? (isSignUp ? 'Create account' : 'Sign in') : 'Send code'}</button>
+        {pending && (
+          <button type="button" onClick={resetStatus} style={{
+            marginTop: 14, height: 44, borderRadius: 999, border: `1px dashed ${ink25}`,
+            background: 'transparent', color: ink70, cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 13.5, fontWeight: 650,
+          }}>Use a different sign-in method</button>
+        )}
+        {!pending && (
+          <button type="button" onClick={() => { pkHaptic('select'); onDemo && onDemo(); }} style={{
+            marginTop: 14, height: 44, borderRadius: 999, border: `1px dashed ${ink25}`,
+            background: 'transparent', color: ink70, cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 13.5, fontWeight: 650,
+          }}>Continue in demo</button>
+        )}
+      </form>
+    </div>
+  );
+}
+
+function EverydayProfileSetup({ profile, accent, onDone }) {
+  const [name, setName] = React.useState(() => everydayProfileName(profile));
+  const [city, setCity] = React.useState(() => (profile && profile.city) || 'Kigali');
+  const [language, setLanguage] = React.useState(() => (profile && profile.language) || 'en');
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const save = async (e) => {
+    e && e.preventDefault && e.preventDefault();
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const next = await window.EverydayAPI.profile.update({
+        display_name: name.trim(),
+        city: city.trim() || 'Kigali',
+        language,
+        country: 'RW',
+        onboarding_completed: true,
+      });
+      PKStore.set('profile_language', language);
+      onDone && onDone(next);
+    } catch (err) {
+      setError(err && err.message ? err.message : 'Could not save your profile.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <div style={{ height: PK_NATIVE ? 'max(16px, env(safe-area-inset-top, 16px))' : 54, flexShrink: 0 }} />
+      <form onSubmit={save} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px 36px', maxWidth: 440, width: '100%', margin: '0 auto' }}>
+        <Eyebrow style={{ marginBottom: 16 }}>Profile</Eyebrow>
+        <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.035em', lineHeight: 1.08, color: ink, marginBottom: 28 }}>
+          Tell Everyday what to call you.
+        </div>
+        <div style={{ display: 'grid', gap: 18 }}>
+          <DashField label="Display name" value={name} onChange={setName} placeholder="Your name" autoFocus />
+          <DashField label="City" value={city} onChange={setCity} placeholder="Kigali" />
+          <div>
+            <Eyebrow style={{ marginBottom: 10 }}>Language</Eyebrow>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['en', 'English'], ['rw', 'Kinyarwanda']].map(([id, label]) => (
+                <button key={id} type="button" onClick={() => setLanguage(id)} style={{
+                  flex: 1, height: 44, borderRadius: 999,
+                  border: `1px solid ${language === id ? ink : ink12}`,
+                  background: language === id ? ink : 'transparent',
+                  color: language === id ? paper : ink,
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 650,
+                }}>{label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+        {error && <div style={{ marginTop: 16, color: '#A33', fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
+        <button type="submit" disabled={!name.trim() || busy} style={{
+          marginTop: 28, height: 54, borderRadius: 999, border: 0,
+          background: name.trim() && !busy ? ink : ink12, color: name.trim() && !busy ? paper : ink40,
+          cursor: name.trim() && !busy ? 'pointer' : 'default', fontFamily: 'inherit',
+          fontSize: 15, fontWeight: 650,
+        }}>{busy ? 'Saving...' : 'Continue'}</button>
+      </form>
+    </div>
+  );
+}
+
 // Inbox: notifications + messages received from the app.
 function NotificationsPanel({ onClose }) {
   const [tab, setTab] = React.useState('all');
@@ -554,7 +834,7 @@ function buildHomeSuggestions(nav) {
   return out.slice(0, 6);
 }
 
-function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenBounty, onOpenNote }) {
+function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenBounty, onOpenNote }) {
   const [text, setText] = React.useState('');
   const [modeOpen, setModeOpen] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
@@ -624,7 +904,7 @@ function EverydayHub({ web, onShop, onSave, onPay, onPlan, onListen, onCommute, 
 
       {/* Centre: greeting + the Ask-anything bar */}
       <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: web ? '0 28px' : '0 18px', textAlign: 'center' }}>
-        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, Joseph</div>
+        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, {everydayFirstName(profile)}</div>
         <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 320, marginBottom: 30 }}>
           What would you like to do today?
         </div>
@@ -962,8 +1242,13 @@ function ShopScreen({ web, onBack, isOperator = false }) {
   const [focus, setFocus] = React.useState(false);
   const [opTab, setOpTab] = React.useState('orders');
   const isOp = isOperator;
+  // Live catalog from /api/shop (Go microservice). Falls back to the
+  // hardcoded list so the screen still renders before the store hydrates.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const liveShops = (everyday && everyday.shop && everyday.shop.shops) || [];
+  const liveProducts = (everyday && everyday.shop && everyday.shop.products) || [];
   const categories = ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
-  const brands = [
+  const fallbackBrands = [
     { name: 'House of Tayo', cat: 'Women' },
     { name: 'Moshions', cat: 'Men' },
     { name: 'Haute Baso', cat: 'Women' },
@@ -983,6 +1268,11 @@ function ShopScreen({ web, onBack, isOperator = false }) {
     { name: 'Simba Supermarket', cat: 'Home decor' },
     { name: 'Amahoro Market', cat: 'Unisex' },
   ];
+  // Prefer live shops from Supabase. Fall back to the curated list so the
+  // grid never goes empty in dev / cold-load / offline.
+  const brands = liveShops.length
+    ? liveShops.map((s) => ({ id: s.id, name: s.name, cat: s.category }))
+    : fallbackBrands;
   const q = query.trim().toLowerCase();
   const visible = brands.filter((b) =>
     (category === 'All' || b.cat === category) &&
@@ -992,6 +1282,8 @@ function ShopScreen({ web, onBack, isOperator = false }) {
   const selectCat = (c) => { pkHaptic('select'); setCategory(c); setShopCount(5); };
   const onSearch = (v) => { setQuery(v); setShopCount(5); };
 
+  // Operator orders feed is not in the schema yet — kept as a placeholder so
+  // the operator UI still renders. Wire to /api/shop/orders when that endpoint lands.
   const opOrders = [
     { id: 'ORD-1042', customer: 'Alice M.', items: 2, total: '18,500 RWF', status: 'New', time: '12 min ago' },
     { id: 'ORD-1041', customer: 'Jean-Paul K.', items: 1, total: '7,200 RWF', status: 'Preparing', time: '34 min ago' },
@@ -999,13 +1291,22 @@ function ShopScreen({ web, onBack, isOperator = false }) {
     { id: 'ORD-1039', customer: 'David N.', items: 1, total: '12,800 RWF', status: 'Delivered', time: '3h ago' },
     { id: 'ORD-1038', customer: 'Claudine I.', items: 4, total: '45,600 RWF', status: 'Delivered', time: '5h ago' },
   ];
-  const opProducts = [
-    { name: 'Ankara Wrap Dress', stock: 12, price: '14,500 RWF', sold: 38 },
-    { name: 'Kitenge Headwrap', stock: 3, price: '4,200 RWF', sold: 91 },
-    { name: 'Handwoven Basket Bag', stock: 0, price: '18,000 RWF', sold: 24 },
-    { name: 'Beaded Statement Necklace', stock: 7, price: '8,500 RWF', sold: 56 },
-    { name: 'Organic Shea Butter Set', stock: 19, price: '6,800 RWF', sold: 112 },
+  const fallbackOpProducts = [
+    { id: null, name: 'Ankara Wrap Dress', stock: 12, price: '14,500 RWF', sold: 38 },
+    { id: null, name: 'Kitenge Headwrap', stock: 3, price: '4,200 RWF', sold: 91 },
+    { id: null, name: 'Handwoven Basket Bag', stock: 0, price: '18,000 RWF', sold: 24 },
+    { id: null, name: 'Beaded Statement Necklace', stock: 7, price: '8,500 RWF', sold: 56 },
+    { id: null, name: 'Organic Shea Butter Set', stock: 19, price: '6,800 RWF', sold: 112 },
   ];
+  const opProducts = liveProducts.length
+    ? liveProducts.map((pr) => ({
+        id: pr.id,
+        name: pr.name,
+        stock: pr.stock,
+        price: fmtRWF(pr.price_rwf) || (pr.price_rwf + ' RWF'),
+        sold: pr.sold,
+      }))
+    : fallbackOpProducts;
   const statusColor = (s) => ({ New: '#2D7FF9', Preparing: '#E5A100', Ready: '#18A957', Delivered: ink40 }[s] || ink40);
 
   if (isOp) {
@@ -1332,8 +1633,67 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   const [err, setErr] = React.useState('');
   const [loading, setLoading] = React.useState(true);
   const fileInputRef = React.useRef(null);
+  const planRemoteReadyRef = React.useRef(false);
+  const planHydratingRef = React.useRef(true);
+  const planSaveTimerRef = React.useRef(null);
 
-  React.useEffect(() => { const id = setTimeout(() => setLoading(false), 320); return () => clearTimeout(id); }, []);
+  React.useEffect(() => {
+    let cancelled = false;
+    const fallback = setTimeout(() => {
+      if (!cancelled && planHydratingRef.current) {
+        planHydratingRef.current = false;
+        setLoading(false);
+      }
+    }, 520);
+    const loadPlan = async () => {
+      if (!window.EverydayAPI || !window.EverydayAPI.planService) {
+        planHydratingRef.current = false;
+        setLoading(false);
+        return;
+      }
+      try {
+        const data = await window.EverydayAPI.planService.list();
+        if (cancelled || !data) return;
+        if (Array.isArray(data.folders) && data.folders.length) {
+          setFolders(data.folders);
+          setActiveFolder((cur) => data.folders.find((f) => f.id === cur) ? cur : data.folders[0].id);
+        }
+        if (Array.isArray(data.files)) setFiles(data.files);
+        planRemoteReadyRef.current = true;
+      } catch (e) {
+        if (!cancelled) {
+          setErr('Plan is saving locally until your account is connected.');
+          setTimeout(() => setErr(''), 3600);
+        }
+      } finally {
+        if (!cancelled) {
+          clearTimeout(fallback);
+          planHydratingRef.current = false;
+          setLoading(false);
+        }
+      }
+    };
+    loadPlan();
+    return () => {
+      cancelled = true;
+      clearTimeout(fallback);
+      if (planSaveTimerRef.current) clearTimeout(planSaveTimerRef.current);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (planHydratingRef.current || !planRemoteReadyRef.current) return;
+    if (!window.EverydayAPI || !window.EverydayAPI.planService) return;
+    if (planSaveTimerRef.current) clearTimeout(planSaveTimerRef.current);
+    planSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await window.EverydayAPI.planService.save(folders, files);
+      } catch (e) {
+        setErr('Could not sync Plan yet. Your changes are still on this device.');
+        setTimeout(() => setErr(''), 3600);
+      }
+    }, 700);
+  }, [folders, files]);
 
   // When the rail is collapsed, the folder icons float in, then fade after 3s —
   // the open/close toggle always stays.
@@ -1968,7 +2328,32 @@ function EpisodeThumb({ hue, playing, size = 44 }) {
 }
 
 function ListenScreen({ web, onBack, player }) {
-  const channels = CC_LISTEN;
+  // Live channels from /api/listen. We join episodes under their source by
+  // source_id and rename columns to the shape the rest of the screen expects
+  // (minutes→min, published_label→date, episode_type→type, description→desc).
+  // Falls back to CC_LISTEN until the store hydrates.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const liveSources = (everyday && everyday.listen && everyday.listen.sources) || [];
+  const liveEpisodes = (everyday && everyday.listen && everyday.listen.episodes) || [];
+  const channels = liveSources.length
+    ? liveSources.map((src) => ({
+        id: src.id,
+        name: src.name,
+        author: src.author,
+        desc: src.description || '',
+        hue: src.hue || '#5B7CFA',
+        episodes: liveEpisodes
+          .filter((ep) => ep.source_id === src.id)
+          .map((ep) => ({
+            id: ep.id,
+            title: ep.title,
+            min: ep.minutes,
+            date: ep.published_label,
+            type: ep.episode_type || 'long',
+            tag: ep.tag || undefined,
+          })),
+      }))
+    : CC_LISTEN;
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [railOpen, setRailOpen] = React.useState(true);
   const [subscribed, setSubscribed] = React.useState({});
@@ -2300,16 +2685,45 @@ function PayScreen({ web, onBack }) {
   });
   const canPay = amount.trim() && (recipient || recipientText.trim());
   const pickRecipient = (c) => { pkHaptic('select'); setRecipient(c); setRecipientText(c.name); setContactOpen(false); };
-  const submitPayment = () => {
-    if (!canPay) return;
+  const [payBusy, setPayBusy] = React.useState(false);
+  const [payError, setPayError] = React.useState('');
+  const submitPayment = async () => {
+    if (!canPay || payBusy) return;
+    const recipientName = recipient ? recipient.name : recipientText.trim();
+    const amountNumber = parseInt(String(amount).replace(/[^0-9]/g, ''), 10);
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      setPayError('Enter an amount above zero.');
+      return;
+    }
+    setPayError('');
+    // The Pay service settles in RWF. Other display currencies are presentational
+    // until FX is wired in; we pass through the entered amount as RWF for now.
+    if (window.EverydayStore) {
+      setPayBusy(true);
+      try {
+        await window.EverydayStore.actions.pay(amountNumber, recipientName, '');
+        pkHaptic('success');
+        setPaidReceipt({
+          amount, currency,
+          recipient: recipientName,
+          id: 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+        });
+      } catch (e) {
+        setPayError(e && e.message ? e.message : 'Payment failed. Try again.');
+      } finally {
+        setPayBusy(false);
+      }
+      return;
+    }
+    // Offline / store unavailable — keep the local receipt path so the UI is testable.
     pkHaptic('success');
     setPaidReceipt({
       amount, currency,
-      recipient: recipient ? recipient.name : recipientText.trim(),
+      recipient: recipientName,
       id: 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
     });
   };
-  const resetPayment = () => { setAmount(''); setRecipientText(''); setRecipient(null); setContactOpen(false); setPaidReceipt(null); };
+  const resetPayment = () => { setAmount(''); setRecipientText(''); setRecipient(null); setContactOpen(false); setPaidReceipt(null); setPayError(''); };
 
   const header = (
     <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2741,16 +3155,42 @@ function CommuteScreen({ web, onBack }) {
     setTimeout(() => setSearching(false), 700);
   };
 
+  // Live ride catalog from /api/commute, mapped to the CC_RIDES shape the
+  // results pipeline expects. Falls back to CC_RIDES until the store hydrates.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const liveCommute = (everyday && everyday.commute && everyday.commute.options) || [];
+  const liveRides = React.useMemo(() => {
+    if (!liveCommute.length) return CC_RIDES;
+    return liveCommute.map((opt, i) => ({
+      id: opt.id,
+      name: opt.driver_name || opt.title || 'Driver',
+      type: (opt.vehicle_type || opt.mode || 'moto').toLowerCase(),
+      vehicle: opt.vehicle || opt.title || '',
+      rating: Number(opt.rating) || 4.6,
+      eta: opt.eta_min,
+      duration: opt.duration_min || opt.eta_min,
+      distance: Number(opt.distance_km) || 0,
+      price: opt.price_rwf,
+      verified: !!opt.verified,
+      available: opt.available !== false,
+      seatsLeft: opt.seats_left || undefined,
+      // Map pin positions are presentational only — distribute evenly so the
+      // demo map stays populated until real geo is plumbed.
+      x: `${20 + (i * 13) % 70}%`,
+      y: `${30 + (i * 17) % 50}%`,
+    }));
+  }, [liveCommute]);
+
   // results pipeline: filter → refine → sort
   const results = React.useMemo(() => {
-    let rs = CC_RIDES.slice();
+    let rs = liveRides.slice();
     if (typeFilter !== 'all') rs = rs.filter((r) => r.type === typeFilter);
     if (topRated) rs = rs.filter((r) => r.rating >= 4.8);
     if (verifiedOnly) rs = rs.filter((r) => r.verified);
     const s = CC_SORTS.find((x) => x.id === sort) || CC_SORTS[0];
     rs.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1) || s.key(a, b));
     return rs;
-  }, [typeFilter, sort, topRated, verifiedOnly]);
+  }, [liveRides, typeFilter, sort, topRated, verifiedOnly]);
 
   const openRide = (r) => {
     pkHaptic('select');
@@ -3394,8 +3834,16 @@ function SaveAction({ label, sub, onClick, selected = false, compact = false }) 
 }
 
 function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, onGrowth, onBack }) {
+  // Live Save data from /api/save (Go microservice). The store hydrates on
+  // session-ready; until then we fall back to CC_SAVINGS so the ring still
+  // renders meaningfully in dev / preview / signed-out.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const liveWallet = everyday && everyday.save && everyday.save.wallet;
+  const liveTransactions = (everyday && everyday.save && everyday.save.transactions) || null;
   const p = CC_PORTFOLIO;
-  const s = CC_SAVINGS;
+  const s = liveWallet
+    ? Object.assign({}, CC_SAVINGS, { balance: liveWallet.savings_rwf || 0 })
+    : CC_SAVINGS;
   const c = CC_CREDIT;
   const millions = (s.balance / 1000000).toFixed(2);
   const [hidden, setHidden] = React.useState(false);
@@ -7154,7 +7602,9 @@ function FlowDone({ title, sub, mode, amount, picks, cfg, pickerLabelFor }) {
 Object.assign(window, {
   CapitalScreen, VentureFeedScreen, DetailScreen, CheckoutScreen,
   OpsDetailScreen, MoneyFlowScreen, WalletScreen, SettingsScreen,
+  EverydayAuthGate, EverydayProfileSetup,
   BountyButton, BountyPanel,
+  everydayProfileName, everydayFirstName, everydayProfileInitials,
 });
 
 // ────────────────────────────── WALLET ──────────────────────────────
@@ -7302,12 +7752,26 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
 
 // ────────────────────────────── SETTINGS / PROFILE ──────────────────────────────
 
-function SettingsScreen({ accent, onBack, onSignOut }) {
-  const user = CC_PORTFOLIO.user;
+function SettingsScreen({ accent, profile, authConfigured = false, onBack, onSignOut, onProfileUpdated }) {
   const [confirmSignOut, setConfirmSignOut] = React.useState(false);
-  const [language, setLanguage] = usePersisted('profile_language', 'en');
+  const [language, setLanguage] = usePersisted('profile_language', (profile && profile.language) || 'en');
+  React.useEffect(() => {
+    if (profile && profile.language && profile.language !== language) setLanguage(profile.language);
+  }, [profile && profile.language]);
   const languageLabel = language === 'rw' ? 'Kinyarwanda' : 'English';
-  const toggleLanguage = () => { pkHaptic('select'); setLanguage((cur) => (cur === 'rw' ? 'en' : 'rw')); };
+  const displayName = everydayProfileName(profile);
+  const email = (profile && profile.email) || 'joseph.k@example.com';
+  const toggleLanguage = async () => {
+    pkHaptic('select');
+    const next = language === 'rw' ? 'en' : 'rw';
+    setLanguage(next);
+    if (authConfigured && window.EverydayAPI && window.EverydayAPI.profile) {
+      try {
+        const updated = await window.EverydayAPI.profile.update({ language: next });
+        onProfileUpdated && onProfileUpdated(updated);
+      } catch (e) {}
+    }
+  };
   return (
     <div style={{ paddingBottom: 24 }}>
       <ScreenHeader
@@ -7319,15 +7783,15 @@ function SettingsScreen({ accent, onBack, onSignOut }) {
       <div style={{ padding: '24px 24px 28px',
         display: 'flex', alignItems: 'center', gap: 16,
       }}>
-        <Avatar initials={user.initials} size={56} />
+        <Avatar initials={everydayProfileInitials(profile)} size={56} />
         <div>
           <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.015em' }}>
-            {user.name} Karangwa
+            {displayName}
           </div>
           <div style={{
             fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
             color: ink55, marginTop: 4, textTransform: 'uppercase',
-          }}>joseph.k@example.com</div>
+          }}>{email}</div>
         </div>
       </div>
 
