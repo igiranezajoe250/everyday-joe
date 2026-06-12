@@ -19,10 +19,12 @@ type Config struct {
 	DigitalUmugandaFolder string
 	AgentLLMURL           string
 	AgentModel            string
-	// AgentModelRW lets Kinyarwanda chats route to a different local model
-	// (e.g. a multilingual or Kinyarwanda-finetuned Ollama model). Empty
-	// falls back to AgentModel so a single-model install still works.
+	// AgentModelRW lets Kinyarwanda chats route to a different local model.
+	// Empty falls back to AgentModel.
 	AgentModelRW string
+	// GoogleAIKey enables online Gemma 3 4B via Google AI Studio.
+	// When set it takes priority over AgentLLMURL (Ollama).
+	GoogleAIKey string
 }
 
 func LoadConfig() Config {
@@ -38,9 +40,10 @@ func LoadConfig() Config {
 		KokoroASRModel:        env("KOKORO_ASR_MODEL", "openai/whisper-small.en"),
 		DigitalUmugandaModel:  env("DIGITAL_UMUGANDA_MODEL", ""),
 		DigitalUmugandaFolder: env("DIGITAL_UMUGANDA_MODEL_DIR", filepath.Join(root, "digital-umuganda")),
-		AgentLLMURL:           env("BOUNTY_LLM_URL", ""),
-		AgentModel:            env("BOUNTY_LLM_MODEL", "local"),
+		AgentLLMURL:           env("BOUNTY_LLM_URL", "http://127.0.0.1:11434/api/chat"),
+		AgentModel:            env("BOUNTY_LLM_MODEL", "gemma3:4b"),
 		AgentModelRW:          env("BOUNTY_LLM_MODEL_RW", ""),
+		GoogleAIKey:           env("GOOGLE_AI_KEY", ""),
 	}
 }
 
