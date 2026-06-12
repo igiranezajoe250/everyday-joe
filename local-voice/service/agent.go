@@ -19,6 +19,12 @@ type agentRequest struct {
 	Message  string         `json:"message"`
 	Language string         `json:"language"`
 	History  []agentMessage `json:"history"`
+	// Context is an opaque snapshot of the user's live app state — wallet,
+	// recent transactions, plan files, shop catalog. The frontend pulls it
+	// from EverydayStore and forwards it so Phi-3 can reason over real data
+	// instead of guessing. Untyped (json.RawMessage) so the schema can evolve
+	// on the frontend without breaking the agent.
+	Context json.RawMessage `json:"context,omitempty"`
 }
 
 type agentResponse struct {
@@ -113,9 +119,16 @@ func inferBountyIntent(message, language string) (route, action, text string) {
 }
 
 func askLocalLLM(cfg Config, req agentRequest, route string) (string, error) {
+	system := "You are Bounty, Everyday's concise local agent. Help the user complete tasks in the app. Mention the app area to use when relevant. Keep replies short and practical."
+	if strings.EqualFold(req.Language, "rw") {
+		system += " The user prefers Kinyarwanda. Reply in Kinyarwanda when possible, otherwise reply in English with a short Kinyarwanda greeting."
+	}
+	if len(req.Context) > 2 { // skip empty {} / null
+		system += "\n\nLive user context (Supabase snapshot — wallet balances are RWF, transactions are dated):\n" + string(req.Context) + "\n\nGround every numeric claim in this context. If the context does not have the answer, say so plainly instead of guessing."
+	}
 	messages := []ollamaMessage{{
 		Role:    "system",
-		Content: "You are Bounty, Everyday's concise local agent. Help the user complete tasks in the app. Mention the app area to use when relevant. Keep replies short and practical.",
+		Content: system,
 	}}
 	for _, h := range req.History {
 		role := strings.ToLower(strings.TrimSpace(h.Role))

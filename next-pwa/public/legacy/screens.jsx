@@ -1592,6 +1592,29 @@ async function ccTranscribeVoice(blob) {
 }
 
 async function ccSendBountyMessage(message, history) {
+  // Pass live user context so Phi-3 can reason over real wallet/plan/shop data
+  // instead of speaking in generalities. We pull from the store's already-cached
+  // slices — cheap, fresh, scoped by the same session JWT the services used.
+  let context = null;
+  try {
+    if (window.EverydayStore) {
+      const st = window.EverydayStore.getState();
+      const trim = (arr, n) => (Array.isArray(arr) ? arr.slice(0, n) : []);
+      context = {
+        wallet: (st.save && st.save.wallet) || null,
+        save_recent: trim(st.save && st.save.transactions, 5),
+        pay_recent: trim(st.pay && st.pay.transactions, 5),
+        plan_files: trim(st.plan && st.plan.files, 5).map((f) => ({
+          id: f.id, title: f.title, body: (f.body || '').slice(0, 200),
+        })),
+        shops_count: ((st.shop && st.shop.shops) || []).length,
+        products_top: trim(st.shop && st.shop.products, 5).map((p) => ({
+          id: p.id, name: p.name, price_rwf: p.price_rwf, stock: p.stock,
+        })),
+        commute_available: ((st.commute && st.commute.options) || []).filter((o) => o.available !== false).length,
+      };
+    }
+  } catch (e) { /* context is optional */ }
   let res;
   try {
     res = await fetch(ccVoiceBase() + '/api/agent/chat', {
@@ -1601,6 +1624,7 @@ async function ccSendBountyMessage(message, history) {
         message,
         language: ccProfileLanguage(),
         history: (history || []).slice(-8).map((m) => ({ role: m.role, text: m.text })),
+        context,
       }),
     });
   } catch (e) {
