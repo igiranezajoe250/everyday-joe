@@ -3056,6 +3056,78 @@ function Stars({ value }) {
 // Design-native demo map -----------------------------------------------------
 // Keeps the cream grid + soft road art of the original, adds a highlighted
 // route, pickup/destination pins, and live nearby-rider markers.
+// Animated ETA display — replaces the map on all commute screens.
+function EtaDisplay({ eta, duration, origin, destination, phase = 'route', height = 160, radius = 20 }) {
+  const arriving = phase === 'arriving';
+  const SIZE = 130;
+  const R = 52;
+  const CIRC = +(2 * Math.PI * R).toFixed(2);
+  return (
+    <div style={{
+      height, borderRadius: radius, overflow: 'hidden', position: 'relative',
+      background: ink06,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <style>{`
+        @keyframes eta-spin   { to { transform: rotate(360deg) } }
+        @keyframes eta-rspin  { to { transform: rotate(-360deg) } }
+        @keyframes eta-pulse  { 0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.7;transform:scale(1.08)} }
+        @keyframes eta-arrive { 0%,100%{opacity:.18;transform:scale(1)}50%{opacity:.45;transform:scale(1.18)} }
+      `}</style>
+
+      {/* outer glow ring — only when driver is arriving */}
+      {arriving && (
+        <span style={{ position: 'absolute', width: SIZE + 40, height: SIZE + 40, borderRadius: '50%', background: 'rgba(47,174,155,0.15)', animation: 'eta-arrive 2s ease-in-out infinite' }} />
+      )}
+
+      {/* SVG rings */}
+      <svg width={SIZE} height={SIZE} style={{ position: 'absolute', overflow: 'visible' }}>
+        {/* static track */}
+        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke={arriving ? 'rgba(47,174,155,0.18)' : 'rgba(10,10,10,0.07)'} strokeWidth="5"/>
+        {/* spinning arc */}
+        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
+          stroke={arriving ? '#2FAE9B' : ink}
+          strokeWidth={arriving ? 3.5 : 3}
+          strokeDasharray={`${(CIRC * 0.55).toFixed(2)} ${CIRC}`}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${SIZE/2} ${SIZE/2})`}
+          style={{ animation: `eta-spin ${arriving ? '3s' : '9s'} linear infinite` }}
+        />
+        {/* counter-rotating dashed ring */}
+        <circle cx={SIZE/2} cy={SIZE/2} r={R - 12} fill="none"
+          stroke={arriving ? 'rgba(47,174,155,0.22)' : 'rgba(10,10,10,0.07)'}
+          strokeWidth="1.2" strokeDasharray="3 10"
+          style={{ animation: 'eta-rspin 18s linear infinite' }}
+        />
+      </svg>
+
+      {/* centre number */}
+      <div style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}>
+        <span style={{ display: 'block', fontSize: 42, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: arriving ? '#2FAE9B' : ink }}>{eta}</span>
+        <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: arriving ? '#2FAE9B' : ink40, marginTop: 3 }}>
+          {arriving ? 'min away' : 'min ETA'}
+        </span>
+        {duration && !arriving && (
+          <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 4 }}>{duration} min trip</span>
+        )}
+      </div>
+
+      {/* route pill at bottom */}
+      {(origin || destination) && (
+        <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 11px', background: 'rgba(250,246,241,0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderRadius: 11, boxShadow: '0 4px 18px rgba(10,10,10,0.09)' }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: ink, flexShrink: 0 }} />
+            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{origin || 'Current location'}</span>
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{destination || '—'}</span>
+            <span style={{ width: 7, height: 7, borderRadius: '2px 2px 2px 0', transform: 'rotate(45deg)', background: '#2FAE9B', flexShrink: 0 }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CommuteMap({ origin, destination, riders = [], phase = 'plan', height, radius = 24 }) {
   return (
     <div style={{
@@ -3160,9 +3232,18 @@ function RideRow({ ride, first, onOpen, onCall, onOffer }) {
             <Stars value={ride.rating} />
             <span style={{ fontSize: 11.5, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ride.vehicle}</span>
           </span>
-          <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 3, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>
-            {dimmed ? 'Fully booked' : `${ride.eta} min away · ${ride.duration} min trip · ${ride.distance} km`}
-          </span>
+          {dimmed ? (
+            <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 3, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>Fully booked</span>
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              <span style={{ position: 'relative', width: 7, height: 7, flexShrink: 0 }}>
+                <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#2FAE9B', animation: 'eta-pulse 2s ease-in-out infinite' }} />
+                <span style={{ position: 'relative', display: 'block', width: 7, height: 7, borderRadius: '50%', background: '#2FAE9B' }} />
+              </span>
+              <span style={{ fontFamily: CC_MONO, fontSize: 10.5, fontWeight: 700, color: '#2FAE9B', letterSpacing: '0.04em' }}>{ride.eta} min</span>
+              <span style={{ fontFamily: CC_MONO, fontSize: 10.5, color: ink40, letterSpacing: '0.02em' }}>· {ride.duration} min trip · {ride.distance} km</span>
+            </span>
+          )}
         </span>
       </button>
 
@@ -3393,10 +3474,8 @@ function CommuteScreen({ web, onBack }) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
         {header}
-        <div className="cc-scroll" style={{ flex: 1, minHeight: 0, overflowY: web ? 'hidden' : 'auto', padding: web ? '16px 32px 32px' : '8px 14px 18px', display: 'grid', gridTemplateColumns: web ? 'minmax(0,1.25fr) minmax(330px,0.75fr)' : '1fr', gridTemplateRows: web ? '1fr' : 'auto auto', gap: web ? 18 : 12 }}>
-          <CommuteMap origin={origin} destination={query || destination} riders={CC_RIDES} phase="plan" height={web ? undefined : 240} radius={web ? 28 : 22} />
-
-          <div style={{ minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: web ? 'center' : 'flex-start' }}>
+        <div className="cc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: web ? '16px 32px 32px' : '8px 14px 18px' }}>
+          <div style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
             <div className="pk-stagger">
               <CommuteStepLabel>Where from?</CommuteStepLabel>
               <DashField value={origin} onChange={setOrigin} placeholder="Current location or address"
@@ -3543,7 +3622,7 @@ function CommuteScreen({ web, onBack }) {
         {header}
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 560 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
-            <CommuteMap origin={origin} destination={destination} phase="route" height={170} radius={20} />
+            <EtaDisplay eta={r.eta} duration={r.duration} origin={origin} destination={destination} height={170} radius={20} />
 
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 13 }}>
               <span style={{ width: 50, height: 50, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={22} /></span>
@@ -3709,7 +3788,7 @@ function CommuteScreen({ web, onBack }) {
             <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>{prepaid ? `Paid · arriving in about ${r.eta} minutes.` : `Arriving in about ${r.eta} minutes — settle the fare when they reach you.`}</div>
 
             <div style={{ marginTop: 22 }}>
-              <CommuteMap origin={origin} destination={destination} phase="route" height={160} radius={20} />
+              <EtaDisplay eta={r.eta} origin={origin} destination={destination} phase="arriving" height={160} radius={20} />
             </div>
 
             <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 13 }}>
@@ -3799,7 +3878,7 @@ function CommuteScreen({ web, onBack }) {
             </div>
 
             <div style={{ marginTop: 22 }}>
-              <CommuteMap origin={origin} destination={m.heading} phase="route" height={160} radius={20} />
+              <EtaDisplay origin={origin} destination={m.heading} eta={m.eta || '—'} height={160} radius={20} />
             </div>
 
             <div style={{ marginTop: 18 }}>
