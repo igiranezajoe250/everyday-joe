@@ -1814,17 +1814,55 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   const purgeFile = (id) => setFiles((list) => list.filter((x) => x.id !== id));
   const moveFile = (id, folderId) => { touch(id, { folderId }); setMovePicker(false); pkHaptic('select'); };
 
-  const onPickAttachment = (e) => {
+  // Upload limit on Supabase Storage attachments. Higher than the old 2 MB
+  // inline-blob cap; this is server-stored now, not held in browser memory.
+  const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+  const onPickAttachment = async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!file || !openFile) return;
-    if (file.size > 2 * 1024 * 1024) { setErr('That file is over 2 MB — attach a smaller one.'); setTimeout(() => setErr(''), 3500); return; }
+    if (file.size > ATTACHMENT_MAX_BYTES) {
+      setErr('That file is over 10 MB — attach a smaller one.');
+      setTimeout(() => setErr(''), 3500);
+      return;
+    }
     const kind = file.type.startsWith('image/') ? 'image' : 'doc';
-    const att = { id: planId('at'), name: file.name, kind, size: file.size, url: kind === 'image' ? URL.createObjectURL(file) : null };
+    const baseAtt = { id: planId('at'), name: file.name, kind, size: file.size };
+
+    // Try Supabase Storage first so the file survives reloads + reaches the
+    // user's other devices. Fall back to a local blob URL (demo / offline)
+    // so the editor remains usable even when the store is not configured.
+    let att = null;
+    if (window.EverydayAPI && window.EverydayAPI.storage) {
+      try {
+        const uploaded = await window.EverydayAPI.storage.uploadPlanAttachment(file, openFile.id);
+        att = Object.assign({}, baseAtt, {
+          path: uploaded.path,
+          url: uploaded.url,
+          contentType: uploaded.contentType,
+        });
+      } catch (uploadErr) {
+        setErr('Could not upload — saved locally for now.');
+        setTimeout(() => setErr(''), 3500);
+      }
+    }
+    if (!att) {
+      att = Object.assign({}, baseAtt, {
+        url: kind === 'image' ? URL.createObjectURL(file) : null,
+      });
+    }
     touch(openFile.id, { attachments: [...(openFile.attachments || []), att] });
     pkHaptic('success');
   };
-  const removeAttachment = (aid) => touch(openFile.id, { attachments: (openFile.attachments || []).filter((a) => a.id !== aid) });
+  const removeAttachment = (aid) => {
+    if (!openFile) return;
+    const target = (openFile.attachments || []).find((a) => a.id === aid);
+    touch(openFile.id, { attachments: (openFile.attachments || []).filter((a) => a.id !== aid) });
+    // Fire-and-forget the storage cleanup. UI doesn't wait — the row is gone.
+    if (target && target.path && window.EverydayAPI && window.EverydayAPI.storage) {
+      window.EverydayAPI.storage.deletePlanAttachment(target.path).catch(() => {});
+    }
+  };
 
   const saveVoice = async (sec, blob) => {
     const result = await ccTranscribeVoice(blob);
@@ -1836,10 +1874,37 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
       setFiles((list) => [target, ...list]); setOpenId(id); setView('editor');
     }
     const nextBody = (target.body || '').trim() ? target.body : transcript;
-    const v = { id: planId('vn'), dur: sec, transcript, language: result.language, model: result.model };
-    setFiles((list) => list.map((f) => (f.id === target.id ? { ...f, body: nextBody, voice: [...(f.voice || []), v], title: f.title || 'Voice note', updated: Date.now() } : f)));
+
+    // Persist the audio blob to Supabase Storage so playback survives reloads.
+    // The transcript is the search/display surface; the path lets the row offer
+    // re-listen. Fall back silently when storage isn't reachable — the note
+    // (and its transcript) still saves.
+    const baseVoice = { id: planId('vn'), dur: sec, transcript, language: result.language, model: result.model };
+    let voiceNote = baseVoice;
+    if (window.EverydayAPI && window.EverydayAPI.storage) {
+      try {
+        const file = new File([blob], 'voice-' + Date.now() + '.webm', { type: blob.type || 'audio/webm' });
+        const uploaded = await window.EverydayAPI.storage.uploadPlanAttachment(file, target.id);
+        voiceNote = Object.assign({}, baseVoice, {
+          path: uploaded.path,
+          url: uploaded.url,
+          contentType: uploaded.contentType,
+          size: uploaded.size,
+        });
+      } catch (e) { /* transcript already captured; the audio just isn't replayable */ }
+    }
+
+    setFiles((list) => list.map((f) => (f.id === target.id ? { ...f, body: nextBody, voice: [...(f.voice || []), voiceNote], title: f.title || 'Voice note', updated: Date.now() } : f)));
     setRecording(false);
     pkHaptic('success');
+  };
+  const removeVoice = (vid) => {
+    if (!openFile) return;
+    const target = (openFile.voice || []).find((v) => v.id === vid);
+    touch(openFile.id, { voice: (openFile.voice || []).filter((v) => v.id !== vid) });
+    if (target && target.path && window.EverydayAPI && window.EverydayAPI.storage) {
+      window.EverydayAPI.storage.deletePlanAttachment(target.path).catch(() => {});
+    }
   };
 
   const header = (
@@ -2034,8 +2099,11 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontFamily: CC_MONO, fontSize: 11, color: ink55 }}>Voice · {ccFmtTime(v.dur)}</div>
                         <div style={{ fontSize: 13, color: ink70, marginTop: 3, lineHeight: 1.45 }}>{v.transcript}</div>
+                        {v.url && (
+                          <audio controls preload="none" src={v.url} style={{ marginTop: 6, width: '100%', maxWidth: 280, height: 30 }} />
+                        )}
                       </div>
-                      <button onClick={() => touch(openFile.id, { voice: openFile.voice.filter((x) => x.id !== v.id) })} aria-label="Remove voice note" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 3, display: 'flex', flexShrink: 0 }}>
+                      <button onClick={() => removeVoice(v.id)} aria-label="Remove voice note" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 3, display: 'flex', flexShrink: 0 }}>
                         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
                       </button>
                     </div>
@@ -2048,17 +2116,25 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, paddingBottom: 8 }}>Attachments</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                    {openFile.attachments.map((a) => (
-                      <div key={a.id} style={{ width: 88, position: 'relative' }}>
+                    {openFile.attachments.map((a) => {
+                      const thumb = (
                         <div style={{ width: 88, height: 72, borderRadius: 12, overflow: 'hidden', background: ink06, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink55, border: `1px dashed ${DASH}` }}>
                           {a.kind === 'image' && a.url ? <img src={a.url} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <PlanAttachmentIcon kind={a.kind} size={22} />}
                         </div>
+                      );
+                      const wrapped = a.url
+                        ? <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>{thumb}</a>
+                        : thumb;
+                      return (
+                      <div key={a.id} style={{ width: 88, position: 'relative' }}>
+                        {wrapped}
                         <div style={{ marginTop: 5, fontSize: 10.5, color: ink55, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
                         <button onClick={() => removeAttachment(a.id)} aria-label="Remove attachment" style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', border: `2px solid ${canvas}`, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                           <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -382,8 +382,35 @@
   }
 
   // Plan service — /api/plan (replaces direct supabase plan calls)
+  // After hydrate, re-sign every stored attachment/voice path so callers
+  // never see an expired URL. Skips quietly when storage isn't configured
+  // (e.g. demo mode) so the data still arrives.
   async function planList() {
-    return callService("/api/plan");
+    var data = await callService("/api/plan");
+    try {
+      if (state.client && data && Array.isArray(data.files)) {
+        await Promise.all(data.files.map(refreshFileUrls));
+      }
+    } catch (e) { /* signing is best-effort */ }
+    return data;
+  }
+
+  async function refreshFileUrls(file) {
+    if (!file) return;
+    var paths = [];
+    var collect = (arr) => {
+      if (!Array.isArray(arr)) return;
+      arr.forEach((x) => { if (x && x.path) paths.push({ row: x, path: x.path }); });
+    };
+    collect(file.attachments);
+    collect(file.voice);
+    if (!paths.length) return;
+    await Promise.all(paths.map(async ({ row, path }) => {
+      try {
+        var url = await signPlanAttachment(path, 60 * 60 * 24 * 7);
+        if (url) row.url = url;
+      } catch (e) { /* stale rows just lose their URL until next session */ }
+    }));
   }
   async function planSave(folders, files) {
     return callService("/api/plan", { method: "POST", body: { folders: folders || [], files: files || [] } });
