@@ -1638,7 +1638,33 @@ async function ccSendBountyMessage(message, history) {
     throw new Error(msg);
   }
   if (!data || !data.text) throw new Error('Bounty returned no response.');
+  // Speak the reply via Kokoro TTS when enabled. Fire-and-forget so a slow
+  // synthesis never blocks the chat UI from rendering the text first.
+  ccSpeakBountyReply(data.text, data.language); // eslint-disable-line
   return data;
+}
+
+// ccSpeakBountyReply — best-effort Kokoro TTS playback of the assistant's
+// reply. The user can disable this by setting
+// window.__EVERYDAY_BOUNTY_SPEAK__ = false (e.g. via a future Profile toggle).
+async function ccSpeakBountyReply(text, language) {
+  if (!text) return;
+  if (typeof window !== 'undefined' && window.__EVERYDAY_BOUNTY_SPEAK__ === false) return;
+  try {
+    const res = await fetch(ccVoiceBase() + '/api/voice/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language: language || 'en' }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    if (!blob || blob.size === 0) return;
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    audio.onerror = () => URL.revokeObjectURL(url);
+    audio.play().catch(() => {});
+  } catch (e) { /* TTS is best-effort */ }
 }
 
 function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {

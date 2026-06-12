@@ -410,6 +410,54 @@
     return callService("/api/bounty", { method: "POST", body: { ask: ask || "" } });
   }
 
+  // ── Storage: Plan attachments + voice notes ──
+  // Bucket: plan_attachments (private). Path: <user_id>/<file_id>/<name>.
+  // RLS scopes uploads/reads/deletes to the owner via storage.foldername()[1].
+  // Reads use signed URLs so a private bucket can still render in <img>/<audio>.
+  var PLAN_BUCKET = "plan_attachments";
+
+  function sanitizeName(name) {
+    return String(name || "attachment").replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80);
+  }
+
+  async function uploadPlanAttachment(file, fileId) {
+    var client = requireClient();
+    var user = await currentUser();
+    var safeName = Date.now() + "_" + sanitizeName(file && file.name);
+    var key = user.id + "/" + (fileId || "unfiled") + "/" + safeName;
+    var contentType = (file && file.type) || "application/octet-stream";
+    var upload = await client.storage.from(PLAN_BUCKET).upload(key, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: contentType,
+    });
+    if (upload.error) throw upload.error;
+    var signed = await client.storage.from(PLAN_BUCKET).createSignedUrl(key, 60 * 60 * 24 * 7);
+    return {
+      path: key,
+      url: signed.data && signed.data.signedUrl ? signed.data.signedUrl : null,
+      name: (file && file.name) || safeName,
+      size: (file && file.size) || 0,
+      contentType: contentType,
+      uploadedAt: new Date().toISOString(),
+    };
+  }
+
+  async function signPlanAttachment(path, expiresInSec) {
+    var client = requireClient();
+    var ttl = Math.max(60, Math.min(60 * 60 * 24 * 7, expiresInSec || 3600));
+    var signed = await client.storage.from(PLAN_BUCKET).createSignedUrl(path, ttl);
+    if (signed.error) throw signed.error;
+    return signed.data && signed.data.signedUrl;
+  }
+
+  async function deletePlanAttachment(path) {
+    var client = requireClient();
+    var result = await client.storage.from(PLAN_BUCKET).remove([path]);
+    if (result.error) throw result.error;
+    return { ok: true };
+  }
+
   window.EverydayAPI = {
     init: init,
     state: state,
@@ -461,6 +509,11 @@
     },
     bounty: {
       ask: bountyAsk,
+    },
+    storage: {
+      uploadPlanAttachment: uploadPlanAttachment,
+      signPlanAttachment: signPlanAttachment,
+      deletePlanAttachment: deletePlanAttachment,
     },
   };
 })();

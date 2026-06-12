@@ -11,6 +11,7 @@ type Config struct {
 	PythonBin             string
 	KokoroScript          string
 	UmugandaScript        string
+	SynthesizeScript      string
 	TempDir               string
 	HFHome                string
 	KokoroASRModel        string
@@ -18,6 +19,10 @@ type Config struct {
 	DigitalUmugandaFolder string
 	AgentLLMURL           string
 	AgentModel            string
+	// AgentModelRW lets Kinyarwanda chats route to a different local model
+	// (e.g. a multilingual or Kinyarwanda-finetuned Ollama model). Empty
+	// falls back to AgentModel so a single-model install still works.
+	AgentModelRW string
 }
 
 func LoadConfig() Config {
@@ -27,6 +32,7 @@ func LoadConfig() Config {
 		PythonBin:             env("VOICE_PYTHON", defaultPython()),
 		KokoroScript:          env("KOKORO_TRANSCRIBE_SCRIPT", filepath.Join(root, "scripts", "transcribe_kokoro.py")),
 		UmugandaScript:        env("UMUGANDA_TRANSCRIBE_SCRIPT", filepath.Join(root, "scripts", "transcribe_umuganda.py")),
+		SynthesizeScript:      env("KOKORO_SYNTHESIZE_SCRIPT", filepath.Join(root, "scripts", "synthesize_kokoro.py")),
 		TempDir:               env("VOICE_TEMP_DIR", filepath.Join(root, "tmp")),
 		HFHome:                env("HF_HOME", filepath.Join(root, "digital-umuganda", "hf-cache")),
 		KokoroASRModel:        env("KOKORO_ASR_MODEL", "openai/whisper-small.en"),
@@ -34,6 +40,7 @@ func LoadConfig() Config {
 		DigitalUmugandaFolder: env("DIGITAL_UMUGANDA_MODEL_DIR", filepath.Join(root, "digital-umuganda")),
 		AgentLLMURL:           env("BOUNTY_LLM_URL", ""),
 		AgentModel:            env("BOUNTY_LLM_MODEL", "local"),
+		AgentModelRW:          env("BOUNTY_LLM_MODEL_RW", ""),
 	}
 }
 

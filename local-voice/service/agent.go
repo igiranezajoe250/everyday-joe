@@ -73,8 +73,12 @@ func handleAgentChat(cfg Config) http.HandlerFunc {
 		route, action, fallback := inferBountyIntent(msg, lang)
 		text, model := fallback, "bounty-local"
 		if cfg.AgentLLMURL != "" {
-			if llmText, err := askLocalLLM(cfg, req, route); err == nil && strings.TrimSpace(llmText) != "" {
-				text, model = strings.TrimSpace(llmText), cfg.AgentModel
+			llmModel := cfg.AgentModel
+			if lang == "rw" && strings.TrimSpace(cfg.AgentModelRW) != "" {
+				llmModel = cfg.AgentModelRW
+			}
+			if llmText, err := askLocalLLM(cfg, req, route, llmModel); err == nil && strings.TrimSpace(llmText) != "" {
+				text, model = strings.TrimSpace(llmText), llmModel
 			}
 		}
 
@@ -118,7 +122,7 @@ func inferBountyIntent(message, language string) (route, action, text string) {
 	return route, action, text
 }
 
-func askLocalLLM(cfg Config, req agentRequest, route string) (string, error) {
+func askLocalLLM(cfg Config, req agentRequest, route, modelName string) (string, error) {
 	system := "You are Bounty, Everyday's concise local agent. Help the user complete tasks in the app. Mention the app area to use when relevant. Keep replies short and practical."
 	if strings.EqualFold(req.Language, "rw") {
 		system += " The user prefers Kinyarwanda. Reply in Kinyarwanda when possible, otherwise reply in English with a short Kinyarwanda greeting."
@@ -145,7 +149,10 @@ func askLocalLLM(cfg Config, req agentRequest, route string) (string, error) {
 	}
 	messages = append(messages, ollamaMessage{Role: "user", Content: user})
 
-	body, _ := json.Marshal(ollamaRequest{Model: cfg.AgentModel, Messages: messages, Stream: false})
+	if strings.TrimSpace(modelName) == "" {
+		modelName = cfg.AgentModel
+	}
+	body, _ := json.Marshal(ollamaRequest{Model: modelName, Messages: messages, Stream: false})
 	client := &http.Client{Timeout: 45 * time.Second}
 	resp, err := client.Post(cfg.AgentLLMURL, "application/json", bytes.NewReader(body))
 	if err != nil {

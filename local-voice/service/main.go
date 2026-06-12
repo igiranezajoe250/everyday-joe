@@ -17,6 +17,7 @@ func main() {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("/api/voice/transcribe", withCORS(cfg, handleTranscribe(cfg)))
+	mux.HandleFunc("/api/voice/synthesize", withCORS(cfg, handleSynthesize(cfg)))
 	mux.HandleFunc("/api/agent/chat", withCORS(cfg, handleAgentChat(cfg)))
 
 	log.Printf("Everyday local voice service listening on http://%s", cfg.Addr)
