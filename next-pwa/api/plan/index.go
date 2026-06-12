@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"everyday/api/internal/sb"
+	"everyday/api/_lib/sb"
 )
 
 type folder struct {

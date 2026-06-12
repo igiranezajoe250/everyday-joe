@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"everyday/api/internal/sb"
+	"everyday/api/_lib/sb"
 )
 
 type response struct {

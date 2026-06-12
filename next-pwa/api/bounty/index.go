@@ -20,7 +20,7 @@ import (
 	"strings"
 	"sync"
 
-	"everyday/api/internal/sb"
+	"everyday/api/_lib/sb"
 )
 
 type snapshot struct {

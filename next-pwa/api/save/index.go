@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"everyday/api/internal/sb"
+	"everyday/api/_lib/sb"
 )
 
 type wallet struct {

@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"everyday/api/internal/sb"
+	"everyday/api/_lib/sb"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {

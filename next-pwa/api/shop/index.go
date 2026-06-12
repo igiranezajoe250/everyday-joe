@@ -19,7 +19,7 @@ import (
 	"net/url"
 	"sync"
 
-	"everyday/api/internal/sb"
+	"everyday/api/_lib/sb"
 )
 
 type product struct {
