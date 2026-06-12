@@ -138,11 +138,11 @@ func handleSave(w http.ResponseWriter, r *http.Request, c *sb.Client, token, use
 		})
 	}
 
-	if err := c.Delete("plan_files?user_id=eq." + userID); err != nil {
+	if err := c.Delete("plan_files?user_id=eq."+userID, token); err != nil {
 		sb.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
-	if err := c.Delete("plan_folders?user_id=eq." + userID); err != nil {
+	if err := c.Delete("plan_folders?user_id=eq."+userID, token); err != nil {
 		sb.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
