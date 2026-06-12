@@ -467,7 +467,7 @@ function NotificationsPanel({ onClose }) {
   const [tab, setTab] = React.useState('all');
   const items = [
     { id: 1, type: 'notif',   title: 'Savings interest credited', body: 'RWF 28,600 added to your savings.', time: '2h', unread: true },
-    { id: 2, type: 'message', title: 'Aline N. · Moto',           body: 'I’m 3 minutes away — meet at the gate?', time: '10m', unread: true },
+    { id: 2, type: 'message', title: 'Aline N. · Moto',           body: 'I\'m 3 minutes away — meet at the gate?', time: '10m', unread: true },
     { id: 3, type: 'notif',   title: 'Payment sent',              body: 'RWF 5,000 to Eric Kwizera.', time: '1d', unread: false },
     { id: 4, type: 'message', title: 'Green Hills School',        body: 'Receipt for school fees attached.', time: '2d', unread: false },
     { id: 5, type: 'notif',   title: 'New trusted shop',          body: 'House of Tayo just joined Everyday.', time: '3d', unread: false },
@@ -572,6 +572,7 @@ function BountyButton({ onOpen, bottomOffset = 18 }) {
 function BountyPanel({ onClose, onRoute }) {
   const first = { id: 'b0', role: 'assistant', text: 'Tell me what you want to do. I can help with Moto, Shop, Pay, Save, Plan, or Listen.' };
   const [messages, setMessages] = usePersisted('bounty_messages', [first]);
+  const newChat = () => { setMessages([{ ...first, id: 'b' + Date.now() }]); setInput(''); setError(''); };
   const [input, setInput] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [recording, setRecording] = React.useState(false);
@@ -721,9 +722,14 @@ function BountyPanel({ onClose, onRoute }) {
             </span>
             <span style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Bounty</span>
           </div>
-          <IconBtn onClick={onClose}>
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-          </IconBtn>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <IconBtn onClick={newChat} title="New conversation">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-6"/><path d="M17.5 3.5a2 2 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+            </IconBtn>
+            <IconBtn onClick={onClose}>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </IconBtn>
+          </div>
         </div>
 
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: compact ? '12px 18px 12px' : '18px 20px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -772,7 +778,7 @@ function BountyPanel({ onClose, onRoute }) {
         <div style={{ padding: '8px 18px max(18px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${ink06}`, background: canvas }}>
           {error && <div style={{ fontSize: 12.5, color: '#A33', margin: '0 2px 8px', lineHeight: 1.35 }}>{error}</div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, padding: 7 }}>
-            <button onClick={recording ? stopRecording : startRecording} disabled={busy && !recording} aria-label={recording ? 'Stop recording' : 'Start recording'} style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: recording ? ink : ink06, color: recording ? paper : ink, cursor: busy && !recording ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <button onClick={recording ? stopRecording : startRecording} disabled={busy && !recording} aria-label={recording ? 'Stop recording' : 'Start recording'} style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: recording ? '#2FAE9B' : ink06, color: recording ? paper : ink, cursor: busy && !recording ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: recording ? '0 0 0 4px rgba(47,174,155,0.20)' : 'none', transition: 'background 200ms, box-shadow 200ms' }}>
               <HomeIcon kind="voice" size={17} color="currentColor" />
             </button>
             <input value={input} onChange={(e) => setInput(e.target.value)}
@@ -2153,7 +2159,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                 <div style={{ marginTop: 18 }}>
                   <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>{searchHits.length} result{searchHits.length === 1 ? '' : 's'}</div>
                   {searchHits.length === 0 ? (
-                    <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13.5, color: ink40 }}>Nothing matches “{query.trim()}”.</div>
+                    <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13.5, color: ink40 }}>Nothing matches "{query.trim()}".</div>
                   ) : searchHits.map((f, i) => <PlanFileRow key={f.id} file={f} folder={folderName(f.folderId)} onOpen={() => openEditor(f)} first={i === 0} />)}
                 </div>
               ) : (
@@ -2421,16 +2427,16 @@ function ccBuildItem(chId, epIdx) {
 function ccTranscript(item) {
   if (!item) return [];
   const lines = [
-    'Welcome back — you’re listening to ' + item.channel + '.',
-    'Today we’re getting into “' + item.title + '”.',
-    'Let’s set the scene before we dig in.',
-    'Here’s the one thing worth remembering.',
-    'It’s easy to overlook, but it matters.',
+    'Welcome back — you\'re listening to ' + item.channel + '.',
+    'Today we\'re getting into "' + item.title + '".',
+    'Let\'s set the scene before we dig in.',
+    'Here\'s the one thing worth remembering.',
+    'It\'s easy to overlook, but it matters.',
     'A quick example from this week in Kigali.',
     'Notice how the small choices add up.',
     'That brings us to the practical part.',
     'Try this the next time it comes up.',
-    'We’ll keep it short and useful.',
+    'We\'ll keep it short and useful.',
     'Thanks for listening — see you in the next one.',
   ];
   return lines.map((text, i) => ({ t: i / lines.length, text }));
@@ -2514,7 +2520,7 @@ function ListenScreen({ web, onBack, player }) {
     .filter((e) => e.type === contentTab)
     .filter((e) => !disc || e.tag === disc); // already authored newest-first
 
-  // Resume row — show the user's last episode if it’s in progress.
+  // Resume row — show the user's last episode if it's in progress.
   const resume = pl && pl.progress > 0.02 && pl.progress < 0.99 ? pl : null;
 
   return (
@@ -3020,10 +3026,12 @@ const CC_PLACES = [
 const CC_RECENT_DESTS = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium', 'Kimironko Market'];
 
 // People going your way — the ride-with-someone sub-flow.
-const CC_RIDE_MATES = [
-  { id: 'diane',    name: 'Diane M.',    rating: 4.9, verified: true, type: 'car',  vehicle: 'Toyota Vitz', route: 'Same route',        heading: 'Kigali Heights', seatsLeft: 2, when: 'Leaving in 8 min' },
-  { id: 'sandrine', name: 'Sandrine K.', rating: 4.8, verified: true, type: 'moto', vehicle: 'Bajaj',       route: 'Similar direction', heading: 'Nyamirambo',     seatsLeft: 1, when: 'Leaving now' },
-  { id: 'eric2',    name: 'Eric K.',     rating: 4.8, verified: true, type: 'car',  vehicle: 'Saved contact', route: 'Frequent rider',  heading: 'City centre',    seatsLeft: 3, when: 'Flexible' },
+const CC_CONTACTS = [
+  { id: 'diane',    name: 'Diane M.',    initials: 'DM', phone: '+250 788 123 456', pinned: true,  heading: 'Kigali Heights', eta: '5', when: 'Leaving in 8 min',  type: 'car' },
+  { id: 'sandrine', name: 'Sandrine K.', initials: 'SK', phone: '+250 722 654 321', pinned: true,  heading: 'Nyamirambo',     eta: '3', when: 'Leaving now',        type: 'moto' },
+  { id: 'eric2',    name: 'Eric K.',     initials: 'EK', phone: '+250 788 987 654', pinned: false, heading: 'City centre',    eta: '—', when: 'Flexible',           type: 'car' },
+  { id: 'amina',    name: 'Amina T.',    initials: 'AT', phone: '+250 722 111 222', pinned: false, heading: 'Kimironko',      eta: '—', when: '',                   type: 'car' },
+  { id: 'jean',     name: 'Jean-Paul N.',initials: 'JP', phone: '+250 788 333 444', pinned: false, heading: '',               eta: '—', when: '',                   type: 'moto' },
 ];
 
 const CC_SORTS = [
@@ -3056,72 +3064,63 @@ function Stars({ value }) {
 // Design-native demo map -----------------------------------------------------
 // Keeps the cream grid + soft road art of the original, adds a highlighted
 // route, pickup/destination pins, and live nearby-rider markers.
-// Animated ETA display — replaces the map on all commute screens.
-function EtaDisplay({ eta, duration, origin, destination, phase = 'route', height = 160, radius = 20 }) {
+// Animated ETA display — no card, just animation + route.
+function EtaDisplay({ eta, duration, origin, destination, phase = 'route' }) {
   const arriving = phase === 'arriving';
-  const SIZE = 130;
-  const R = 52;
+  const accent = arriving ? '#2FAE9B' : ink;
+  const S = 110;
+  const R = 42;
   const CIRC = +(2 * Math.PI * R).toFixed(2);
+  const ARC  = (CIRC * 0.20).toFixed(2);
+  const hasRoute = origin || destination;
+
   return (
-    <div style={{
-      height, borderRadius: radius, overflow: 'hidden', position: 'relative',
-      background: ink06,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <style>{`
-        @keyframes eta-spin   { to { transform: rotate(360deg) } }
-        @keyframes eta-rspin  { to { transform: rotate(-360deg) } }
-        @keyframes eta-pulse  { 0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.7;transform:scale(1.08)} }
-        @keyframes eta-arrive { 0%,100%{opacity:.18;transform:scale(1)}50%{opacity:.45;transform:scale(1.18)} }
+        @keyframes eta-arc  { to { stroke-dashoffset: -${CIRC} } }
+        @keyframes eta-wash { 0%,100%{opacity:0.4}50%{opacity:1} }
       `}</style>
 
-      {/* outer glow ring — only when driver is arriving */}
-      {arriving && (
-        <span style={{ position: 'absolute', width: SIZE + 40, height: SIZE + 40, borderRadius: '50%', background: 'rgba(47,174,155,0.15)', animation: 'eta-arrive 2s ease-in-out infinite' }} />
-      )}
-
-      {/* SVG rings */}
-      <svg width={SIZE} height={SIZE} style={{ position: 'absolute', overflow: 'visible' }}>
-        {/* static track */}
-        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke={arriving ? 'rgba(47,174,155,0.18)' : 'rgba(10,10,10,0.07)'} strokeWidth="5"/>
-        {/* spinning arc */}
-        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-          stroke={arriving ? '#2FAE9B' : ink}
-          strokeWidth={arriving ? 3.5 : 3}
-          strokeDasharray={`${(CIRC * 0.55).toFixed(2)} ${CIRC}`}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${SIZE/2} ${SIZE/2})`}
-          style={{ animation: `eta-spin ${arriving ? '3s' : '9s'} linear infinite` }}
-        />
-        {/* counter-rotating dashed ring */}
-        <circle cx={SIZE/2} cy={SIZE/2} r={R - 12} fill="none"
-          stroke={arriving ? 'rgba(47,174,155,0.22)' : 'rgba(10,10,10,0.07)'}
-          strokeWidth="1.2" strokeDasharray="3 10"
-          style={{ animation: 'eta-rspin 18s linear infinite' }}
-        />
-      </svg>
-
-      {/* centre number */}
-      <div style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}>
-        <span style={{ display: 'block', fontSize: 42, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: arriving ? '#2FAE9B' : ink }}>{eta}</span>
-        <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9.5, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: arriving ? '#2FAE9B' : ink40, marginTop: 3 }}>
-          {arriving ? 'min away' : 'min ETA'}
-        </span>
-        {duration && !arriving && (
-          <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 4 }}>{duration} min trip</span>
+      {/* ring + number */}
+      <div style={{ position: 'relative', width: S, height: S }}>
+        {arriving && (
+          <div style={{
+            position: 'absolute', inset: -20,
+            background: 'radial-gradient(circle, rgba(47,174,155,0.10) 0%, transparent 70%)',
+            animation: 'eta-wash 2.8s ease-in-out infinite',
+            pointerEvents: 'none',
+          }} />
         )}
+        <svg width={S} height={S} style={{ position: 'absolute', inset: 0 }}>
+          <circle cx={S/2} cy={S/2} r={R}
+            fill="none"
+            stroke={arriving ? 'rgba(47,174,155,0.15)' : 'rgba(10,10,10,0.07)'}
+            strokeWidth="1.5"
+          />
+          <circle cx={S/2} cy={S/2} r={R}
+            fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round"
+            strokeDasharray={`${ARC} ${CIRC}`}
+            transform={`rotate(-90 ${S/2} ${S/2})`}
+            style={{ animation: `eta-arc ${arriving ? '1.6s' : '4s'} linear infinite` }}
+          />
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 38, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: accent }}>{eta}</span>
+          <span style={{ fontFamily: CC_MONO, fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: arriving ? 'rgba(47,174,155,0.65)' : ink40, marginTop: 3 }}>min away</span>
+          {duration && !arriving && (
+            <span style={{ fontFamily: CC_MONO, fontSize: 9, color: ink25, marginTop: 2 }}>{duration} min trip</span>
+          )}
+        </div>
       </div>
 
-      {/* route pill at bottom */}
-      {(origin || destination) && (
-        <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 11px', background: 'rgba(250,246,241,0.88)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderRadius: 11, boxShadow: '0 4px 18px rgba(10,10,10,0.09)' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: ink, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{origin || 'Current location'}</span>
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-            <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{destination || '—'}</span>
-            <span style={{ width: 7, height: 7, borderRadius: '2px 2px 2px 0', transform: 'rotate(45deg)', background: '#2FAE9B', flexShrink: 0 }} />
-          </div>
+      {/* route — plain inline text, no card */}
+      {hasRoute && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink40, flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: ink55, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 110 }}>{origin || 'Current location'}</span>
+          <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          <span style={{ fontSize: 11, fontWeight: 700, color: ink55, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 110 }}>{destination || '—'}</span>
+          <span style={{ width: 6, height: 6, borderRadius: '1.5px 1.5px 1.5px 0', transform: 'rotate(45deg)', background: '#2FAE9B', flexShrink: 0 }} />
         </div>
       )}
     </div>
@@ -3354,7 +3353,7 @@ function CommuteScreen({ web, onBack }) {
 
   const runSearch = () => {
     const dest = (query || destination).trim();
-    if (!dest) { setError('Add where you’re going to see rides.'); return; }
+    if (!dest) { setError('Add where you\'re going to see rides.'); return; }
     setDestination(dest);
     pkHaptic('medium');
     setStep('results');
@@ -3445,13 +3444,13 @@ function CommuteScreen({ web, onBack }) {
 
   const mates = React.useMemo(() => {
     const q = mateQuery.trim().toLowerCase();
-    if (!q) return CC_RIDE_MATES;
-    return CC_RIDE_MATES.filter((m) => m.name.toLowerCase().includes(q) || m.heading.toLowerCase().includes(q));
+    if (!q) return CC_CONTACTS;
+    return CC_CONTACTS.filter((m) => m.name.toLowerCase().includes(q) || (m.heading && m.heading.toLowerCase().includes(q)) || m.phone.includes(q));
   }, [mateQuery]);
   const openMate = (m) => { pkHaptic('select'); setMate(m); setStep('share-confirm'); };
   const connectMate = () => { pkHaptic('success'); setStep('share-success'); };
 
-  const title = step === 'share' || step === 'share-confirm' || step === 'share-success' ? 'Ride together' : 'Commute';
+  const title = step === 'share' || step === 'share-confirm' || step === 'share-success' ? 'Call a contact' : 'Commute';
 
   const header = (
     <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -3474,8 +3473,8 @@ function CommuteScreen({ web, onBack }) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
         {header}
-        <div className="cc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: web ? '16px 32px 32px' : '8px 14px 18px' }}>
-          <div style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+        <div className="cc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', alignItems: 'center', padding: web ? '16px 32px 32px' : '0 16px' }}>
+          <div style={{ width: '100%', maxWidth: web ? 480 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
             <div className="pk-stagger">
               <CommuteStepLabel>Where from?</CommuteStepLabel>
               <DashField value={origin} onChange={setOrigin} placeholder="Current location or address"
@@ -3528,8 +3527,8 @@ function CommuteScreen({ web, onBack }) {
               </button>
 
               <button onClick={() => { pkHaptic('select'); setStep('share'); }} style={{ marginTop: 12, width: '100%', height: 48, borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 6.5a3 3 0 0 1 0 5.8M18.5 19a5.5 5.5 0 0 0-3-4.9"/></svg>
-                Ride with someone
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3.5 18a5.5 5.5 0 0 1 11 0"/><path d="M17 11.5a2.5 2.5 0 0 1 0 4.3M19.5 10a5 5 0 0 1 0 7.4"/></svg>
+                Call a contact
               </button>
 
               <div style={{ marginTop: 14 }}>
@@ -3689,7 +3688,7 @@ function CommuteScreen({ web, onBack }) {
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: ctaPad }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Name your fare.</div>
-              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Offer a price for {fn}. They’ll accept or counter — and only head over once you both agree and you’ve paid.</div>
+              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Offer a price for {fn}. They'll accept or counter — and only head over once you both agree and you've paid.</div>
 
               <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 13 }}>
                 <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={18} /></span>
@@ -3732,7 +3731,7 @@ function CommuteScreen({ web, onBack }) {
                     <span style={{ fontSize: 13, fontWeight: 760, color: ink }}>{fn} counters</span>
                     <span style={{ fontSize: 18, fontWeight: 850, letterSpacing: '-0.02em', color: ink }}>{ccPrice(counter)}</span>
                   </div>
-                  <div style={{ marginTop: 6, fontSize: 12.5, color: ink55, lineHeight: 1.45 }}>That’s a fair meeting point. Accept it, or send a higher offer.</div>
+                  <div style={{ marginTop: 6, fontSize: 12.5, color: ink55, lineHeight: 1.45 }}>That's a fair meeting point. Accept it, or send a higher offer.</div>
                   <button onClick={acceptCounter} style={{ marginTop: 14, width: '100%', height: 46, borderRadius: 12, border: 0, background: '#2FAE9B', color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760 }}>Accept {ccPrice(counter)}</button>
                 </div>
               )}
@@ -3822,40 +3821,61 @@ function CommuteScreen({ web, onBack }) {
     );
   }
 
-  // ───────────────────── RIDE WITH SOMEONE (sub-flow) ─────────────────────
+  // ─────────────────────── CALL A CONTACT (sub-flow) ──────────────────────
   if (step === 'share') {
+    const pinned = mates.filter((m) => m.pinned);
+    const rest   = mates.filter((m) => !m.pinned);
+    const ContactRow = ({ m, i, total }) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i < total - 1 ? `1px solid ${ink06}` : 'none' }}>
+        <span style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: ink06, color: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: CC_MONO, fontSize: 11, fontWeight: 700, letterSpacing: '0.04em' }}>{m.initials}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14.5, fontWeight: 760, color: ink }}>{m.name}</span>
+          <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 1 }}>
+            {m.when ? `${m.heading} · ${m.when}` : m.phone}
+          </span>
+        </span>
+        <button onClick={() => { pkHaptic('select'); window.location.href = `tel:${m.phone.replace(/\s/g,'')}`; }} aria-label={`Call ${m.name}`}
+          style={{ width: 36, height: 36, borderRadius: '50%', border: 0, background: ink06, color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+        </button>
+        <button onClick={() => openMate(m)} aria-label={`Request ride with ${m.name}`}
+          style={{ width: 36, height: 36, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3.5 18a5.5 5.5 0 0 1 11 0"/><path d="M17 11.5a2.5 2.5 0 0 1 0 4.3M19.5 10a5 5 0 0 1 0 7.4"/></svg>
+        </button>
+      </div>
+    );
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
         {header}
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
-          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 560 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
-            <div style={{ fontSize: web ? 32 : 27, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.08, color: ink }}>Find someone going your way.</div>
-            <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Connect with a verified rider, negotiate, and share the trip.</div>
+          <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            <div style={{ fontSize: web ? 30 : 25, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.08, color: ink }}>Call a contact.</div>
+            <div style={{ marginTop: 6, fontSize: 13.5, color: ink55 }}>Coordinate a ride with someone you know. Call to arrange, or send a request to join.</div>
 
-            <div style={{ marginTop: 20 }}>
-              <DashField value={mateQuery} onChange={setMateQuery} placeholder="Search a name, number, or destination"
-                prefix={(<span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>)} />
+            <div style={{ marginTop: 18 }}>
+              <DashField value={mateQuery} onChange={setMateQuery} placeholder="Search name or number"
+                prefix={(<span style={{ color: ink40, display: 'flex', flexShrink: 0 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span>)} />
             </div>
 
-            <div style={{ marginTop: 20 }}>
-              <CommuteStepLabel>Riders nearby · {mates.length}</CommuteStepLabel>
-              {mates.length === 0 ? (
-                <div style={{ padding: '34px 0', textAlign: 'center', fontSize: 13, color: ink40 }}>No matching riders yet. Try another name or destination.</div>
-              ) : mates.map((m, i) => (
-                <button key={m.id} onClick={() => openMate(m)} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 13 }}>
-                  <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={m.type} size={18} /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 14.5, fontWeight: 760, color: ink }}>{m.name}</span>{m.verified && <Verified />}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}><Stars value={m.rating} /><span style={{ fontSize: 11.5, color: ink40 }}>{m.vehicle}</span></span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, minWidth: 0 }}>
-                      <span style={{ flexShrink: 0, whiteSpace: 'nowrap', fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.04em', color: '#5B7CFA', fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: 'rgba(91,124,250,0.12)' }}>{m.route}</span>
-                      <span style={{ fontSize: 11, color: ink40, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>→ {m.heading} · {m.when}</span>
-                    </span>
-                  </span>
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>
-                </button>
-              ))}
-            </div>
+            {pinned.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <CommuteStepLabel>Pinned</CommuteStepLabel>
+                {pinned.map((m, i) => <ContactRow key={m.id} m={m} i={i} total={pinned.length} />)}
+              </div>
+            )}
+
+            {rest.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <CommuteStepLabel>Contacts{mateQuery ? ` · ${rest.length}` : ''}</CommuteStepLabel>
+                {rest.length === 0 ? (
+                  <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13, color: ink40 }}>No contacts found.</div>
+                ) : rest.map((m, i) => <ContactRow key={m.id} m={m} i={i} total={rest.length} />)}
+              </div>
+            )}
+
+            {mates.length === 0 && (
+              <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: ink40 }}>No contacts found.</div>
+            )}
           </div>
         </div>
       </div>
@@ -3869,34 +3889,41 @@ function CommuteScreen({ web, onBack }) {
         {header}
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
+            {/* contact card */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={m.type} size={24} /></span>
+              <span style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink, fontFamily: CC_MONO, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em' }}>{m.initials}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 20, fontWeight: 840, letterSpacing: '-0.02em', color: ink }}>{m.name}</span>{m.verified && <Verified size={16} />}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}><Stars value={m.rating} /><span style={{ fontSize: 12.5, color: ink40 }}>{m.vehicle}</span></div>
+                <div style={{ fontSize: 20, fontWeight: 840, letterSpacing: '-0.02em', color: ink }}>{m.name}</div>
+                <div style={{ fontSize: 12, color: ink40, marginTop: 2 }}>{m.phone}</div>
               </div>
             </div>
 
-            <div style={{ marginTop: 22 }}>
-              <EtaDisplay origin={origin} destination={m.heading} eta={m.eta || '—'} height={160} radius={20} />
-            </div>
+            {m.heading && (
+              <div style={{ marginTop: 20 }}>
+                <EtaDisplay origin={origin || 'Current location'} destination={m.heading} eta={m.eta || '—'} height={150} radius={18} />
+              </div>
+            )}
 
-            <div style={{ marginTop: 18 }}>
-              <DetailRow label="Heading to" value={m.heading} />
-              <DetailRow label="Departure" value={m.when} />
-              <DetailRow label="Seats available" value={`${m.seatsLeft}`} />
-              <DetailRow label="Route match" value={m.route} accent last />
-            </div>
+            {m.heading && (
+              <div style={{ marginTop: 16 }}>
+                <DetailRow label="Heading to" value={m.heading} />
+                {m.when && <DetailRow label="Departure" value={m.when} last />}
+              </div>
+            )}
 
-            <div style={{ marginTop: 16, fontSize: 12.5, color: ink40, lineHeight: 1.5 }}>Call to agree on pickup and a fair split before they pull up.</div>
+            <div style={{ marginTop: 16, fontSize: 12.5, color: ink40, lineHeight: 1.5 }}>Call to agree on the pickup point and split the fare, or send a request and wait for them to confirm.</div>
 
-            <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
-              <button onClick={connectMate} style={{ flex: 1, height: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 16px 38px rgba(10,10,10,0.22)' }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
-                Call to negotiate
+            <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+              <button onClick={() => { pkHaptic('impact'); window.location.href = `tel:${m.phone.replace(/\s/g,'')}`; }}
+                style={{ flex: 1, height: 54, borderRadius: 16, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 14px 34px rgba(10,10,10,0.20)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+                Call {m.name.split(' ')[0]}
               </button>
             </div>
-            <button onClick={connectMate} style={{ marginTop: 10, width: '100%', height: 48, borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760 }}>Request to join the ride</button>
+            <button onClick={connectMate} style={{ marginTop: 10, width: '100%', height: 48, borderRadius: 14, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="7" r="3"/><path d="M3.5 18a5.5 5.5 0 0 1 11 0"/><path d="M17 11.5a2.5 2.5 0 0 1 0 4.3M19.5 10a5 5 0 0 1 0 7.4"/></svg>
+              Send ride request
+            </button>
           </div>
         </div>
       </div>
@@ -3910,25 +3937,27 @@ function CommuteScreen({ web, onBack }) {
         {header}
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: sheetPad }}>
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 480 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#5B7CFA', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 40px rgba(91,124,250,0.30)' }}>
-              <svg width="30" height="30" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#2FAE9B', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 14px 36px rgba(47,174,155,0.28)' }}>
+              <svg width="28" height="28" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <div style={{ marginTop: 22, fontSize: web ? 34 : 28, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>You’re connected with {m.name.replace(/\.$/, '')}.</div>
-            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>Agree on a pickup point and they’ll head your way.</div>
+            <div style={{ marginTop: 20, fontSize: web ? 32 : 27, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>Request sent to {m.name.split(' ')[0]}.</div>
+            <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>They'll confirm once they're ready. Agree on a pickup point before they head over.</div>
 
             <div style={{ marginTop: 22 }}>
-              <DetailRow label="Rider" value={m.name} />
-              <DetailRow label="Heading to" value={m.heading} />
-              <DetailRow label="Departure" value={m.when} last />
+              <DetailRow label="Contact" value={m.name} />
+              <DetailRow label="Phone" value={m.phone} />
+              {m.heading && <DetailRow label="Heading to" value={m.heading} />}
+              {m.when && <DetailRow label="Departure" value={m.when} last />}
             </div>
 
             <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
-              <button style={{ flex: 1, height: 52, borderRadius: 16, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
+              <button onClick={() => { pkHaptic('impact'); window.location.href = `tel:${m.phone.replace(/\s/g,'')}`; }}
+                style={{ flex: 1, height: 52, borderRadius: 16, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
                 Call
               </button>
-              <button style={{ flex: 1, height: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
+              <button style={{ flex: 1, height: 52, borderRadius: 16, border: `1px solid ${ink06}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
                 Message
               </button>
             </div>
@@ -5285,7 +5314,7 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
     foryou: 'For you',
   };
   const subByFilter = {
-    funds:  'Optional — once you’re saving, put some to work in vetted funds.',
+    funds:  'Optional — once you\'re saving, put some to work in vetted funds.',
     foryou: 'Businesses Everyday is helping grow directly.',
   };
 
@@ -5919,7 +5948,7 @@ function DetailReviewBlock({ venture }) {
             </div>
           </div>
           <div style={{ fontSize: 13, lineHeight: 1.55, color: ink }}>
-            “{analyst.note}”
+            "{analyst.note}"
           </div>
         </div>
       </RoundedCard>
@@ -6740,7 +6769,7 @@ function CheckoutRecommendation({ venture }) {
             </div>
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.55, color: ink }}>
-            “{analyst.note}”
+            "{analyst.note}"
           </div>
         </div>
       </RoundedCard>
@@ -8054,7 +8083,7 @@ function SettingsScreen({ accent, profile, authConfigured = false, onBack, onSig
           }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: ink }}>Sign out of Everyday?</div>
             <div style={{ fontSize: 13, color: ink55, marginTop: 6, lineHeight: 1.5 }}>
-              You’ll need your passcode to sign back in.
+              You'll need your passcode to sign back in.
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <CCButton variant="ghost" size="sm" fullWidth onClick={() => setConfirmSignOut(false)}>Cancel</CCButton>
