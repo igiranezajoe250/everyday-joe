@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"everyday/api/_lib/sb"
+	"everyday/api/_lib/x402"
 )
 
 const ucpVersion = "2026-04-08"
@@ -135,6 +136,9 @@ func writeDiscovery(w http.ResponseWriter) {
 					"version":  ucpVersion,
 					"currency": "RWF",
 					"label":    "Everyday Wallet",
+					"protocol": "x402",
+					"scheme":   x402.Scheme,
+					"network":  x402.Network,
 				}},
 			},
 		},
@@ -322,49 +326,25 @@ func completeCheckout(w http.ResponseWriter, r *http.Request, c *sb.Client, toke
 		return
 	}
 
-	// Wallet balance is the payment instrument (Everyday is Merchant of Record).
-	walRaw, err := c.Get("wallets?select=id,balance_rwf&user_id=eq."+url.QueryEscape(userID)+"&limit=1", token)
-	if err != nil {
-		sb.WriteError(w, http.StatusBadGateway, err)
-		return
-	}
-	var wals []struct {
-		ID         string `json:"id"`
-		BalanceRWF int    `json:"balance_rwf"`
-	}
-	if err := json.Unmarshal(walRaw, &wals); err != nil || len(wals) == 0 {
-		sb.WriteError(w, http.StatusBadRequest, errors.New("no wallet to charge"))
-		return
-	}
-	wal := wals[0]
-	if wal.BalanceRWF < cs.Totals.TotalAmount {
-		// Mark the session as needing escalation and report it per UCP.
-		c.Patch("ucp_checkout_sessions?id=eq."+url.QueryEscape(id), token, map[string]any{"status": "requires_escalation"}, "")
-		sb.WriteJSON(w, http.StatusPaymentRequired, ucpEnvelope(map[string]any{
-			"id": id, "status": "requires_escalation",
-			"error": fmt.Sprintf("wallet balance %d RWF is short of total %d RWF", wal.BalanceRWF, cs.Totals.TotalAmount),
-		}))
-		return
-	}
-
-	// Debit wallet, record the ledger entry, decrement stock per line.
-	if _, err := c.Patch("wallets?id=eq."+url.QueryEscape(wal.ID), token, map[string]any{
-		"balance_rwf": wal.BalanceRWF - cs.Totals.TotalAmount,
-	}, "return=representation"); err != nil {
-		sb.WriteError(w, http.StatusBadGateway, err)
-		return
-	}
+	// Settle through x402 against the Everyday Wallet (the payment handler).
+	// Insufficient funds surfaces as the UCP requires_escalation status.
 	title := "Shop order"
 	if len(cs.LineItems) == 1 {
 		title = cs.LineItems[0].Name
 	} else if len(cs.LineItems) > 1 {
 		title = fmt.Sprintf("%s + %d more", cs.LineItems[0].Name, len(cs.LineItems)-1)
 	}
-	c.Post("transactions", token, map[string]any{
-		"user_id": userID, "wallet_id": wal.ID, "section": "shop",
-		"title": title, "amount_rwf": cs.Totals.TotalAmount, "direction": "out",
-		"status": "completed", "kind": "purchase",
-	}, "")
+	pay := x402.Require(cs.Totals.TotalAmount, "/api/ucp/checkout-sessions/"+id+"/complete", title)
+	settlement, err := x402.Settle(c, token, userID, pay.Accepts[0], "shop", title, "purchase")
+	if err != nil {
+		c.Patch("ucp_checkout_sessions?id=eq."+url.QueryEscape(id), token, map[string]any{"status": "requires_escalation"}, "")
+		sb.WriteJSON(w, http.StatusPaymentRequired, ucpEnvelope(map[string]any{
+			"id": id, "status": "requires_escalation", "error": err.Error(),
+		}))
+		return
+	}
+
+	// Decrement stock per line now that payment settled.
 	for _, it := range cs.LineItems {
 		raw, err := c.Get("products?select=stock,sold&id=eq."+url.QueryEscape(it.ProductID)+"&limit=1", "")
 		if err != nil {
@@ -396,8 +376,10 @@ func completeCheckout(w http.ResponseWriter, r *http.Request, c *sb.Client, toke
 		"user_id": userID, "section": "shop", "title": "Order placed", "detail": title,
 	}, "")
 
+	w.Header().Set("PAYMENT-RESPONSE", x402.EncodeSettlement(settlement))
 	sb.WriteJSON(w, http.StatusOK, ucpEnvelope(map[string]any{
 		"id": id, "status": "completed",
+		"payment": settlement,
 		"order": map[string]any{
 			"id": orderID, "status": "paid", "checkout_id": id,
 			"line_items": cs.LineItems, "totals": cs.Totals, "fulfillment": cs.Fulfillment, "events": events,

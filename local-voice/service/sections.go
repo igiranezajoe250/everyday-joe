@@ -332,6 +332,7 @@ func newPayAgent() *SectionAgent {
 		Skills: []AgentSkill{
 			{ID: "payment-history", Name: "Payment History", Description: "Review recent payments", Tags: []string{"pay", "history", "transfers"}},
 			{ID: "send-money", Name: "Send Money", Description: "Guide a payment to a recipient", Tags: []string{"pay", "transfer", "send"}},
+			{ID: "x402-pay", Name: "x402 Payment", Description: "Pay for resources via the x402 protocol, settled against the Everyday Wallet in RWF (scheme exact, network app.everyday.wallet). Powers UCP checkout.", Tags: []string{"pay", "x402", "wallet", "protocol", "checkout"}},
 		},
 		Tools: []SectionTool{
 			{
@@ -342,9 +343,17 @@ func newPayAgent() *SectionAgent {
 					return fetchSection(cfg, "/api/pay", token)
 				},
 			},
+			{
+				Name:        "x402_capability",
+				Description: "Describe the x402 payment capability this agent supports (read-only). Actual settlement happens through UCP checkout or the user-confirmed pay flow.",
+				Schema:      `{"type":"object","properties":{}}`,
+				Handler: func(cfg Config, _ json.RawMessage, token string) (string, error) {
+					return `{"x402_version":"1","facilitator":"Everyday","kinds":[{"scheme":"exact","network":"app.everyday.wallet","currency":"RWF"}],"used_by":["ucp.checkout"]}`, nil
+				},
+			},
 		},
 		BuildPrompt: func(data string) string {
-			p := "You are the Pay agent for Everyday, Rwanda's super-app. Help the user send payments, understand bills, and review their payment history. All amounts are RWF. Never invent transaction data."
+			p := "You are the Pay agent for Everyday, Rwanda's super-app. Help the user send payments, understand bills, and review their payment history. All amounts are RWF. Payments settle through the x402 protocol against the Everyday Wallet (scheme exact, network app.everyday.wallet); the same path powers UCP shop checkout. Never invent transaction data."
 			if data != "" {
 				p += "\n\nRecent payment transactions:\n" + data
 			}

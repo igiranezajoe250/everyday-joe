@@ -593,6 +593,17 @@
       order: placeOrder, // legacy single-product order (kept for fallback)
       checkout: ucpCheckout, // UCP one-shot checkout
     },
+    x402: {
+      // x402 payment protocol (Everyday Wallet rail). Settlement also happens
+      // automatically inside UCP checkout completion; these are for direct use.
+      discovery: function () { return callService("/.well-known/x402"); },
+      verify: function (requirements, payment) {
+        return callService("/api/x402/verify", { method: "POST", body: { requirements: requirements, payment: payment } });
+      },
+      settle: function (requirements, section, title) {
+        return callService("/api/x402/settle", { method: "POST", body: { requirements: requirements, section: section, title: title } });
+      },
+    },
     ucp: {
       discovery: ucpDiscovery,
       createCheckout: ucpCreateCheckout,
