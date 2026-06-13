@@ -37,12 +37,34 @@ type Config struct {
 	// APIBase is the base URL of the Everyday Next.js API (for section agent tool calls).
 	// Defaults to http://localhost:3000 for local dev; set to your Vercel URL in prod.
 	APIBase string
+	// AllowedOrigins is the CORS allow-list for browser callers (the deployed
+	// frontend). Comma-separated. localhost dev origins are always allowed.
+	AllowedOrigins []string
+}
+
+// allowsOrigin reports whether a browser Origin may call the service. Local dev
+// origins are always permitted; production origins come from ALLOWED_ORIGINS.
+func (c Config) allowsOrigin(origin string) bool {
+	if origin == "" {
+		return false
+	}
+	switch origin {
+	case "http://localhost:3000", "http://127.0.0.1:3000",
+		"http://localhost:8787", "http://127.0.0.1:8787":
+		return true
+	}
+	for _, o := range c.AllowedOrigins {
+		if o != "" && origin == o {
+			return true
+		}
+	}
+	return false
 }
 
 func LoadConfig() Config {
 	root := repoVoiceRoot()
 	return Config{
-		Addr:                  env("VOICE_SERVICE_ADDR", "127.0.0.1:8787"),
+		Addr:                  listenAddr(),
 		PythonBin:             env("VOICE_PYTHON", defaultPython()),
 		KokoroScript:          env("KOKORO_TRANSCRIBE_SCRIPT", filepath.Join(root, "scripts", "transcribe_kokoro.py")),
 		UmugandaScript:        env("UMUGANDA_TRANSCRIBE_SCRIPT", filepath.Join(root, "scripts", "transcribe_umuganda.py")),
@@ -60,7 +82,32 @@ func LoadConfig() Config {
 		OpenAIModel:           env("LLM_OPENAI_MODEL", "Qwen/Qwen3-8B"),
 		GoogleAIKey:           env("GOOGLE_AI_KEY", ""),
 		APIBase:               env("EVERYDAY_API_BASE", "http://localhost:3000"),
+		AllowedOrigins:        splitCSV(env("ALLOWED_ORIGINS", "")),
 	}
+}
+
+// listenAddr resolves the bind address. Render/Heroku inject $PORT and expect
+// the app to listen on 0.0.0.0:$PORT; otherwise honor VOICE_SERVICE_ADDR, then
+// fall back to local dev.
+func listenAddr() string {
+	if p := strings.TrimSpace(os.Getenv("PORT")); p != "" {
+		return "0.0.0.0:" + p
+	}
+	return env("VOICE_SERVICE_ADDR", "127.0.0.1:8787")
+}
+
+func splitCSV(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func repoVoiceRoot() string {

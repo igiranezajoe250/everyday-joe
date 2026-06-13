@@ -1,0 +1,30 @@
+# Render blueprint for the Everyday agent service (Bounty + section agents +
+# Qwen model chain). Deploy: New → Blueprint → point at this repo.
+# Root directory must be local-voice/service so the Dockerfile context is right.
+services:
+  - type: web
+    name: everyday-agent
+    runtime: docker
+    rootDir: local-voice/service
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      # Primary brain: self-hosted Qwen via an OpenAI-compatible endpoint.
+      # For first testers, point this at a hosted Qwen (Together / Fireworks /
+      # DeepInfra). Swap to your own GPU box (vLLM) later — no code change.
+      - key: LLM_OPENAI_BASE_URL
+        sync: false
+      - key: LLM_OPENAI_MODEL
+        value: Qwen/Qwen3-8B
+      - key: LLM_OPENAI_KEY
+        sync: false
+      # Fallback model (optional).
+      - key: GOOGLE_AI_KEY
+        sync: false
+      # Next.js API base — your Vercel deployment, for section-agent tool calls.
+      - key: EVERYDAY_API_BASE
+        sync: false
+      # CORS allow-list — your deployed frontend origin(s), comma-separated.
+      - key: ALLOWED_ORIGINS
+        sync: false

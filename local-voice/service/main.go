@@ -51,10 +51,7 @@ func main() {
 func withCORS(cfg Config, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if origin == "http://localhost:3000" ||
-			origin == "http://127.0.0.1:3000" ||
-			origin == "http://localhost:8787" ||
-			origin == "http://127.0.0.1:8787" {
+		if cfg.allowsOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
 		}

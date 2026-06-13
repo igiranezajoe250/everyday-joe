@@ -128,7 +128,12 @@
           || window.navigator.standalone === true
           || new URLSearchParams(location.search).get('app') === '1';
         if (standalone) document.documentElement.classList.add('pk-native');
+        // Agent service base URL. A tester opens the shared link once with
+        // ?voiceBase=https://your-agent.onrender.com and it persists, so the
+        // param isn't needed on later visits.
         var vb = new URLSearchParams(location.search).get('voiceBase');
+        if (vb) { try { localStorage.setItem('everyday.voiceBase', vb); } catch (e) {} }
+        else { try { vb = localStorage.getItem('everyday.voiceBase') || ''; } catch (e) {} }
         if (vb) window.__EVERYDAY_VOICE_BASE__ = vb;
       } catch (e) {}
     })();
