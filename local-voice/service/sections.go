@@ -73,8 +73,15 @@ func (sa *SectionAgent) Handle(cfg Config, task a2aTaskSend) a2aTask {
 		system += "\n\nBounty context snapshot:\n" + string(task.Context)
 	}
 
-	// Call Gemma 3 (online → local → static fallback)
+	// Run the model chain (Qwen → Gemma).
 	reply := sa.callGemma(cfg, system, userMsg)
+
+	// The Save agent may emit ```proposal {...}``` blocks. Persist each as a
+	// pending agent_proposal (propose → user-confirm boundary) and replace the
+	// raw block with a human sentence. The model never moves money directly.
+	if sa.ID == "save" {
+		reply = extractAndPostProposals(cfg, reply, task.Token)
+	}
 
 	return a2aTask{
 		ID:     task.ID,
@@ -86,18 +93,11 @@ func (sa *SectionAgent) Handle(cfg Config, task a2aTaskSend) a2aTask {
 	}
 }
 
-// callGemma calls Gemma 3 with an explicit system prompt. Online path first, local fallback.
+// callGemma runs the unified model chain (GPU-box Qwen → Ollama Qwen → Gemma).
+// Name kept for call-site stability.
 func (sa *SectionAgent) callGemma(cfg Config, system, userMsg string) string {
-	switch {
-	case cfg.GoogleAIKey != "":
-		if reply, err := callGemma3Online(cfg, system, userMsg, nil); err == nil && strings.TrimSpace(reply) != "" {
-			return strings.TrimSpace(reply)
-		}
-		fallthrough
-	case cfg.AgentLLMURL != "":
-		if reply, err := callGemma3Local(cfg, system, userMsg, nil); err == nil && strings.TrimSpace(reply) != "" {
-			return strings.TrimSpace(reply)
-		}
+	if reply, _ := generate(cfg, system, userMsg, nil); strings.TrimSpace(reply) != "" {
+		return strings.TrimSpace(reply)
 	}
 	return "I'm the " + sa.Name + " agent. " + sa.Description + " Ask me anything about " + strings.ToLower(sa.Name) + "."
 }
@@ -294,14 +294,35 @@ func newSaveAgent() *SectionAgent {
 			},
 		},
 		BuildPrompt: func(data string) string {
-			p := "You are the Save agent for Everyday, Rwanda's super-app. Help the user understand their savings progress, wallet balance, and financial health. All amounts are RWF. Never invent numbers — only use data you are given."
+			p := saveSystemPrompt
 			if data != "" {
-				p += "\n\nUser wallet and recent transactions:\n" + data
+				p += "\n\nLive Save data (wallet, goals, schedules, transactions — all RWF):\n" + data
 			}
 			return p
 		},
 	}
 }
+
+// saveSystemPrompt defines the Save expert and its propose-protocol. The agent
+// never executes money actions — it proposes, and the user confirms in the UI.
+const saveSystemPrompt = `You are the Save expert for Everyday, Rwanda's super-app. You help users save money, set savings goals, schedule recurring savings, and understand the 8% annual interest they earn (accrued daily, paid monthly).
+
+All amounts are RWF (whole numbers, no decimals). Never invent balances or numbers — only use the live data you are given. Be concise, warm, and practical.
+
+INTEREST: Savings earn 8% per year. Daily a wallet earns balance * 0.08 / 365; this accrues and is paid into savings on the 1st of each month. If asked "how much will I earn", compute from the live savings balance and say it is approximate.
+
+PROPOSING ACTIONS: You cannot move money yourself. When the user wants to deposit, set a goal, or schedule recurring savings, end your reply with a fenced proposal block the app will turn into a confirm button. Use exactly this format (valid JSON, one block per action):
+
+` + "```proposal" + `
+{"kind":"deposit","summary":"Save 5,000 RWF now","payload":{"amount_rwf":5000,"title":"Savings deposit"}}
+` + "```" + `
+
+Valid kinds and payloads:
+- deposit:  {"amount_rwf":N,"title":"...","goal_id":"<optional goal id>"}
+- goal:     {"label":"...","target_rwf":N,"deadline":"YYYY-MM-DD optional"}
+- schedule: {"amount_rwf":N,"cadence":"daily|weekly|monthly","goal_id":"<optional>"}
+
+Only emit a proposal when the user clearly asked to act. For questions, just answer. Write the summary in plain language; it is shown on the confirm button.`
 
 func newPayAgent() *SectionAgent {
 	return &SectionAgent{

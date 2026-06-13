@@ -16,7 +16,7 @@
       ready: false,
       userId: null,
       shop:    Object.assign(emptySlice(), { shops: [], products: [] }),
-      save:    Object.assign(emptySlice(), { wallet: null, transactions: [] }),
+      save:    Object.assign(emptySlice(), { wallet: null, transactions: [], goals: [], schedules: [], proposals: [], interestApr: 0.08 }),
       pay:     Object.assign(emptySlice(), { transactions: [] }),
       plan:    Object.assign(emptySlice(), { folders: [], files: [] }),
       listen:  Object.assign(emptySlice(), { sources: [], episodes: [] }),
@@ -65,7 +65,15 @@
     patch("save", { loading: true, error: null });
     try {
       var data = await window.EverydayAPI.save.get();
-      patch("save", { loading: false, loaded: true, wallet: data.wallet || null, transactions: data.transactions || [] });
+      patch("save", {
+        loading: false, loaded: true,
+        wallet: data.wallet || null,
+        transactions: data.transactions || [],
+        goals: data.goals || [],
+        schedules: data.schedules || [],
+        proposals: data.proposals || [],
+        interestApr: typeof data.interest_apr === "number" ? data.interest_apr : 0.08,
+      });
     } catch (err) {
       patch("save", { loading: false, error: err.message || String(err) });
     }
@@ -150,8 +158,28 @@
   // ── mutations ── always go through the owning service, then re-hydrate
   // just that slice. Keeps the cache honest without a full refresh.
 
-  async function deposit(amountRwf, title) {
-    var res = await window.EverydayAPI.save.deposit(amountRwf, title);
+  async function deposit(amountRwf, title, goalId) {
+    var res = await window.EverydayAPI.save.deposit(amountRwf, title, goalId);
+    await hydrateSave();
+    return res;
+  }
+  async function createGoal(label, targetRwf, deadline) {
+    var res = await window.EverydayAPI.save.createGoal(label, targetRwf, deadline);
+    await hydrateSave();
+    return res;
+  }
+  async function createSchedule(amountRwf, cadence, goalId) {
+    var res = await window.EverydayAPI.save.createSchedule(amountRwf, cadence, goalId);
+    await hydrateSave();
+    return res;
+  }
+  async function confirmProposal(proposalId) {
+    var res = await window.EverydayAPI.save.confirmProposal(proposalId);
+    await hydrateSave();
+    return res;
+  }
+  async function rejectProposal(proposalId) {
+    var res = await window.EverydayAPI.save.rejectProposal(proposalId);
     await hydrateSave();
     return res;
   }
@@ -185,6 +213,10 @@
     },
     actions: {
       deposit: deposit,
+      createGoal: createGoal,
+      createSchedule: createSchedule,
+      confirmProposal: confirmProposal,
+      rejectProposal: rejectProposal,
       order: order,
       pay: pay,
       savePlan: savePlan,

@@ -4067,13 +4067,175 @@ function SaveAction({ label, sub, onClick, selected = false, compact = false }) 
   );
 }
 
+// SaveGoalsCard — savings goals, recurring auto-save, the 8% interest line, and
+// pending Big Brain proposals (confirm before any money moves). Reuses the
+// dashed-separator / ink-typography language of the Save screen; no new tokens.
+function SaveGoalsCard({ goals, schedules, proposals, savings, interestApr, compact }) {
+  const store = window.EverydayStore;
+  const [busy, setBusy] = React.useState(false);
+  const [adding, setAdding] = React.useState(false);
+  const [label, setLabel] = React.useState('');
+  const [target, setTarget] = React.useState('');
+  const [autoAmt, setAutoAmt] = React.useState('');
+  const [cadence, setCadence] = React.useState('weekly');
+  const apr = interestApr || 0.08;
+  const monthlyInterest = Math.round((savings || 0) * apr / 12);
+
+  const run = async (fn) => {
+    if (busy) return;
+    setBusy(true);
+    try { await fn(); } catch (e) { /* surfaced via slice.error on next hydrate */ }
+    setBusy(false);
+  };
+  const submitGoal = () => {
+    const t = parseInt(String(target).replace(/[^0-9]/g, ''), 10);
+    if (!label.trim() || !t) return;
+    run(async () => {
+      await store.actions.createGoal(label.trim(), t);
+      setLabel(''); setTarget(''); setAdding(false);
+    });
+  };
+  const submitAuto = () => {
+    const a = parseInt(String(autoAmt).replace(/[^0-9]/g, ''), 10);
+    if (!a) return;
+    run(async () => { await store.actions.createSchedule(a, cadence); setAutoAmt(''); });
+  };
+
+  const sectionTop = { borderTop: `1px dashed ${DASH}`, paddingTop: compact ? 12 : 14, marginTop: compact ? 4 : 6 };
+  const fieldStyle = {
+    flex: 1, minWidth: 0, border: `1px dashed ${DASH}`, borderRadius: 11,
+    background: 'transparent', color: ink, fontFamily: 'inherit', fontSize: 13,
+    fontWeight: 700, padding: '9px 11px', outline: 'none',
+  };
+  const pillBtn = (filled) => ({
+    border: filled ? 0 : `1px dashed ${DASH}`, borderRadius: 11,
+    background: filled ? ink : 'transparent', color: filled ? paper : ink,
+    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 800, letterSpacing: '-0.01em',
+    padding: '9px 14px', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+  });
+
+  return (
+    <div style={{ display: 'grid', gap: compact ? 12 : 16 }}>
+      {/* Pending proposals from Bounty / Save expert */}
+      {proposals && proposals.length > 0 && (
+        <div style={sectionTop}>
+          <div style={{ fontSize: 12, fontWeight: 750, color: ink40, marginBottom: 8 }}>Waiting for your confirmation</div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {proposals.map((p) => (
+              <div key={p.id} style={{
+                border: `1px dashed ${DASH}`, borderRadius: 13, padding: '11px 12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: ink, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.summary}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: ink40, textTransform: 'capitalize', marginTop: 2 }}>{p.kind}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => run(() => store.actions.rejectProposal(p.id))} style={pillBtn(false)}>Dismiss</button>
+                  <button onClick={() => run(() => store.actions.confirmProposal(p.id))} style={pillBtn(true)}>Confirm</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Goals */}
+      <div style={sectionTop}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 750, color: ink40 }}>Savings goals</div>
+          <button onClick={() => setAdding((v) => !v)} style={{
+            border: 0, background: 'transparent', color: ink, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 800,
+          }}>{adding ? 'Close' : '+ New goal'}</button>
+        </div>
+
+        {adding && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Goal name" style={Object.assign({}, fieldStyle, { flex: '2 1 130px' })} />
+            <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Target RWF" inputMode="numeric" style={Object.assign({}, fieldStyle, { flex: '1 1 100px' })} />
+            <button onClick={submitGoal} style={pillBtn(true)}>Add</button>
+          </div>
+        )}
+
+        {(!goals || goals.length === 0) && !adding && (
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: ink40, padding: '2px 0 4px' }}>
+            No goals yet. Set one and Big Brain will help you reach it.
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gap: 12 }}>
+          {(goals || []).map((g) => {
+            const pct = Math.max(0, Math.min(100, Math.round((g.saved_rwf / g.target_rwf) * 100)));
+            const reached = g.status === 'reached' || pct >= 100;
+            return (
+              <div key={g.id}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: ink, letterSpacing: '-0.01em' }}>{g.label}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: reached ? teal : ink55, fontFeatureSettings: '"tnum"' }}>
+                    {fmtRWF(g.saved_rwf)} / {fmtRWF(g.target_rwf)}
+                  </span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: 'rgba(10,10,10,0.08)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: pct + '%', borderRadius: 3, background: reached ? teal : ink, transition: 'width .3s ease' }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Auto-save + interest */}
+      <div style={sectionTop}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 750, color: ink40 }}>Auto-save</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: teal }}>
+            Earning ~{fmtRWF(monthlyInterest)}/mo at {Math.round(apr * 100)}%
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={autoAmt} onChange={(e) => setAutoAmt(e.target.value)} placeholder="Amount RWF" inputMode="numeric" style={Object.assign({}, fieldStyle, { flex: '1 1 110px' })} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            {['daily', 'weekly', 'monthly'].map((c) => (
+              <button key={c} onClick={() => setCadence(c)} style={{
+                border: cadence === c ? 0 : `1px dashed ${DASH}`, borderRadius: 11,
+                background: cadence === c ? ink : 'transparent', color: cadence === c ? paper : ink55,
+                fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, padding: '9px 11px',
+                cursor: 'pointer', textTransform: 'capitalize',
+              }}>{c}</button>
+            ))}
+          </div>
+          <button onClick={submitAuto} style={pillBtn(true)}>Set</button>
+        </div>
+
+        {schedules && schedules.length > 0 && (
+          <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
+            {schedules.map((s) => (
+              <div key={s.id} style={{ fontSize: 12, fontWeight: 700, color: ink55, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ textTransform: 'capitalize' }}>{fmtRWF(s.amount_rwf)} · {s.cadence}</span>
+                <span style={{ color: ink40 }}>next {s.next_run_on}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, onGrowth, onBack }) {
   // Live Save data from /api/save (Go microservice). The store hydrates on
   // session-ready; until then we fall back to CC_SAVINGS so the ring still
   // renders meaningfully in dev / preview / signed-out.
   const everyday = window.useEveryday ? window.useEveryday() : null;
-  const liveWallet = everyday && everyday.save && everyday.save.wallet;
-  const liveTransactions = (everyday && everyday.save && everyday.save.transactions) || null;
+  const liveSave = (everyday && everyday.save) || null;
+  const liveWallet = liveSave && liveSave.wallet;
+  const liveTransactions = (liveSave && liveSave.transactions) || null;
+  const liveGoals = (liveSave && liveSave.goals) || [];
+  const liveSchedules = (liveSave && liveSave.schedules) || [];
+  const liveProposals = (liveSave && liveSave.proposals) || [];
+  const interestApr = (liveSave && liveSave.interestApr) || 0.08;
   const p = CC_PORTFOLIO;
   const s = liveWallet
     ? Object.assign({}, CC_SAVINGS, { balance: liveWallet.savings_rwf || 0 })
@@ -4241,6 +4403,15 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
             <SaveAction label="Repay" sub="What you owe" selected={selectedSaveAction === 'repay'} onClick={() => { setSelectedSaveAction('repay'); onMoney('repay'); }} compact={compactSave} />
             <SaveAction label="Withdraw" sub="Take money out" selected={selectedSaveAction === 'withdraw'} onClick={() => { setSelectedSaveAction('withdraw'); onMoney('withdraw'); }} compact={compactSave} />
           </div>
+
+          <SaveGoalsCard
+            goals={liveGoals}
+            schedules={liveSchedules}
+            proposals={liveProposals}
+            savings={s.balance}
+            interestApr={interestApr}
+            compact={compactSave}
+          />
         </div>
       </div>
     </div>

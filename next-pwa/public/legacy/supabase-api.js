@@ -377,8 +377,24 @@
   async function getSave() {
     return callService("/api/save");
   }
-  async function deposit(amountRwf, title) {
-    return callService("/api/save", { method: "POST", body: { amount_rwf: amountRwf, title: title || "" } });
+  async function deposit(amountRwf, title, goalId) {
+    var body = { amount_rwf: amountRwf, title: title || "" };
+    if (goalId) body.goal_id = goalId;
+    return callService("/api/save", { method: "POST", body: body });
+  }
+  async function createGoal(label, targetRwf, deadline) {
+    return callService("/api/save", { method: "POST", body: { action: "create_goal", label: label, target_rwf: targetRwf, deadline: deadline || "" } });
+  }
+  async function createSchedule(amountRwf, cadence, goalId) {
+    var body = { action: "create_schedule", amount_rwf: amountRwf, cadence: cadence };
+    if (goalId) body.goal_id = goalId;
+    return callService("/api/save", { method: "POST", body: body });
+  }
+  async function confirmProposal(proposalId) {
+    return callService("/api/save", { method: "POST", body: { action: "confirm_proposal", proposal_id: proposalId } });
+  }
+  async function rejectProposal(proposalId) {
+    return callService("/api/save", { method: "POST", body: { action: "reject_proposal", proposal_id: proposalId } });
   }
 
   // Plan service — /api/plan (replaces direct supabase plan calls)
@@ -519,6 +535,10 @@
     save: {
       get: getSave,
       deposit: deposit,
+      createGoal: createGoal,
+      createSchedule: createSchedule,
+      confirmProposal: confirmProposal,
+      rejectProposal: rejectProposal,
     },
     shop: {
       list: listShop,

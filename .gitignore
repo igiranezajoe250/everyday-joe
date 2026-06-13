@@ -18,6 +18,9 @@ kokoro-temp/
 next-pwa/next-env.d.ts
 local-voice/tmp/
 local-voice/service/*.go.*
+# Compiled Go binary — build artifact, never commit
+local-voice/service/*.exe
+local-voice/service/local-voice
 local-voice/**/*.wav
 local-voice/**/*.webm
 local-voice/**/*.ogg

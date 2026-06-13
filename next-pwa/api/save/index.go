@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -21,6 +22,7 @@ type wallet struct {
 type depositReq struct {
 	AmountRWF int    `json:"amount_rwf"`
 	Title     string `json:"title"`
+	GoalID    string `json:"goal_id,omitempty"`
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +49,37 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		handleGet(w, c, token, userID)
 	case "POST":
-		handleDeposit(w, r, c, token, userID)
+		handlePost(w, r, c, token, userID)
+	}
+}
+
+// handlePost dispatches on the "action" field. Default (and legacy callers with
+// no action) is a savings deposit, preserving backward compatibility.
+func handlePost(w http.ResponseWriter, r *http.Request, c *sb.Client, token, userID string) {
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		sb.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	var probe struct {
+		Action string `json:"action"`
+	}
+	_ = json.Unmarshal(body, &probe)
+	switch probe.Action {
+	case "", "deposit":
+		handleDeposit(w, body, c, token, userID)
+	case "create_goal":
+		handleCreateGoal(w, body, c, token, userID)
+	case "create_schedule":
+		handleCreateSchedule(w, body, c, token, userID)
+	case "create_proposal":
+		handleCreateProposal(w, body, c, token, userID)
+	case "confirm_proposal":
+		handleProposal(w, body, c, token, userID, true)
+	case "reject_proposal":
+		handleProposal(w, body, c, token, userID, false)
+	default:
+		sb.WriteError(w, http.StatusBadRequest, errors.New("unknown action: "+probe.Action))
 	}
 }
 
@@ -62,15 +94,30 @@ func handleGet(w http.ResponseWriter, c *sb.Client, token, userID string) {
 		sb.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
+	// Goals, schedules, and any pending agent proposals power the Save UI in one call.
+	goals, _ := c.Get("savings_goals?select=*&user_id=eq."+userID+"&order=created_at.desc", token)
+	schedules, _ := c.Get("savings_schedules?select=*&user_id=eq."+userID+"&order=next_run_on.asc", token)
+	proposals, _ := c.Get("agent_proposals?select=*&user_id=eq."+userID+"&status=eq.pending&order=created_at.desc", token)
 	sb.WriteJSON(w, http.StatusOK, map[string]any{
 		"wallet":       wal,
 		"transactions": txs,
+		"goals":        rawOrEmpty(goals),
+		"schedules":    rawOrEmpty(schedules),
+		"proposals":    rawOrEmpty(proposals),
+		"interest_apr": 0.08,
 	})
 }
 
-func handleDeposit(w http.ResponseWriter, r *http.Request, c *sb.Client, token, userID string) {
+func rawOrEmpty(r json.RawMessage) json.RawMessage {
+	if len(r) == 0 {
+		return json.RawMessage("[]")
+	}
+	return r
+}
+
+func handleDeposit(w http.ResponseWriter, body []byte, c *sb.Client, token, userID string) {
 	var req depositReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		sb.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -87,6 +134,10 @@ func handleDeposit(w http.ResponseWriter, r *http.Request, c *sb.Client, token, 
 		sb.WriteError(w, http.StatusBadGateway, err)
 		return
 	}
+	kind := "deposit"
+	if req.GoalID != "" {
+		kind = "goal_deposit"
+	}
 	tx := map[string]any{
 		"user_id":    userID,
 		"wallet_id":  wal.ID,
@@ -95,6 +146,7 @@ func handleDeposit(w http.ResponseWriter, r *http.Request, c *sb.Client, token, 
 		"amount_rwf": req.AmountRWF,
 		"direction":  "in",
 		"status":     "completed",
+		"kind":       kind,
 	}
 	if _, err := c.Post("transactions", token, tx, "return=representation"); err != nil {
 		sb.WriteError(w, http.StatusBadGateway, err)
@@ -104,6 +156,9 @@ func handleDeposit(w http.ResponseWriter, r *http.Request, c *sb.Client, token, 
 	if _, err := c.Patch("wallets?id=eq."+wal.ID, token, map[string]any{"savings_rwf": newSavings}, "return=representation"); err != nil {
 		sb.WriteError(w, http.StatusBadGateway, err)
 		return
+	}
+	if req.GoalID != "" {
+		bumpGoalProgress(c, token, userID, req.GoalID, req.AmountRWF)
 	}
 	wal.SavingsRWF = newSavings
 	sb.WriteJSON(w, http.StatusOK, map[string]any{"wallet": wal, "ok": true})

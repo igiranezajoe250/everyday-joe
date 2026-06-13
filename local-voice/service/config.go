@@ -22,8 +22,17 @@ type Config struct {
 	// AgentModelRW lets Kinyarwanda chats route to a different local model.
 	// Empty falls back to AgentModel.
 	AgentModelRW string
-	// GoogleAIKey enables online Gemma 3 4B via Google AI Studio.
-	// When set it takes priority over AgentLLMURL (Ollama).
+	// OpenAIBaseURL points at the self-hosted GPU box serving Qwen via an
+	// OpenAI-compatible API (vLLM / TGI). This is the PRIMARY path. Example:
+	// http://gpu-box:8000/v1. Empty disables it.
+	OpenAIBaseURL string
+	// OpenAIKey authenticates the GPU box (vLLM accepts any non-empty token by
+	// default; set a real one if you front it with a gateway).
+	OpenAIKey string
+	// OpenAIModel is the served model id on the GPU box, e.g. "Qwen/Qwen3-8B".
+	OpenAIModel string
+	// GoogleAIKey enables online Gemma 3 4B via Google AI Studio — the FALLBACK
+	// when neither the GPU box nor Ollama answer.
 	GoogleAIKey string
 	// APIBase is the base URL of the Everyday Next.js API (for section agent tool calls).
 	// Defaults to http://localhost:3000 for local dev; set to your Vercel URL in prod.
@@ -44,8 +53,11 @@ func LoadConfig() Config {
 		DigitalUmugandaModel:  env("DIGITAL_UMUGANDA_MODEL", ""),
 		DigitalUmugandaFolder: env("DIGITAL_UMUGANDA_MODEL_DIR", filepath.Join(root, "digital-umuganda")),
 		AgentLLMURL:           env("BOUNTY_LLM_URL", "http://127.0.0.1:11434/api/chat"),
-		AgentModel:            env("BOUNTY_LLM_MODEL", "gemma3:4b"),
+		AgentModel:            env("BOUNTY_LLM_MODEL", "qwen3:8b"),
 		AgentModelRW:          env("BOUNTY_LLM_MODEL_RW", ""),
+		OpenAIBaseURL:         env("LLM_OPENAI_BASE_URL", ""),
+		OpenAIKey:             env("LLM_OPENAI_KEY", "sk-local"),
+		OpenAIModel:           env("LLM_OPENAI_MODEL", "Qwen/Qwen3-8B"),
 		GoogleAIKey:           env("GOOGLE_AI_KEY", ""),
 		APIBase:               env("EVERYDAY_API_BASE", "http://localhost:3000"),
 	}
