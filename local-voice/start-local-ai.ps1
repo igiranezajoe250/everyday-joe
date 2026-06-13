@@ -12,11 +12,22 @@
 # default — no extra config needed for local testing.
 
 param(
-  [string]$Model = "qwen3:8b"
+  [string]$Model = ""   # empty = auto-pick: qwen3:8b > qwen3:4b > gemma3:4b
 )
 
 $ErrorActionPreference = "Stop"
 $svcDir = Join-Path $PSScriptRoot "service"
+
+# Pick the best already-installed model unless one was named. Prefers Qwen (the
+# default brain); falls back to Gemma so Bounty always has something to run.
+function Resolve-Model([string]$requested) {
+  if ($requested) { return $requested }
+  $installed = (& ollama list 2>$null | Out-String)
+  foreach ($m in @("qwen3:8b", "qwen3:4b", "gemma3:4b")) {
+    if ($installed -match [regex]::Escape($m)) { return $m }
+  }
+  return "qwen3:4b"  # nothing installed yet — we'll pull this
+}
 
 function Info($m) { Write-Host "  $m" -ForegroundColor Cyan }
 function Ok($m)   { Write-Host "  $m" -ForegroundColor Green }
@@ -48,6 +59,8 @@ if (-not $ollamaUp) {
 Ok "Ollama is running."
 
 # ── 2. Model ─────────────────────────────────────────────────────────────────
+$Model = Resolve-Model $Model
+Info "Using model: $Model"
 $have = (& ollama list) -match [regex]::Escape($Model)
 if (-not $have) {
   Info "Pulling $Model (one-time download, several GB)..."
