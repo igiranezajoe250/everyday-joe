@@ -68,10 +68,18 @@ func handlePost(w http.ResponseWriter, r *http.Request, c *sb.Client, token, use
 	switch probe.Action {
 	case "", "deposit":
 		handleDeposit(w, body, c, token, userID)
+	case "withdraw":
+		handleWithdraw(w, body, c, token, userID)
 	case "create_goal":
 		handleCreateGoal(w, body, c, token, userID)
+	case "update_goal":
+		handleUpdateGoal(w, body, c, token, userID)
+	case "delete_goal":
+		handleDeleteGoal(w, body, c, token, userID)
 	case "create_schedule":
 		handleCreateSchedule(w, body, c, token, userID)
+	case "cancel_schedule":
+		handleCancelSchedule(w, body, c, token, userID)
 	case "create_proposal":
 		handleCreateProposal(w, body, c, token, userID)
 	case "confirm_proposal":

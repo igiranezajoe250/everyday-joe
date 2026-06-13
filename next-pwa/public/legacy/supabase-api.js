@@ -382,8 +382,20 @@
     if (goalId) body.goal_id = goalId;
     return callService("/api/save", { method: "POST", body: body });
   }
+  async function withdraw(amountRwf, title) {
+    return callService("/api/save", { method: "POST", body: { action: "withdraw", amount_rwf: amountRwf, title: title || "" } });
+  }
   async function createGoal(label, targetRwf, deadline) {
     return callService("/api/save", { method: "POST", body: { action: "create_goal", label: label, target_rwf: targetRwf, deadline: deadline || "" } });
+  }
+  async function updateGoal(goalId, patch) {
+    return callService("/api/save", { method: "POST", body: Object.assign({ action: "update_goal", goal_id: goalId }, patch || {}) });
+  }
+  async function deleteGoal(goalId) {
+    return callService("/api/save", { method: "POST", body: { action: "delete_goal", goal_id: goalId } });
+  }
+  async function cancelSchedule(scheduleId) {
+    return callService("/api/save", { method: "POST", body: { action: "cancel_schedule", schedule_id: scheduleId } });
   }
   async function createSchedule(amountRwf, cadence, goalId) {
     var body = { action: "create_schedule", amount_rwf: amountRwf, cadence: cadence };
@@ -535,8 +547,12 @@
     save: {
       get: getSave,
       deposit: deposit,
+      withdraw: withdraw,
       createGoal: createGoal,
+      updateGoal: updateGoal,
+      deleteGoal: deleteGoal,
       createSchedule: createSchedule,
+      cancelSchedule: cancelSchedule,
       confirmProposal: confirmProposal,
       rejectProposal: rejectProposal,
     },

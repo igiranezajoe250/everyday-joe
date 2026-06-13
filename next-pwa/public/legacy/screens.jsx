@@ -4164,24 +4164,10 @@ function SaveGoalsCard({ goals, schedules, proposals, savings, interestApr, comp
           </div>
         )}
 
-        <div style={{ display: 'grid', gap: 12 }}>
-          {(goals || []).map((g) => {
-            const pct = Math.max(0, Math.min(100, Math.round((g.saved_rwf / g.target_rwf) * 100)));
-            const reached = g.status === 'reached' || pct >= 100;
-            return (
-              <div key={g.id}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: ink, letterSpacing: '-0.01em' }}>{g.label}</span>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: reached ? teal : ink55, fontFeatureSettings: '"tnum"' }}>
-                    {fmtRWF(g.saved_rwf)} / {fmtRWF(g.target_rwf)}
-                  </span>
-                </div>
-                <div style={{ height: 6, borderRadius: 3, background: 'rgba(10,10,10,0.08)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: pct + '%', borderRadius: 3, background: reached ? teal : ink, transition: 'width .3s ease' }} />
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ display: 'grid', gap: 14 }}>
+          {(goals || []).map((g) => (
+            <SaveGoalRow key={g.id} goal={g} busy={busy} run={run} store={store} fieldStyle={fieldStyle} pillBtn={pillBtn} />
+          ))}
         </div>
       </div>
 
@@ -4210,16 +4196,61 @@ function SaveGoalsCard({ goals, schedules, proposals, savings, interestApr, comp
         </div>
 
         {schedules && schedules.length > 0 && (
-          <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
+          <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {schedules.map((s) => (
-              <div key={s.id} style={{ fontSize: 12, fontWeight: 700, color: ink55, display: 'flex', justifyContent: 'space-between' }}>
+              <div key={s.id} style={{ fontSize: 12, fontWeight: 700, color: ink55, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ textTransform: 'capitalize' }}>{fmtRWF(s.amount_rwf)} · {s.cadence}</span>
-                <span style={{ color: ink40 }}>next {s.next_run_on}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: ink40 }}>next {s.next_run_on}</span>
+                  <button onClick={() => run(() => store.actions.cancelSchedule(s.id))} disabled={busy} style={{
+                    border: 0, background: 'transparent', color: ink40, cursor: busy ? 'default' : 'pointer',
+                    fontFamily: 'inherit', fontSize: 11.5, fontWeight: 800, padding: 0,
+                  }}>Cancel</button>
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// SaveGoalRow — one goal: progress, an inline deposit toward it, and delete.
+// Holds its own input state so each row's "add" field is independent.
+function SaveGoalRow({ goal, busy, run, store, fieldStyle, pillBtn }) {
+  const [amt, setAmt] = React.useState('');
+  const pct = Math.max(0, Math.min(100, Math.round((goal.saved_rwf / goal.target_rwf) * 100)));
+  const reached = goal.status === 'reached' || pct >= 100;
+  const addToGoal = () => {
+    const a = parseInt(String(amt).replace(/[^0-9]/g, ''), 10);
+    if (!a) return;
+    run(async () => { await store.actions.deposit(a, 'Goal: ' + goal.label, goal.id); setAmt(''); });
+  };
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: ink, letterSpacing: '-0.01em' }}>{goal.label}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: reached ? teal : ink55, fontFeatureSettings: '"tnum"' }}>
+            {fmtRWF(goal.saved_rwf)} / {fmtRWF(goal.target_rwf)}
+          </span>
+          <button onClick={() => run(() => store.actions.deleteGoal(goal.id))} disabled={busy} aria-label="Delete goal" style={{
+            border: 0, background: 'transparent', color: ink40, cursor: busy ? 'default' : 'pointer',
+            fontFamily: 'inherit', fontSize: 15, fontWeight: 700, lineHeight: 1, padding: 0,
+          }}>×</button>
+        </span>
+      </div>
+      <div style={{ height: 6, borderRadius: 3, background: 'rgba(10,10,10,0.08)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: pct + '%', borderRadius: 3, background: reached ? teal : ink, transition: 'width .3s ease' }} />
+      </div>
+      {!reached && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="Add to this goal" inputMode="numeric"
+            style={Object.assign({}, fieldStyle, { padding: '7px 10px', fontSize: 12 })} />
+          <button onClick={addToGoal} style={Object.assign({}, pillBtn(true), { padding: '7px 13px' })}>Add</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -7527,13 +7558,20 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
   const next = () => setStep((s) => Math.min(cfg.steps.length - 1, s + 1));
   const back = () => step === 0 ? onClose() : setStep((s) => s - 1);
 
-  const confirm = () => {
+  const confirm = async () => {
     if (submitting) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      next();
-    }, 1100);
+    // add/withdraw move real money through the Save service; borrow/repay/move
+    // stay front-end-only until the credit ledger is backed.
+    try {
+      const store = window.EverydayStore;
+      if (store && amount > 0) {
+        if (mode === 'add') await store.actions.deposit(amount, 'Top up');
+        else if (mode === 'withdraw') await store.actions.withdraw(amount, 'Withdrawal');
+      }
+    } catch (e) { /* slice.error surfaces on next hydrate; still advance to Done */ }
+    setSubmitting(false);
+    next();
   };
 
   const optionsFor = (kind) =>

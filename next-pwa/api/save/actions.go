@@ -71,6 +71,116 @@ func bumpGoalProgress(c *sb.Client, token, userID, goalID string, amount int) {
 	c.Patch("savings_goals?id=eq."+goalID+"&user_id=eq."+userID, token, patch, "")
 }
 
+// handleWithdraw moves money out of savings, guarding against overdrawing.
+func handleWithdraw(w http.ResponseWriter, body []byte, c *sb.Client, token, userID string) {
+	var req struct {
+		AmountRWF int    `json:"amount_rwf"`
+		Title     string `json:"title"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		sb.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	if req.AmountRWF <= 0 {
+		sb.WriteError(w, http.StatusBadRequest, errors.New("amount_rwf must be positive"))
+		return
+	}
+	wal, err := ensureWallet(c, token, userID)
+	if err != nil {
+		sb.WriteError(w, http.StatusBadGateway, err)
+		return
+	}
+	if req.AmountRWF > wal.SavingsRWF {
+		sb.WriteError(w, http.StatusBadRequest, errors.New("amount exceeds savings balance"))
+		return
+	}
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		title = "Withdrawal"
+	}
+	tx := map[string]any{
+		"user_id": userID, "wallet_id": wal.ID, "section": "save",
+		"title": title, "amount_rwf": req.AmountRWF, "direction": "out",
+		"status": "completed", "kind": "withdraw",
+	}
+	if _, err := c.Post("transactions", token, tx, "return=representation"); err != nil {
+		sb.WriteError(w, http.StatusBadGateway, err)
+		return
+	}
+	newSavings := wal.SavingsRWF - req.AmountRWF
+	if _, err := c.Patch("wallets?id=eq."+wal.ID, token, map[string]any{"savings_rwf": newSavings}, "return=representation"); err != nil {
+		sb.WriteError(w, http.StatusBadGateway, err)
+		return
+	}
+	wal.SavingsRWF = newSavings
+	sb.WriteJSON(w, http.StatusOK, map[string]any{"wallet": wal, "ok": true})
+}
+
+// handleUpdateGoal edits a goal's label, target, or deadline.
+func handleUpdateGoal(w http.ResponseWriter, body []byte, c *sb.Client, token, userID string) {
+	var req struct {
+		GoalID    string `json:"goal_id"`
+		Label     string `json:"label,omitempty"`
+		TargetRWF int    `json:"target_rwf,omitempty"`
+		Deadline  string `json:"deadline,omitempty"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil || strings.TrimSpace(req.GoalID) == "" {
+		sb.WriteError(w, http.StatusBadRequest, errors.New("goal_id required"))
+		return
+	}
+	patch := map[string]any{}
+	if strings.TrimSpace(req.Label) != "" {
+		patch["label"] = strings.TrimSpace(req.Label)
+	}
+	if req.TargetRWF > 0 {
+		patch["target_rwf"] = req.TargetRWF
+	}
+	if strings.TrimSpace(req.Deadline) != "" {
+		patch["deadline"] = strings.TrimSpace(req.Deadline)
+	}
+	if len(patch) == 0 {
+		sb.WriteError(w, http.StatusBadRequest, errors.New("nothing to update"))
+		return
+	}
+	if _, err := c.Patch("savings_goals?id=eq."+req.GoalID+"&user_id=eq."+userID, token, patch, "return=representation"); err != nil {
+		sb.WriteError(w, http.StatusBadGateway, err)
+		return
+	}
+	sb.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// handleDeleteGoal removes a goal. RLS scopes the delete to the owner.
+func handleDeleteGoal(w http.ResponseWriter, body []byte, c *sb.Client, token, userID string) {
+	var req struct {
+		GoalID string `json:"goal_id"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil || strings.TrimSpace(req.GoalID) == "" {
+		sb.WriteError(w, http.StatusBadRequest, errors.New("goal_id required"))
+		return
+	}
+	if err := c.Delete("savings_goals?id=eq."+req.GoalID+"&user_id=eq."+userID, token); err != nil {
+		sb.WriteError(w, http.StatusBadGateway, err)
+		return
+	}
+	sb.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// handleCancelSchedule stops a recurring auto-save.
+func handleCancelSchedule(w http.ResponseWriter, body []byte, c *sb.Client, token, userID string) {
+	var req struct {
+		ScheduleID string `json:"schedule_id"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil || strings.TrimSpace(req.ScheduleID) == "" {
+		sb.WriteError(w, http.StatusBadRequest, errors.New("schedule_id required"))
+		return
+	}
+	if err := c.Delete("savings_schedules?id=eq."+req.ScheduleID+"&user_id=eq."+userID, token); err != nil {
+		sb.WriteError(w, http.StatusBadGateway, err)
+		return
+	}
+	sb.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 // ── Schedules ─────────────────────────────────────────────────────────────────
 
 type createScheduleReq struct {

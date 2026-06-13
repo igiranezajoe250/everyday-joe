@@ -163,8 +163,28 @@
     await hydrateSave();
     return res;
   }
+  async function withdraw(amountRwf, title) {
+    var res = await window.EverydayAPI.save.withdraw(amountRwf, title);
+    await hydrateSave();
+    return res;
+  }
   async function createGoal(label, targetRwf, deadline) {
     var res = await window.EverydayAPI.save.createGoal(label, targetRwf, deadline);
+    await hydrateSave();
+    return res;
+  }
+  async function updateGoal(goalId, patch) {
+    var res = await window.EverydayAPI.save.updateGoal(goalId, patch);
+    await hydrateSave();
+    return res;
+  }
+  async function deleteGoal(goalId) {
+    var res = await window.EverydayAPI.save.deleteGoal(goalId);
+    await hydrateSave();
+    return res;
+  }
+  async function cancelSchedule(scheduleId) {
+    var res = await window.EverydayAPI.save.cancelSchedule(scheduleId);
     await hydrateSave();
     return res;
   }
@@ -213,8 +233,12 @@
     },
     actions: {
       deposit: deposit,
+      withdraw: withdraw,
       createGoal: createGoal,
+      updateGoal: updateGoal,
+      deleteGoal: deleteGoal,
       createSchedule: createSchedule,
+      cancelSchedule: cancelSchedule,
       confirmProposal: confirmProposal,
       rejectProposal: rejectProposal,
       order: order,
