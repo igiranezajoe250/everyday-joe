@@ -499,10 +499,14 @@ function App() {
 
           {inboxOpen && <NotificationsPanel onClose={() => setInboxOpen(false)} />}
 
-          <BountyButton
-            onOpen={() => { pkHaptic('select'); setBountyOpen(true); }}
-            bottomOffset={bountyBottomOffset}
-          />
+          {/* The hub already has a centre Bounty button, so hide the floating
+              FAB there; keep it on every other screen as the global entry. */}
+          {route !== 'hub' && (
+            <BountyButton
+              onOpen={() => { pkHaptic('select'); setBountyOpen(true); }}
+              bottomOffset={bountyBottomOffset}
+            />
+          )}
 
           {bountyOpen && (
             <BountyPanel

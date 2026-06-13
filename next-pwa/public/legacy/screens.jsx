@@ -885,24 +885,9 @@ function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, on
           What would you like to do today?
         </div>
 
-        {/* Ask-anything input — Enter sends straight to Bounty */}
+        {/* Two buttons: Bounty (primary, centre) next to Menu */}
         <div style={{ width: '100%', maxWidth: 640, position: 'relative' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center',
-            background: paper, border: `1px solid ${focus ? ink : ink12}`,
-            borderRadius: 16, padding: '4px 6px 4px 16px',
-            boxShadow: focus ? '0 12px 34px rgba(10,10,10,0.07)' : '0 1px 0 rgba(10,10,10,0.02)',
-            transition: 'border-color 180ms ease, box-shadow 180ms ease',
-          }}>
-            <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
-              onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); askBounty(); } }}
-              placeholder="Ask Bounty or tell it what you want" enterKeyHint="go"
-              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '12px 0' }} />
-          </div>
-
-          {/* Two buttons: Bounty (primary, centre) next to Menu */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             <button onClick={askBounty} aria-label="Ask Bounty" style={{
               height: 46, padding: '0 24px', borderRadius: 999, border: 0,
               background: ink, color: paper, cursor: 'pointer',
@@ -929,7 +914,7 @@ function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, on
           {menuOpen && (
             <React.Fragment>
               <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-              <div className="pk-rise" style={{ position: 'absolute', top: 132, left: 'calc(50% - 140px)', zIndex: 41, width: 280, maxWidth: '90vw', background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
+              <div className="pk-rise" style={{ position: 'absolute', bottom: 62, left: 'calc(50% - 140px)', zIndex: 41, width: 280, maxWidth: '90vw', background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 -18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
                 {sections.map((s) => (
                   <button key={s.key} onClick={() => goSection(s)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10, transition: 'background 140ms ease' }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = ink06; }}
