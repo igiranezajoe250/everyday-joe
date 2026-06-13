@@ -842,64 +842,34 @@ function buildHomeSuggestions(nav) {
 
 function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenBounty, onOpenNote }) {
   const [text, setText] = React.useState('');
-  const [modeOpen, setModeOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
-  const [target, setTarget] = React.useState('bounty');
   const inputRef = React.useRef(null);
-  const ready = text.trim().length > 0;
 
-  const targets = [
-    { key: 'bounty',  label: 'Bounty',  sub: 'Anywhere in the app',   icon: 'bounty',  run: null },
-    { key: 'shop',    label: 'Shop',    sub: 'Find trusted shops',    icon: 'shop',    run: onShop },
-    { key: 'save',    label: 'Save',    sub: 'Track savings',         icon: 'save',    run: onSave },
-    { key: 'pay',     label: 'Pay',     sub: 'Pay or schedule',       icon: 'pay',     run: onPay },
-    { key: 'plan',    label: 'Plan',    sub: 'Notes and files',       icon: 'note',    run: onPlan },
-    { key: 'listen',  label: 'Listen',  sub: 'Channels and shows',    icon: 'listen',  run: onListen },
-    { key: 'commute', label: 'Commute', sub: 'Book a ride',           icon: 'commute', run: onCommute },
+  // The six sections the Menu opens. Bounty is its own button, not a list item.
+  const sections = [
+    { key: 'shop',    label: 'Shop',    sub: 'Find trusted shops',  icon: 'shop',    run: onShop },
+    { key: 'save',    label: 'Save',    sub: 'Track savings',       icon: 'save',    run: onSave },
+    { key: 'pay',     label: 'Pay',     sub: 'Pay or schedule',     icon: 'pay',     run: onPay },
+    { key: 'plan',    label: 'Plan',    sub: 'Notes and files',     icon: 'note',    run: onPlan },
+    { key: 'listen',  label: 'Listen',  sub: 'Channels and shows',  icon: 'listen',  run: onListen },
+    { key: 'commute', label: 'Commute', sub: 'Book a ride',         icon: 'commute', run: onCommute },
   ];
-  const current = targets.find((t) => t.key === target) || targets[0];
-  const isBounty = current.key === 'bounty';
-  const placeholder = isBounty ? 'Ask anything' : `Ask about ${current.label}`;
 
-  const submit = () => {
+  // Ask Bounty with whatever's typed (empty just opens the panel). Bounty is the
+  // single conversational entry point — no mic / image / upload / send clutter.
+  const askBounty = () => {
     const t = text.trim();
-    if (!t) return;
     pkHaptic('medium');
-    // Bounty handles text through the agent panel; specific targets go to Plan capture.
-    if (isBounty && onOpenBounty) {
-      try { window.__EVERYDAY_BOUNTY_PRELOAD__ = { text: t }; } catch (e) {}
-      onOpenBounty();
-    } else {
-      onCapture({ mode: 'write', text: t, target: current.key });
-    }
+    try { window.__EVERYDAY_BOUNTY_PRELOAD__ = t ? { text: t } : null; } catch (e) {}
+    if (onOpenBounty) onOpenBounty();
     setText('');
   };
-  const pickTarget = (k) => {
+  const goSection = (s) => {
     pkHaptic('select');
-    setTarget(k);
-    setModeOpen(false);
-    if (inputRef.current) inputRef.current.focus();
+    setMenuOpen(false);
+    if (s.run) s.run();
   };
-  const openTarget = () => {
-    if (current.run) { pkHaptic('select'); current.run(); }
-  };
-  const triggerMode = (m) => {
-    pkHaptic('select');
-    // Voice/image/upload for Bounty open the Bounty panel where the mic and
-    // attachment flow live; specific targets route into the Plan capture pad.
-    if (isBounty && onOpenBounty) {
-      try { window.__EVERYDAY_BOUNTY_PRELOAD__ = { mode: m }; } catch (e) {}
-      onOpenBounty();
-    } else {
-      onCapture({ mode: m, target: current.key });
-    }
-  };
-
-  const inlineModes = [
-    { key: 'voice',  label: 'Voice',  icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>) },
-    { key: 'image',  label: 'Image',  icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-7 7"/></svg>) },
-    { key: 'upload', label: 'Upload', icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>) },
-  ];
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative', overflow: 'hidden' }}>
@@ -908,85 +878,72 @@ function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, on
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
       </div>
 
-      {/* Centre: greeting + the Ask-anything bar */}
+      {/* Centre: greeting, one input, then Bounty + Menu */}
       <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: web ? '0 28px' : '0 18px', textAlign: 'center' }}>
         <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, {everydayFirstName(profile)}</div>
         <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 320, marginBottom: 30 }}>
           What would you like to do today?
         </div>
 
-        {/* Ask-anything bar */}
-        <div style={{ width: '100%', maxWidth: 680, position: 'relative' }}>
+        {/* Ask-anything input — Enter sends straight to Bounty */}
+        <div style={{ width: '100%', maxWidth: 640, position: 'relative' }}>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
+            display: 'flex', alignItems: 'center',
             background: paper, border: `1px solid ${focus ? ink : ink12}`,
-            borderRadius: 16, padding: '7px 8px 7px 8px',
+            borderRadius: 16, padding: '4px 6px 4px 16px',
             boxShadow: focus ? '0 12px 34px rgba(10,10,10,0.07)' : '0 1px 0 rgba(10,10,10,0.02)',
             transition: 'border-color 180ms ease, box-shadow 180ms ease',
           }}>
-            {/* Target selector */}
-            <button onClick={() => { pkHaptic('select'); setModeOpen((o) => !o); }} aria-label="Choose destination" aria-haspopup="menu" aria-expanded={modeOpen} style={{ flexShrink: 0, height: 36, padding: '0 8px 0 13px', borderRadius: 999, border: 0, background: ink06, color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>
-              {current.label}
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: modeOpen ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M4 6l4 4 4-4"/></svg>
-            </button>
-
-            {/* Open shortcut — only when a specific section is chosen */}
-            {!isBounty && (
-              <button onClick={openTarget} aria-label={`Open ${current.label}`} style={{ flexShrink: 0, height: 36, padding: '0 12px', borderRadius: 999, border: `1px solid ${ink12}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, transition: 'background 160ms ease, border-color 160ms ease' }}>
-                Open
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-              </button>
-            )}
-
             <input ref={inputRef} value={text} onChange={(e) => setText(e.target.value)}
               onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
-              placeholder={placeholder} enterKeyHint="go"
-              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '0 6px' }} />
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); askBounty(); } }}
+              placeholder="Ask Bounty or tell it what you want" enterKeyHint="go"
+              style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, padding: '12px 0' }} />
+          </div>
 
-            {/* Inline mode icons — voice / image / upload */}
-            <span style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-              {inlineModes.map((m) => (
-                <button key={m.key} onClick={() => triggerMode(m.key)} aria-label={m.label} title={m.label} style={{ width: 34, height: 34, borderRadius: 999, border: 0, background: 'transparent', color: ink55, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 160ms ease, background 160ms ease' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = ink; e.currentTarget.style.background = ink06; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = ink55; e.currentTarget.style.background = 'transparent'; }}>
-                  {m.icon}
-                </button>
-              ))}
-            </span>
+          {/* Two buttons: Bounty (primary, centre) next to Menu */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 16 }}>
+            <button onClick={askBounty} aria-label="Ask Bounty" style={{
+              height: 46, padding: '0 24px', borderRadius: 999, border: 0,
+              background: ink, color: paper, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontFamily: 'inherit', fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
+              boxShadow: '0 12px 28px rgba(10,10,10,0.16)',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
+              Bounty
+            </button>
 
-            {/* Send — far right */}
-            <button onClick={submit} disabled={!ready} aria-label="Send" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 999, border: 0, background: ready ? ink : 'transparent', color: ready ? paper : ink25, cursor: ready ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 160ms ease, color 160ms ease' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <button onClick={() => { pkHaptic('select'); setMenuOpen((o) => !o); }} aria-label="Open menu" aria-haspopup="menu" aria-expanded={menuOpen} style={{
+              height: 46, padding: '0 20px', borderRadius: 999,
+              border: `1px solid ${ink12}`, background: 'transparent', color: ink, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontFamily: 'inherit', fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
+            }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+              Menu
             </button>
           </div>
 
-          {/* Destinations popover */}
-          {modeOpen && (
+          {/* Menu popover — go straight to any section */}
+          {menuOpen && (
             <React.Fragment>
-              <div onClick={() => setModeOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-              <div className="pk-rise" style={{ position: 'absolute', top: 56, left: 0, zIndex: 41, minWidth: 260, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
-                {targets.map((t) => {
-                  const on = t.key === target;
-                  return (
-                    <button key={t.key} onClick={() => pickTarget(t.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: on ? ink06 : 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10, transition: 'background 140ms ease' }}
-                      onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = ink06; }}
-                      onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent'; }}>
-                      <span style={{ color: ink, display: 'flex', flexShrink: 0 }}>
-                        {t.key === 'bounty' ? (
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
-                        ) : (
-                          <HomeIcon kind={t.icon} size={17} />
-                        )}
-                      </span>
-                      <span style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{t.label}</span>
-                        <span style={{ display: 'block', fontSize: 11.5, color: ink40, fontWeight: 500, marginTop: 1 }}>{t.sub}</span>
-                      </span>
-                      {t.key === 'bounty' && <span style={{ marginLeft: 'auto', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: ink40, flexShrink: 0 }}>Default</span>}
-                    </button>
-                  );
-                })}
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+              <div className="pk-rise" style={{ position: 'absolute', top: 132, left: 'calc(50% - 140px)', zIndex: 41, width: 280, maxWidth: '90vw', background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
+                {sections.map((s) => (
+                  <button key={s.key} onClick={() => goSection(s)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10, transition: 'background 140ms ease' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = ink06; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                    <span style={{ color: ink, display: 'flex', flexShrink: 0 }}>
+                      <HomeIcon kind={s.icon} size={18} />
+                    </span>
+                    <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
+                      <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: ink }}>{s.label}</span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: ink40, fontWeight: 500, marginTop: 1 }}>{s.sub}</span>
+                    </span>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>
+                  </button>
+                ))}
               </div>
             </React.Fragment>
           )}
