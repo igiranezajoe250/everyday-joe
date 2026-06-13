@@ -570,7 +570,7 @@ function BountyButton({ onOpen, bottomOffset = 18 }) {
 }
 
 function BountyPanel({ onClose, onRoute }) {
-  const first = { id: 'b0', role: 'assistant', text: 'Tell me what you want to do. I can help with Moto, Shop, Pay, Save, Plan, or Listen.' };
+  const first = { id: 'b0', role: 'assistant', text: 'What are you planning today? Tell me — by voice or text — and I’ll lay out the steps across Save, Pay, Commute, and Shop.' };
   const [messages, setMessages] = usePersisted('bounty_messages', [first]);
   const newChat = () => { setMessages([{ ...first, id: 'b' + Date.now() }]); setInput(''); setError(''); };
   const [input, setInput] = React.useState('');
@@ -619,6 +619,7 @@ function BountyPanel({ onClose, onRoute }) {
       text: data.text,
       route: data.route,
       action: data.action,
+      plan: data.plan,
       model: data.model,
     };
     setMessages([...base, reply]);
@@ -735,10 +736,11 @@ function BountyPanel({ onClose, onRoute }) {
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: compact ? '12px 18px 12px' : '18px 20px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {messages.map((m) => {
             const mine = m.role === 'user';
+            const hasPlan = m.plan && Array.isArray(m.plan.steps) && m.plan.steps.length > 0;
             return (
-              <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+              <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', gap: 8 }}>
                 <div style={{
-                  maxWidth: compact ? '86%' : '82%',
+                  maxWidth: hasPlan ? '100%' : (compact ? '86%' : '82%'),
                   background: mine ? ink : paper,
                   color: mine ? paper : ink,
                   border: mine ? 0 : `1px solid ${ink12}`,
@@ -765,6 +767,7 @@ function BountyPanel({ onClose, onRoute }) {
                     }}>{m.action}</button>
                   )}
                 </div>
+                {hasPlan && <BountyPlanCard plan={m.plan} onStep={handleRoute} />}
               </div>
             );
           })}
@@ -792,6 +795,49 @@ function BountyPanel({ onClose, onRoute }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// BountyPlanCard renders a Bounty plan as a numbered checklist. Each step opens
+// the section flow that completes it — money still moves only inside Save/Pay's
+// own confirm screens, so the plan hands off rather than executing silently.
+function BountyPlanCard({ plan, onStep }) {
+  const meta = {
+    save:    { label: 'Save',    icon: 'save' },
+    pay:     { label: 'Pay',     icon: 'pay' },
+    commute: { label: 'Commute', icon: 'commute' },
+    shop:    { label: 'Shop',    icon: 'shop' },
+  };
+  return (
+    <div style={{ width: '100%', background: paper, border: `1px solid ${ink12}`, borderRadius: 18, padding: '12px 13px', boxShadow: '0 1px 0 rgba(10,10,10,0.02)' }}>
+      {plan.goal && (
+        <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, marginBottom: 9 }}>Plan · {plan.goal}</div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {plan.steps.map((s, i) => {
+          const mt = meta[s.section] || { label: s.section, icon: 'shop' };
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: ink06, color: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, marginTop: 1 }}>{i + 1}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 680, color: ink, lineHeight: 1.35 }}>{s.title}</div>
+                {s.detail && <div style={{ fontSize: 12.5, color: ink40, lineHeight: 1.4, marginTop: 1 }}>{s.detail}</div>}
+                <button onClick={() => onStep(s.section)} style={{ marginTop: 6, height: 28, padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 999, border: `1px solid ${ink12}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 720 }}>
+                  <HomeIcon kind={mt.icon} size={13} color="currentColor" />
+                  Open {mt.label}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {plan.note && (
+        <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${ink06}`, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span style={{ flexShrink: 0, marginTop: 1, color: ink }}><HomeIcon kind="save" size={14} color="currentColor" /></span>
+          <div style={{ fontSize: 12.5, color: ink, lineHeight: 1.4 }}>{plan.note}</div>
+        </div>
+      )}
     </div>
   );
 }

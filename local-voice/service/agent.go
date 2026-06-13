@@ -23,11 +23,12 @@ type agentRequest struct {
 }
 
 type agentResponse struct {
-	Language string `json:"language"`
-	Model    string `json:"model"`
-	Text     string `json:"text"`
-	Route    string `json:"route,omitempty"`
-	Action   string `json:"action,omitempty"`
+	Language string      `json:"language"`
+	Model    string      `json:"model"`
+	Text     string      `json:"text"`
+	Route    string      `json:"route,omitempty"`
+	Action   string      `json:"action,omitempty"`
+	Plan     *bountyPlan `json:"plan,omitempty"`
 }
 
 // ── Ollama types ──────────────────────────────────────────────────────────────
@@ -95,32 +96,37 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 		lang := normalizeLanguage(req.Language)
 		route, action, fallback := inferBountyIntent(msg, lang)
 		text, model := fallback, "bounty-local"
+		var plan *bountyPlan
 
-		// A2A dispatch: delegate to the section agent if intent is clear
-		if route != "" {
-			if agent, ok := agents[route]; ok {
-				task := agent.Handle(cfg, a2aTaskSend{
-					ID:      fmt.Sprintf("bounty-%d", time.Now().UnixMilli()),
-					Message: a2aMsg{Role: "user", Parts: []a2aPart{{Type: "text", Text: msg}}},
-					Context: req.Context,
-				})
-				if len(task.Artifacts) > 0 && len(task.Artifacts[0].Parts) > 0 {
-					text = task.Artifacts[0].Parts[0].Text
-					model = "gemma3-" + route
-				}
+		// Plan-first: ask the model to decompose the goal into a cross-section
+		// plan. A clean plan block supersedes single-section routing; a plain
+		// answer (no block) is reused as the reply so questions still work.
+		p, clean, plannerReply := runPlanner(cfg, req, lang)
+		if p != nil {
+			plan, model = p, "bounty-planner"
+			route, action = "", "" // a plan replaces the single Open-X button
+			if text = clean; text == "" {
+				text = "Here's a plan to get this done."
 			}
-		} else {
-			// No clear section route — use Bounty's own Gemma 3 call
-			system := buildBountyPrompt(req, lang)
-			switch {
-			case cfg.GoogleAIKey != "":
-				if reply, err := callGemma3Online(cfg, system, msg, req.History); err == nil && strings.TrimSpace(reply) != "" {
-					text, model = strings.TrimSpace(reply), "gemma-3-4b-it"
+		}
+
+		// No plan: delegate to the section agent when intent is clear (keeps the
+		// Save propose→confirm flow), else use the planner's plain answer.
+		if plan == nil {
+			if route != "" {
+				if agent, ok := agents[route]; ok {
+					task := agent.Handle(cfg, a2aTaskSend{
+						ID:      fmt.Sprintf("bounty-%d", time.Now().UnixMilli()),
+						Message: a2aMsg{Role: "user", Parts: []a2aPart{{Type: "text", Text: msg}}},
+						Context: req.Context,
+					})
+					if len(task.Artifacts) > 0 && len(task.Artifacts[0].Parts) > 0 {
+						text = task.Artifacts[0].Parts[0].Text
+						model = "gemma3-" + route
+					}
 				}
-			case cfg.AgentLLMURL != "":
-				if reply, err := callGemma3Local(cfg, system, msg, req.History); err == nil && strings.TrimSpace(reply) != "" {
-					text, model = strings.TrimSpace(reply), cfg.AgentModel
-				}
+			} else if plannerReply != "" {
+				text, model = plannerReply, cfg.AgentModel
 			}
 		}
 
@@ -130,6 +136,7 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 			Text:     text,
 			Route:    route,
 			Action:   action,
+			Plan:     plan,
 		})
 	}
 }
