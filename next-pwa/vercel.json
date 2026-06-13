@@ -4,5 +4,9 @@
       "path": "/api/cron/interest",
       "schedule": "0 0 * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/.well-known/ucp", "destination": "/api/ucp?ucp_path=.well-known" },
+    { "source": "/api/ucp/:path*", "destination": "/api/ucp?ucp_path=:path*" }
   ]
 }

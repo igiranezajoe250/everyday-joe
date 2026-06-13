@@ -452,6 +452,38 @@
     return callService("/api/shop", { method: "POST", body: { product_id: productId, quantity: quantity || 1 } });
   }
 
+  // UCP commerce — /api/ucp (Universal Commerce Protocol: checkout + order).
+  // Shop now checks out through UCP; Everyday is Merchant of Record and settles
+  // the total against the wallet. line_items: [{ product_id, quantity }].
+  async function ucpDiscovery() {
+    return callService("/.well-known/ucp");
+  }
+  async function ucpCreateCheckout(lineItems, fulfillment) {
+    return callService("/api/ucp/checkout-sessions", {
+      method: "POST",
+      body: { checkout: { line_items: lineItems || [], fulfillment: fulfillment || { type: "delivery" } } },
+    });
+  }
+  async function ucpGetCheckout(id) {
+    return callService("/api/ucp/checkout-sessions/" + encodeURIComponent(id));
+  }
+  async function ucpUpdateCheckout(id, patch) {
+    return callService("/api/ucp/checkout-sessions/" + encodeURIComponent(id), { method: "PATCH", body: patch || {} });
+  }
+  async function ucpCompleteCheckout(id) {
+    return callService("/api/ucp/checkout-sessions/" + encodeURIComponent(id) + "/complete", { method: "POST", body: {} });
+  }
+  async function ucpGetOrder(id) {
+    return callService("/api/ucp/orders/" + encodeURIComponent(id));
+  }
+  // One-shot purchase: create a session then complete it. Returns the completed
+  // session including the created order.
+  async function ucpCheckout(lineItems, fulfillment) {
+    var session = await ucpCreateCheckout(lineItems, fulfillment);
+    if (!session || !session.id) throw new Error("Could not start checkout");
+    return ucpCompleteCheckout(session.id);
+  }
+
   // Pay service — /api/pay
   async function getPay() {
     return callService("/api/pay");
@@ -558,7 +590,17 @@
     },
     shop: {
       list: listShop,
-      order: placeOrder,
+      order: placeOrder, // legacy single-product order (kept for fallback)
+      checkout: ucpCheckout, // UCP one-shot checkout
+    },
+    ucp: {
+      discovery: ucpDiscovery,
+      createCheckout: ucpCreateCheckout,
+      getCheckout: ucpGetCheckout,
+      updateCheckout: ucpUpdateCheckout,
+      completeCheckout: ucpCompleteCheckout,
+      checkout: ucpCheckout,
+      getOrder: ucpGetOrder,
     },
     pay: {
       get: getPay,
