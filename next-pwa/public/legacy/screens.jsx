@@ -1237,10 +1237,37 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
   const [error, setError] = React.useState('');
   const [order, setOrder] = React.useState(null);
 
+  // A product is purchasable only when it carries a real catalog id. The sample
+  // catalog (shown on cold-load / offline / shops with no listed products) has
+  // no id, so it must never reach a real wallet charge — we surface a clear
+  // "not available" state instead of a checkout that would fail or mischarge.
+  const purchasable = !!product.id;
+
   const deliveryFee = fulfillment === 'delivery' ? 1000 : 0;
   const subtotal = product.price_rwf || 0;
   const total = subtotal + deliveryFee;
   const fmtAmt = (n) => n.toLocaleString('en-RW') + ' RWF';
+
+  // Sample item — no live listing behind it. Show an honest preview state with
+  // a single way out, never a fake order or a silent charge attempt.
+  if (!purchasable) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>{shop.name}</span>} />
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '40px 44px 96px' : '32px 24px 96px' }}>
+          <div style={{ width: '100%', maxWidth: web ? 560 : 420, margin: '0 auto' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 999, background: '#E5A10018', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E5A100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            </div>
+            <div style={{ fontSize: web ? 34 : 27, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.08, color: ink }}>Sample item.</div>
+            <div style={{ fontSize: 14.5, color: ink55, marginTop: 12, fontWeight: 500, lineHeight: 1.5 }}>{product.name} is part of {shop.name}'s preview catalogue. The shop hasn't listed it for online purchase yet, so it can't be bought right now.</div>
+            <div style={{ fontSize: 13.5, color: ink40, marginTop: 14, fontWeight: 500, lineHeight: 1.5 }}>When the shop publishes its live catalogue, items become available to buy with your Everyday Wallet.</div>
+            <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Shop</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const pay = async () => {
     if (busy) return;
@@ -1462,6 +1489,9 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
             {displayed.map((p, i) => {
               const outOfStock = (p.stock != null && p.stock <= 0);
               const lowStock = !outOfStock && p.stock != null && p.stock <= 5;
+              // Sample items (preview catalogue) have no live id — they open an
+              // explainer rather than a real checkout, so flag them up front.
+              const sample = !p.id;
               return (
                 <button key={p.id || p.name || i} disabled={outOfStock} onClick={() => !outOfStock && onBuy(p, shop)}
                   style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px solid ${ink12}`, background: 'transparent', cursor: outOfStock ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14, opacity: outOfStock ? 0.4 : 1 }}>
@@ -1477,6 +1507,7 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
                       <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
                       {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E53935', background: '#E5393512', padding: '2px 7px', borderRadius: 999 }}>Out of stock</span>}
                       {lowStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 7px', borderRadius: 999 }}>Only {p.stock} left</span>}
+                      {!outOfStock && sample && <span style={{ fontSize: 10, fontWeight: 700, color: ink55, background: ink06, padding: '2px 7px', borderRadius: 999 }}>Sample</span>}
                     </span>
                   </span>
                   {!outOfStock && <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>}
