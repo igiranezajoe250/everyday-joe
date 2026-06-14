@@ -3125,24 +3125,30 @@ function PayScreen({ web, onBack }) {
   const [payError, setPayError] = React.useState('');
   const submitPayment = async () => {
     if (!canPay || payBusy) return;
-    const recipientName = recipient ? recipient.name : recipientText.trim();
+    // The transfer resolves the recipient by phone or email — pass an identifier,
+    // not a display name. A picked contact carries its phone; otherwise use the
+    // typed text (the user enters a phone or email).
+    const recipientId = recipient ? (recipient.phone || recipient.name) : recipientText.trim();
+    const recipientLabel = recipient ? recipient.name : recipientText.trim();
     const amountNumber = parseInt(String(amount).replace(/[^0-9]/g, ''), 10);
     if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
       setPayError('Enter an amount above zero.');
       return;
     }
     setPayError('');
-    // The Pay service settles in RWF. Other display currencies are presentational
-    // until FX is wired in; we pass through the entered amount as RWF for now.
+    // The Pay service settles in RWF as a wallet-to-wallet transfer. Other display
+    // currencies are presentational until FX is wired in; the entered amount is
+    // passed through as RWF for now.
     if (window.EverydayStore) {
       setPayBusy(true);
       try {
-        await window.EverydayStore.actions.pay(amountNumber, recipientName, '');
+        const res = await window.EverydayStore.actions.pay(amountNumber, recipientId, '');
         pkHaptic('success');
         setPaidReceipt({
           amount, currency,
-          recipient: recipientName,
-          id: 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+          // Prefer the name the server resolved (the real Everyday user's name).
+          recipient: (res && res.recipient) || recipientLabel,
+          id: (res && res.tx_id) ? 'EV-' + String(res.tx_id).slice(0, 6).toUpperCase() : 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
         });
       } catch (e) {
         setPayError(e && e.message ? e.message : 'Payment failed. Try again.');
@@ -3151,13 +3157,9 @@ function PayScreen({ web, onBack }) {
       }
       return;
     }
-    // Offline / store unavailable — keep the local receipt path so the UI is testable.
-    pkHaptic('success');
-    setPaidReceipt({
-      amount, currency,
-      recipient: recipientName,
-      id: 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
-    });
+    // No store (signed out / preview) — we can't move real money. Be honest
+    // rather than showing a fake receipt.
+    setPayError('Sign in to send money from your Everyday Wallet.');
   };
   const resetPayment = () => { setAmount(''); setRecipientText(''); setRecipient(null); setContactOpen(false); setPaidReceipt(null); setPayError(''); };
 
@@ -3209,7 +3211,7 @@ function PayScreen({ web, onBack }) {
             <DashField
               label="Amount"
               value={amount}
-              onChange={(v) => setAmount(v.replace(/[^\d]/g, ''))}
+              onChange={(v) => { setAmount(v.replace(/[^\d]/g, '')); if (payError) setPayError(''); }}
               placeholder="0"
               inputMode="numeric"
               big
@@ -3233,9 +3235,9 @@ function PayScreen({ web, onBack }) {
                 <DashField
                   label="To"
                   value={recipientText}
-                  onChange={(v) => { setRecipientText(v); setRecipient(null); setContactOpen(true); }}
+                  onChange={(v) => { setRecipientText(v); setRecipient(null); setContactOpen(true); if (payError) setPayError(''); }}
                   onFocus={() => setContactOpen(true)}
-                  placeholder="Name or phone number"
+                  placeholder="Phone number or email"
                 />
               </div>
               <button onClick={() => setContactOpen((o) => !o)} aria-label="Choose from contacts" style={{
@@ -3275,17 +3277,23 @@ function PayScreen({ web, onBack }) {
           </div>
           {/* Primary action — pinned low, clear of the bottom-centre + */}
           <div style={{ flexShrink: 0, paddingTop: 28, paddingBottom: 96 }}>
-            <button disabled={!canPay} onClick={submitPayment} style={{
+            {payError && (
+              <div style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 14, background: '#C8102E10', border: `1px solid #C8102E22`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <span style={{ fontSize: 13.5, color: '#C8102E', fontWeight: 600, lineHeight: 1.4 }}>{payError}</span>
+              </div>
+            )}
+            <button disabled={!canPay || payBusy} onClick={submitPayment} style={{
               width: '100%', height: 58, borderRadius: 18,
-              background: canPay ? ink : 'transparent',
-              color: canPay ? paper : ink25,
-              border: canPay ? '0' : `2px dashed ${ink12}`,
-              cursor: canPay ? 'pointer' : 'default',
+              background: (canPay && !payBusy) ? ink : (payBusy ? ink40 : 'transparent'),
+              color: (canPay || payBusy) ? paper : ink25,
+              border: (canPay || payBusy) ? '0' : `2px dashed ${ink12}`,
+              cursor: (canPay && !payBusy) ? 'pointer' : 'default',
               fontFamily: 'inherit', fontSize: 16, fontWeight: 760, letterSpacing: '-0.01em',
-              boxShadow: canPay ? '0 18px 40px rgba(10,10,10,0.22)' : 'none',
+              boxShadow: (canPay && !payBusy) ? '0 18px 40px rgba(10,10,10,0.22)' : 'none',
               transition: 'background 200ms ease, color 200ms ease, box-shadow 200ms ease',
             }}>
-              {canPay ? `Pay ${currency} ${Number(amount || 0).toLocaleString('en-US')}` : 'Enter amount to pay'}
+              {payBusy ? 'Sending…' : canPay ? `Pay ${currency} ${Number(amount || 0).toLocaleString('en-US')}` : 'Enter amount to pay'}
             </button>
           </div>
         </div>
