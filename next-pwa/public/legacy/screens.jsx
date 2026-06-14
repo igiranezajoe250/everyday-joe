@@ -7921,24 +7921,39 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
   const [picks, setPicks] = React.useState({});
   // Brief processing state on the final confirm tap.
   const [submitting, setSubmitting] = React.useState(false);
+  const [flowError, setFlowError] = React.useState('');
+
+  // Live wallet — real-money flows (add/withdraw) read the user's actual balance
+  // so we never show a demo figure or a fake success. The pure local-demo
+  // preview (no userId) keeps the front-end-only walkthrough behaviour.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const realAcct = !!(everyday && everyday.userId);
+  const liveWallet = everyday && everyday.save && everyday.save.wallet;
+  const available = realAcct && liveWallet ? (liveWallet.balance_rwf || 0) : null;
+  const overWithdraw = mode === 'withdraw' && available != null && amount > available;
 
   const next = () => setStep((s) => Math.min(cfg.steps.length - 1, s + 1));
-  const back = () => step === 0 ? onClose() : setStep((s) => s - 1);
+  const back = () => { setFlowError(''); return step === 0 ? onClose() : setStep((s) => s - 1); };
 
   const confirm = async () => {
     if (submitting) return;
     setSubmitting(true);
+    setFlowError('');
     // add/withdraw move real money through the Save service; borrow/repay/move
     // stay front-end-only until the credit ledger is backed.
     try {
       const store = window.EverydayStore;
-      if (store && amount > 0) {
+      if (store && realAcct && amount > 0 && (mode === 'add' || mode === 'withdraw')) {
         if (mode === 'add') await store.actions.deposit(amount, 'Top up');
-        else if (mode === 'withdraw') await store.actions.withdraw(amount, 'Withdrawal');
+        else await store.actions.withdraw(amount, 'Withdrawal');
       }
-    } catch (e) { /* slice.error surfaces on next hydrate; still advance to Done */ }
-    setSubmitting(false);
-    next();
+      setSubmitting(false);
+      next();
+    } catch (e) {
+      // A real-money flow failed — never advance to a fake success screen.
+      setSubmitting(false);
+      setFlowError((e && e.message) ? e.message : 'Something went wrong. Please try again.');
+    }
   };
 
   const optionsFor = (kind) =>
@@ -7998,9 +8013,13 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
            key={cfg.steps[step]} className="pk-rise">
         {cfg.steps[step] === 'Amount' && (
           <FlowAmount amount={amount} setAmount={setAmount} title={cfg.title}
+            hintError={overWithdraw}
             hint={
+              overWithdraw      ? `Exceeds available · ${fmtRWF(available)}` :
               mode === 'borrow' ? `Available · ${fmtRWF(CC_CREDIT.available)}` :
               mode === 'repay'  ? `Outstanding · ${fmtRWF(CC_CREDIT.outstanding)}` :
+              (mode === 'withdraw' && available != null) ? `Available · ${fmtRWF(available)}` :
+              (mode === 'add' && available != null)      ? `Wallet · ${fmtRWF(available)}` :
               null
             } />
         )}
@@ -8047,12 +8066,19 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
         background: canvas, borderTop: `1px dashed ${DASH}`,
         padding: '14px 16px max(14px, env(safe-area-inset-bottom, 14px))',
       }}>
+        {flowError && (
+          <div style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 12, background: '#C8102E10', border: `1px solid #C8102E22`, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <span style={{ fontSize: 13, color: '#C8102E', fontWeight: 600, lineHeight: 1.4 }}>{flowError}</span>
+          </div>
+        )}
         {(() => {
           const stepName = cfg.steps[step];
           const isReview = stepName === 'Review';
           const isDone   = stepName === 'Done';
           const blocked =
             (stepName === 'Amount' && amount <= 0) ||
+            (stepName === 'Amount' && overWithdraw) ||
             (cfg.pickers[step] && !picks[step]);
           const onTap = isReview ? confirm : onPrimary;
           if (isDone) {
@@ -8098,7 +8124,7 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
   );
 }
 
-function FlowAmount({ amount, setAmount, title, hint }) {
+function FlowAmount({ amount, setAmount, title, hint, hintError }) {
   const presets = [100000, 250000, 500000, 1000000];
 
   const display = amount > 0
@@ -8140,7 +8166,7 @@ function FlowAmount({ amount, setAmount, title, hint }) {
         </div>
         <div style={{
           fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.1em',
-          color: ink55, marginTop: 14, textTransform: 'uppercase',
+          color: hintError ? '#C8102E' : ink55, marginTop: 14, textTransform: 'uppercase',
         }}>{hint || 'Minimum · RWF 10,000'}</div>
       </div>
 
