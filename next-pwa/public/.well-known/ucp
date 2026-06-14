@@ -1,0 +1,9 @@
+{
+  "version": "2026-04-08",
+  "network": "everyday-wallet",
+  "endpoints": {
+    "checkout_sessions": "/api/ucp/checkout-sessions",
+    "orders": "/api/ucp/orders"
+  },
+  "capabilities": ["checkout", "orders"]
+}

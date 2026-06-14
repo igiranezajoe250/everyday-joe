@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "network": "everyday-wallet",
+  "currency": "RWF",
+  "endpoints": {
+    "discovery": "/api/x402/discovery",
+    "verify": "/api/x402/verify",
+    "settle": "/api/x402/settle"
+  }
+}
