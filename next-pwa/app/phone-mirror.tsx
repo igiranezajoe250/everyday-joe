@@ -42,7 +42,7 @@ export function PhoneMirror({ appUrl }: PhoneMirrorProps) {
         title="Everyday app"
         src={frameSrc}
         className="app-frame"
-        allow="clipboard-read; clipboard-write"
+        allow="clipboard-read; clipboard-write; microphone"
       />
     </main>
   );

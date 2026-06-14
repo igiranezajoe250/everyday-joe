@@ -1228,6 +1228,190 @@ function SearchSurface({ value, onChange, placeholder, modes = [] }) {
   );
 }
 
+function ShopCheckoutFlow({ product, shop, web, onBack }) {
+  // 3 steps: fulfillment → review → done
+  const [step, setStep] = React.useState(0); // 0=fulfillment 1=review 2=done
+  const [fulfillment, setFulfillment] = React.useState('delivery');
+  const [address, setAddress] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [order, setOrder] = React.useState(null);
+
+  const deliveryFee = fulfillment === 'delivery' ? 1000 : 0;
+  const subtotal = product.price_rwf || 0;
+  const total = subtotal + deliveryFee;
+  const fmtAmt = (n) => n.toLocaleString('en-RW') + ' RWF';
+
+  const pay = async () => {
+    if (busy) return;
+    setBusy(true); setError('');
+    try {
+      const ucp = window.EverydayAPI && window.EverydayAPI.ucp;
+      if (!ucp) throw new Error('Not signed in — please sign in to buy.');
+      const lineItems = [{ product_id: product.id, quantity: 1 }];
+      const ful = { type: fulfillment };
+      if (fulfillment === 'delivery' && address) ful.address = address;
+      const result = await ucp.checkout(lineItems, ful);
+      pkHaptic('success');
+      setOrder(result && result.order ? result.order : result);
+      setStep(2);
+    } catch (e) {
+      setError(e && e.message ? e.message : 'Payment failed. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (step === 2) {
+    const orderId = order && (order.id || order.checkout_id);
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>{shop.name}</span>} />
+        <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '40px 44px 96px' : '32px 24px 96px' }}>
+          <div style={{ width: '100%', maxWidth: web ? 560 : 420, margin: '0 auto' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 999, background: '#2FAE9B18', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2FAE9B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div style={{ fontSize: web ? 36 : 28, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Order placed.</div>
+            <div style={{ fontSize: 14, color: ink55, marginTop: 10, fontWeight: 500 }}>Your Everyday Wallet was charged {fmtAmt(total)}. The shop will confirm your {fulfillment}.</div>
+            {orderId && <div style={{ marginTop: 16, fontFamily: CC_MONO, fontSize: 11, color: ink40, letterSpacing: '0.06em' }}>Order ID · {orderId}</div>}
+            <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Shop</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader left={<IconBtn onClick={() => step === 0 ? onBack() : setStep(0)}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>{shop.name}</span>} />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 32px' : '14px 24px 32px' }}>
+        <div style={{ width: '100%', maxWidth: web ? 560 : 420, margin: '0 auto' }}>
+
+          {step === 0 && (
+            <React.Fragment>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: ink40, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Step 01 · Delivery</div>
+              <div style={{ fontSize: web ? 32 : 26, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.1, color: ink, marginBottom: 24 }}>{product.name}</div>
+
+              {['delivery', 'pickup'].map((t) => {
+                const on = fulfillment === t;
+                return (
+                  <button key={t} onClick={() => { pkHaptic('select'); setFulfillment(t); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', borderRadius: 14, border: `1px ${on ? 'solid' : 'dashed'} ${on ? ink : DASH}`, background: on ? ink : 'transparent', marginBottom: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: on ? paper : ink, letterSpacing: '-0.01em' }}>{t === 'delivery' ? 'Deliver to me' : 'Pick up in-store'}</span>
+                      <span style={{ display: 'block', fontSize: 12, color: on ? paper + 'cc' : ink40, marginTop: 2 }}>{t === 'delivery' ? '+1,000 RWF · flat delivery fee' : 'Free · collect at the shop'}</span>
+                    </span>
+                    <span style={{ width: 18, height: 18, borderRadius: 999, border: `2px solid ${on ? paper : ink25}`, background: on ? paper : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {on && <span style={{ width: 8, height: 8, borderRadius: 999, background: ink }}/>}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {fulfillment === 'delivery' && (
+                <div style={{ marginTop: 14, paddingBottom: 8, borderBottom: `2px dashed ${ink25}` }}>
+                  <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Delivery address (optional)" style={{ width: '100%', border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15, fontWeight: 600, padding: 0, boxSizing: 'border-box' }} />
+                </div>
+              )}
+            </React.Fragment>
+          )}
+
+          {step === 1 && (
+            <React.Fragment>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: ink40, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Step 02 · Review</div>
+              <div style={{ fontSize: web ? 32 : 26, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.1, color: ink, marginBottom: 24 }}>Confirm order.</div>
+
+              {[
+                { label: product.name, value: fmtAmt(subtotal) },
+                fulfillment === 'delivery' ? { label: 'Delivery', value: fmtAmt(deliveryFee) } : { label: 'Pickup', value: 'Free' },
+              ].map((row, i, arr) => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: `1px dashed ${DASH}` }}>
+                  <span style={{ fontSize: 15, color: ink, fontWeight: 600 }}>{row.label}</span>
+                  <span style={{ fontSize: 15, color: ink, fontWeight: 600 }}>{row.value}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
+                <span style={{ fontSize: 15.5, color: ink, fontWeight: 800 }}>Total</span>
+                <span style={{ fontSize: 15.5, color: ink, fontWeight: 800 }}>{fmtAmt(total)}</span>
+              </div>
+
+              <div style={{ marginTop: 4, padding: '14px 16px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg>
+                <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>Everyday Wallet · charged {fmtAmt(total)}</span>
+              </div>
+
+              {error && <div style={{ marginTop: 12, fontSize: 13, color: '#C8102E', fontWeight: 600 }}>{error}</div>}
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, padding: web ? '12px 44px 20px' : '10px 24px max(16px, env(safe-area-inset-bottom, 16px))', borderTop: `1px dashed ${DASH}`, background: canvas }}>
+        <div style={{ width: '100%', maxWidth: web ? 560 : 420, margin: '0 auto' }}>
+          {step === 0 && (
+            <button onClick={() => { pkHaptic('select'); setStep(1); }} style={{ width: '100%', height: 50, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Review order</button>
+          )}
+          {step === 1 && (
+            <button onClick={pay} disabled={busy} style={{ width: '100%', height: 50, borderRadius: 999, border: 0, background: busy ? ink40 : ink, color: paper, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>{busy ? 'Paying…' : `Pay ${fmtAmt(total)}`}</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SHOP_DEMO_PRODUCTS = [
+  { id: null, name: 'Ankara Wrap Dress', price_rwf: 14500, stock: 12 },
+  { id: null, name: 'Kitenge Headwrap', price_rwf: 4200, stock: 3 },
+  { id: null, name: 'Handwoven Basket Bag', price_rwf: 18000, stock: 0 },
+  { id: null, name: 'Beaded Statement Necklace', price_rwf: 8500, stock: 7 },
+  { id: null, name: 'Organic Shea Butter Set', price_rwf: 6800, stock: 19 },
+];
+
+function ShopProductList({ shop, products, web, onBack, onBuy }) {
+  // Products for this shop: filter by shop_id when we have live data.
+  const shopProducts = shop.id
+    ? products.filter((p) => p.shop_id === shop.id)
+    : [];
+
+  // Fall back to all live products (unsharded), then demo products.
+  const displayed = shopProducts.length ? shopProducts
+    : products.length ? products
+    : SHOP_DEMO_PRODUCTS;
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>Shop</span>} />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '14px 24px 96px' }}>
+        <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
+          <div style={{ fontSize: web ? 36 : 28, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>{shop.name}</div>
+          <div style={{ fontSize: 13, color: ink40, marginTop: 6, fontWeight: 600 }}>{shop.cat || 'Local · verified'}</div>
+
+          <div style={{ marginTop: 24 }}>
+            {displayed.length === 0 && <div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No products available.</div>}
+            {displayed.map((p, i) => {
+              const outOfStock = (p.stock != null && p.stock <= 0);
+              return (
+                <button key={p.id || p.name || i} disabled={outOfStock} onClick={() => !outOfStock && onBuy(p, shop)} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: outOfStock ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, opacity: outOfStock ? 0.45 : 1 }}>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{p.name}</span>
+                      {outOfStock && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E53935', background: '#E5393510', padding: '2px 8px', borderRadius: 999 }}>Out of stock</span>}
+                      {!outOfStock && p.stock != null && p.stock <= 5 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5A100', background: '#E5A10010', padding: '2px 8px', borderRadius: 999 }}>Low stock</span>}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 13, color: ink40, marginTop: 3, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
+                  </span>
+                  {!outOfStock && <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ShopScreen({ web, onBack, isOperator = false }) {
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState('All');
@@ -1235,12 +1419,24 @@ function ShopScreen({ web, onBack, isOperator = false }) {
   const [shopCount, setShopCount] = React.useState(5);
   const [focus, setFocus] = React.useState(false);
   const [opTab, setOpTab] = React.useState('orders');
+  const [selectedShop, setSelectedShop] = React.useState(null);
+  const [checkoutProduct, setCheckoutProduct] = React.useState(null);
+  const [checkoutShop, setCheckoutShop] = React.useState(null);
   const isOp = isOperator;
+
   // Live catalog from /api/shop (Go microservice). Falls back to the
   // hardcoded list so the screen still renders before the store hydrates.
   const everyday = window.useEveryday ? window.useEveryday() : null;
   const liveShops = (everyday && everyday.shop && everyday.shop.shops) || [];
   const liveProducts = (everyday && everyday.shop && everyday.shop.products) || [];
+
+  // Sub-view routing: null = brand list, shop obj = product list, + product = checkout
+  if (checkoutProduct && checkoutShop) {
+    return <ShopCheckoutFlow product={checkoutProduct} shop={checkoutShop} web={web} onBack={() => { setCheckoutProduct(null); setCheckoutShop(null); }} />;
+  }
+  if (selectedShop) {
+    return <ShopProductList shop={selectedShop} products={liveProducts} web={web} onBack={() => setSelectedShop(null)} onBuy={(p, s) => { pkHaptic('select'); setCheckoutProduct(p); setCheckoutShop(s); }} />;
+  }
   const categories = ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
   const fallbackBrands = [
     { name: 'House of Tayo', cat: 'Women' },
@@ -1410,7 +1606,7 @@ function ShopScreen({ web, onBack, isOperator = false }) {
           <div style={{ marginTop: 22 }}>
             {visible.length === 0 && (<div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No shops match your search.</div>)}
             {shown.map((brand, index) => (
-              <button key={brand.name} style={{ width: '100%', border: 0, borderTop: index === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+              <button key={brand.name} onClick={() => { pkHaptic('select'); setSelectedShop(brand); }} style={{ width: '100%', border: 0, borderTop: index === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{brand.name}</span>
                   <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{index % 2 ? 'Fashion · trusted' : 'Local · verified'}</span>

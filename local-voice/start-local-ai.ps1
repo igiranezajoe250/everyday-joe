@@ -81,9 +81,15 @@ try {
   Ok "Built. Launching on http://127.0.0.1:8787  (Ctrl+C to stop)`n"
 
   # Qwen is the local default; Gemma 3 (if GOOGLE_AI_KEY is set) stays as fallback.
-  $env:BOUNTY_LLM_MODEL = $Model
-  $env:BOUNTY_LLM_URL   = "http://127.0.0.1:11434/api/chat"
+  $env:BOUNTY_LLM_MODEL  = $Model
+  $env:BOUNTY_LLM_URL    = "http://127.0.0.1:11434/api/chat"
   if (-not $env:EVERYDAY_API_BASE) { $env:EVERYDAY_API_BASE = "http://localhost:3000" }
+
+  # CORS — allow local dev AND the deployed Vercel frontend so the browser can
+  # call 127.0.0.1:8787 from either origin without a preflight block.
+  if (-not $env:ALLOWED_ORIGINS) {
+    $env:ALLOWED_ORIGINS = "https://everyday-joe.vercel.app,https://everyday-joe-joseph-igiranezas-projects.vercel.app"
+  }
 
   & ".\local-voice.exe"
 }
