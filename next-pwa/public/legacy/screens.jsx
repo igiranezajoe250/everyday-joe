@@ -4619,7 +4619,9 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
   const ringStroke = web ? 22 : (compactSave ? 15 : 17);
   const ringRadius = (ringSize - ringStroke) / 2;
   const ringCirc = 2 * Math.PI * ringRadius;
-  const leftPct = Math.max(0, Math.min(100, Math.round((left / limit) * 100)));
+  // Guard against limit === 0 (a new real account with no savings yet → no
+  // credit capacity), which would otherwise make leftPct NaN.
+  const leftPct = limit > 0 ? Math.max(0, Math.min(100, Math.round((left / limit) * 100))) : 0;
   const leftDash = ringCirc * (leftPct / 100);
 
   // Balance reliability — a real user's money must never be shown as demo data.
