@@ -1360,48 +1360,58 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
   );
 }
 
-const SHOP_DEMO_PRODUCTS = [
-  { id: null, name: 'Ankara Wrap Dress', price_rwf: 14500, stock: 12 },
-  { id: null, name: 'Kitenge Headwrap', price_rwf: 4200, stock: 3 },
-  { id: null, name: 'Handwoven Basket Bag', price_rwf: 18000, stock: 0 },
-  { id: null, name: 'Beaded Statement Necklace', price_rwf: 8500, stock: 7 },
-  { id: null, name: 'Organic Shea Butter Set', price_rwf: 6800, stock: 19 },
-];
+const SHOP_DEMO_CATALOG = {
+  'House of Tayo':        [{ name: 'Ankara Wrap Dress', price_rwf: 14500, stock: 12 }, { name: 'Kitenge Blouse', price_rwf: 9800, stock: 6 }, { name: 'Wax Print Skirt', price_rwf: 11200, stock: 4 }, { name: 'Embroidered Kaftan', price_rwf: 22000, stock: 2 }],
+  'Moshions':             [{ name: 'Tailored Suit Jacket', price_rwf: 48000, stock: 3 }, { name: 'Printed Dress Shirt', price_rwf: 15000, stock: 9 }, { name: 'Slim Chino Trousers', price_rwf: 18500, stock: 7 }, { name: 'Leather Belt', price_rwf: 7200, stock: 14 }],
+  'Haute Baso':           [{ name: 'Evening Gown', price_rwf: 65000, stock: 2 }, { name: 'Cocktail Dress', price_rwf: 38000, stock: 5 }, { name: 'Silk Headwrap', price_rwf: 6500, stock: 11 }, { name: 'Beaded Clutch', price_rwf: 12000, stock: 8 }],
+  'Uzi Collections':      [{ name: 'Kitenge Maxi Dress', price_rwf: 17500, stock: 10 }, { name: 'Patterned Co-ord Set', price_rwf: 24000, stock: 3 }, { name: 'Wrap Blouse', price_rwf: 8800, stock: 0 }, { name: 'Printed Jumpsuit', price_rwf: 21000, stock: 6 }],
+  'Rwanda Clothing':      [{ name: 'Unisex Linen Shirt', price_rwf: 12000, stock: 18 }, { name: 'Mud-cloth Tote Bag', price_rwf: 9500, stock: 7 }, { name: 'Basket-weave Cap', price_rwf: 4500, stock: 5 }, { name: 'Ankara Shorts', price_rwf: 8000, stock: 13 }],
+  'Inzuki Designs':       [{ name: 'Natural Face Oil', price_rwf: 8500, stock: 22 }, { name: 'Shea Body Butter', price_rwf: 6800, stock: 30 }, { name: 'Argan Hair Serum', price_rwf: 11000, stock: 9 }, { name: 'Lip Balm Set (3)', price_rwf: 4200, stock: 15 }],
+  'Kwanda Goods':         [{ name: 'Woven Wall Hanging', price_rwf: 28000, stock: 4 }, { name: 'Sisal Placemats (4)', price_rwf: 9000, stock: 12 }, { name: 'Hand-painted Vase', price_rwf: 16500, stock: 3 }, { name: 'Raffia Table Runner', price_rwf: 11000, stock: 7 }],
+  'Nyamirambo Studio':    [{ name: 'Tailored Dress', price_rwf: 32000, stock: 5 }, { name: 'Custom Blazer', price_rwf: 45000, stock: 2 }, { name: 'Print Scarf', price_rwf: 7500, stock: 20 }, { name: 'Hand-stitched Bag', price_rwf: 19500, stock: 6 }],
+  'Azizi Life':           [{ name: 'Banana Leaf Bowl', price_rwf: 7200, stock: 14 }, { name: 'Sisal Basket (L)', price_rwf: 15000, stock: 8 }, { name: 'Beaded Coasters (6)', price_rwf: 8800, stock: 11 }, { name: 'Agaseke Gift Basket', price_rwf: 22000, stock: 3 }],
+  'Question Coffee':      [{ name: 'Single Origin Beans 250g', price_rwf: 5500, stock: 40 }, { name: 'Drip Coffee Pack', price_rwf: 3200, stock: 25 }, { name: 'Cold Brew Concentrate', price_rwf: 7800, stock: 12 }, { name: 'Coffee Gift Box', price_rwf: 14000, stock: 6 }],
+  'Kivu Noir':            [{ name: 'Dark Roast Beans 250g', price_rwf: 6000, stock: 35 }, { name: 'Flavored Ground Coffee', price_rwf: 4800, stock: 20 }, { name: 'Coffee Scrub', price_rwf: 9500, stock: 10 }, { name: 'Espresso Blend 500g', price_rwf: 11000, stock: 8 }],
+  'Kigali Home':          [{ name: 'Ceramic Mug Set (2)', price_rwf: 12500, stock: 9 }, { name: 'Linen Cushion Cover', price_rwf: 8000, stock: 15 }, { name: 'Soy Candle', price_rwf: 6500, stock: 22 }, { name: 'Bamboo Cutting Board', price_rwf: 14000, stock: 7 }],
+  'Murukali':             [{ name: 'Kanga Wrap Shirt', price_rwf: 10500, stock: 11 }, { name: 'Denim Jacket', price_rwf: 28000, stock: 5 }, { name: 'Ankara Sneakers', price_rwf: 22000, stock: 8 }, { name: 'Woven Bucket Hat', price_rwf: 6800, stock: 16 }],
+  'Ikirezi Bookshop':     [{ name: 'Rwandan History Collection', price_rwf: 18000, stock: 6 }, { name: "Children's Story Set (3)", price_rwf: 12000, stock: 14 }, { name: 'Art Supply Kit', price_rwf: 9500, stock: 9 }, { name: 'Kinyarwanda Phrasebook', price_rwf: 5500, stock: 20 }],
+  'Bourbon Coffee':       [{ name: 'Bourbon Blend 250g', price_rwf: 5800, stock: 30 }, { name: 'Iced Coffee Kit', price_rwf: 8500, stock: 11 }, { name: 'Travel Mug', price_rwf: 14000, stock: 7 }, { name: 'Coffee Subscription (1 mo)', price_rwf: 24000, stock: 99 }],
+  'Kigali Farmers Market':[{ name: 'Fresh Avocado Box (12)', price_rwf: 4500, stock: 20 }, { name: 'Seasonal Veg Bundle', price_rwf: 6000, stock: 15 }, { name: 'Raw Honey Jar 500g', price_rwf: 8500, stock: 10 }, { name: 'Dried Fruit Mix 300g', price_rwf: 5200, stock: 18 }],
+  'Simba Supermarket':    [{ name: 'Rice 5kg', price_rwf: 7800, stock: 50 }, { name: 'Cooking Oil 2L', price_rwf: 6200, stock: 40 }, { name: 'Tomato Paste 3-pack', price_rwf: 2800, stock: 60 }, { name: 'Sugar 2kg', price_rwf: 3500, stock: 45 }],
+  'Amahoro Market':       [{ name: 'Handmade Leather Sandals', price_rwf: 18000, stock: 8 }, { name: 'Batik Tote Bag', price_rwf: 7500, stock: 14 }, { name: 'Wooden Bangle Set', price_rwf: 5000, stock: 22 }, { name: 'Embroidered Cap', price_rwf: 6500, stock: 10 }],
+};
+const SHOP_DEMO_PRODUCTS = SHOP_DEMO_CATALOG['House of Tayo'];
 
 function ShopProductList({ shop, products, web, onBack, onBuy }) {
-  // Products for this shop: filter by shop_id when we have live data.
-  const shopProducts = shop.id
-    ? products.filter((p) => p.shop_id === shop.id)
-    : [];
-
-  // Fall back to all live products (unsharded), then demo products.
-  const displayed = shopProducts.length ? shopProducts
-    : products.length ? products
-    : SHOP_DEMO_PRODUCTS;
+  const shopProducts = shop.id ? products.filter((p) => p.shop_id === shop.id) : [];
+  const demoProducts = SHOP_DEMO_CATALOG[shop.name] || SHOP_DEMO_PRODUCTS;
+  const displayed = shopProducts.length ? shopProducts : products.length ? products : demoProducts;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
       <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>Shop</span>} />
-      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '14px 24px 96px' }}>
-        <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
-          <div style={{ fontSize: web ? 36 : 28, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>{shop.name}</div>
-          <div style={{ fontSize: 13, color: ink40, marginTop: 6, fontWeight: 600 }}>{shop.cat || 'Local · verified'}</div>
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '20px 24px 96px' }}>
+        <div style={{ width: '100%', maxWidth: web ? 680 : 420, margin: '0 auto' }}>
+          <div style={{ fontSize: web ? 32 : 26, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.1, color: ink }}>{shop.name}</div>
+          <div style={{ fontSize: 12.5, color: ink40, marginTop: 5, fontWeight: 600 }}>{shop.cat || 'Local · verified'}</div>
 
-          <div style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 28 }}>
             {displayed.length === 0 && <div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No products available.</div>}
             {displayed.map((p, i) => {
               const outOfStock = (p.stock != null && p.stock <= 0);
+              const lowStock = !outOfStock && p.stock != null && p.stock <= 5;
               return (
-                <button key={p.id || p.name || i} disabled={outOfStock} onClick={() => !outOfStock && onBuy(p, shop)} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: outOfStock ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, opacity: outOfStock ? 0.45 : 1 }}>
+                <button key={p.id || p.name || i} disabled={outOfStock} onClick={() => !outOfStock && onBuy(p, shop)}
+                  style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px solid ${ink12}`, background: 'transparent', cursor: outOfStock ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, opacity: outOfStock ? 0.4 : 1 }}>
                   <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{p.name}</span>
-                      {outOfStock && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E53935', background: '#E5393510', padding: '2px 8px', borderRadius: 999 }}>Out of stock</span>}
-                      {!outOfStock && p.stock != null && p.stock <= 5 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5A100', background: '#E5A10010', padding: '2px 8px', borderRadius: 999 }}>Low stock</span>}
+                    <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: ink, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+                      <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
+                      {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E53935', background: '#E5393512', padding: '2px 7px', borderRadius: 999, letterSpacing: '0.02em' }}>Out of stock</span>}
+                      {lowStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 7px', borderRadius: 999, letterSpacing: '0.02em' }}>Only {p.stock} left</span>}
                     </span>
-                    <span style={{ display: 'block', fontSize: 13, color: ink40, marginTop: 3, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
                   </span>
-                  {!outOfStock && <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>}
+                  {!outOfStock && <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>}
                 </button>
               );
             })}
@@ -1416,7 +1426,7 @@ function ShopScreen({ web, onBack, isOperator = false }) {
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState('All');
   const [catOpen, setCatOpen] = React.useState(false);
-  const [shopCount, setShopCount] = React.useState(5);
+  const [shopCount, setShopCount] = React.useState(6);
   const [focus, setFocus] = React.useState(false);
   const [opTab, setOpTab] = React.useState('orders');
   const [selectedShop, setSelectedShop] = React.useState(null);
@@ -1602,20 +1612,28 @@ function ShopScreen({ web, onBack, isOperator = false }) {
             )}
           </div>
 
-          {/* Stores — five at a time */}
+          {/* Stores — square card grid */}
           <div style={{ marginTop: 22 }}>
             {visible.length === 0 && (<div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No shops match your search.</div>)}
-            {shown.map((brand, index) => (
-              <button key={brand.name} onClick={() => { pkHaptic('select'); setSelectedShop(brand); }} style={{ width: '100%', border: 0, borderTop: index === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{brand.name}</span>
-                  <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 2 }}>{index % 2 ? 'Fashion · trusted' : 'Local · verified'}</span>
-                </span>
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-              </button>
-            ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {shown.map((brand) => {
+                const itemCount = (SHOP_DEMO_CATALOG[brand.name] || []).length;
+                return (
+                  <button key={brand.name} onClick={() => { pkHaptic('select'); setSelectedShop(brand); }}
+                    style={{ aspectRatio: '1', border: `1px solid ${ink12}`, borderRadius: 16, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 10, background: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                    </span>
+                    <span>
+                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 800, color: ink, letterSpacing: '-0.02em', lineHeight: 1.25 }}>{brand.name}</span>
+                      <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 4, fontWeight: 600 }}>{brand.cat}{itemCount > 0 ? ` · ${itemCount} items` : ''}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             {shopCount < visible.length && (
-              <button onClick={() => { pkHaptic('select'); setShopCount((c) => c + 5); }} style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <button onClick={() => { pkHaptic('select'); setShopCount((c) => c + 6); }} style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 </span>
