@@ -1360,25 +1360,87 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
   );
 }
 
+// Unsplash photo IDs by category — used for shop covers + product thumbnails.
+// Each ID maps to a known, stable Unsplash photo.
+const _UB = 'https://images.unsplash.com/photo-';
+const IMG = {
+  // women's fashion / African print
+  womenFashion:  _UB + '1509631179647-0177331693ae?w=600&h=600&fit=crop&q=80',
+  ankaraDress:   _UB + '1590073242678-70ee3fc28e8e?w=200&h=200&fit=crop&q=80',
+  kitenge:       _UB + '1558618666-fcd25c85cd64?w=200&h=200&fit=crop&q=80',
+  headwrap:      _UB + '1619451683975-d2673b8d9cf7?w=200&h=200&fit=crop&q=80',
+  eveningGown:   _UB + '1515886657613-9f3515b0c78f?w=200&h=200&fit=crop&q=80',
+  // men's fashion
+  menFashion:    _UB + '1507003211169-0a1dd7228f2d?w=600&h=600&fit=crop&q=80',
+  suit:          _UB + '1490114538077-0a7f8cb49891?w=200&h=200&fit=crop&q=80',
+  shirt:         _UB + '1563630423671-5b9e87af7f9c?w=200&h=200&fit=crop&q=80',
+  // home decor / crafts
+  homeDecor:     _UB + '1555041469-888abbc17899?w=600&h=600&fit=crop&q=80',
+  basket:        _UB + '1474609397970-7b2f60b56e56?w=200&h=200&fit=crop&q=80',
+  vase:          _UB + '1578500351012-e3521bf13d77?w=200&h=200&fit=crop&q=80',
+  candle:        _UB + '1603006905003-be475563bc59?w=200&h=200&fit=crop&q=80',
+  // coffee
+  coffee:        _UB + '1495474472287-4d71bcdd2085?w=600&h=600&fit=crop&q=80',
+  coffeeBeans:   _UB + '1447933601652-ac1276f3726b?w=200&h=200&fit=crop&q=80',
+  coldBrew:      _UB + '1461023058943-1be5e47b6bf3?w=200&h=200&fit=crop&q=80',
+  coffeeMug:     _UB + '1509785307050-d4066910ec1e?w=200&h=200&fit=crop&q=80',
+  // beauty / cosmetics
+  beauty:        _UB + '1596462502278-27bfdc403a3f?w=600&h=600&fit=crop&q=80',
+  faceOil:       _UB + '1571781926291-c477ebfd024b?w=200&h=200&fit=crop&q=80',
+  bodyButter:    _UB + '1608248597279-f99d160bfcbc?w=200&h=200&fit=crop&q=80',
+  // books
+  books:         _UB + '1481627834876-b7833e8f5570?w=600&h=600&fit=crop&q=80',
+  bookStack:     _UB + '1497633762265-9d9a5e2a5f43?w=200&h=200&fit=crop&q=80',
+  // market / food
+  market:        _UB + '1488459716781-31db52582fe9?w=600&h=600&fit=crop&q=80',
+  avocado:       _UB + '1589927986089-35812388d726?w=200&h=200&fit=crop&q=80',
+  honey:         _UB + '1558642452-9d2a7deb7f62?w=200&h=200&fit=crop&q=80',
+  grocery:       _UB + '1542838132-92c53300491e?w=200&h=200&fit=crop&q=80',
+  // accessories / leather
+  accessories:   _UB + '1548036328-c9fa89d128fa?w=600&h=600&fit=crop&q=80',
+  sandals:       _UB + '1603487742131-4160ec999306?w=200&h=200&fit=crop&q=80',
+  bag:           _UB + '1548036328-c9fa89d128fa?w=200&h=200&fit=crop&q=80',
+};
+
+// Fallback: coloured initial block (inline SVG data URI)
+function shopInitialImg(name) {
+  const colors = ['#8B3A2F','#2D6A4F','#1B4F72','#6C3483','#784212','#1A5276'];
+  const c = colors[name.charCodeAt(0) % colors.length];
+  const letter = (name[0] || '?').toUpperCase();
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='${c}'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='52' font-family='system-ui,sans-serif' font-weight='700' fill='white'>${letter}</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+const SHOP_COVERS = {
+  'House of Tayo': IMG.womenFashion, 'Moshions': IMG.menFashion, 'Haute Baso': IMG.eveningGown,
+  'Uzi Collections': IMG.womenFashion, 'Rwanda Clothing': IMG.accessories,
+  'Inzuki Designs': IMG.beauty, 'Kwanda Goods': IMG.homeDecor,
+  'Nyamirambo Studio': IMG.womenFashion, 'Azizi Life': IMG.basket,
+  'Question Coffee': IMG.coffee, 'Kivu Noir': IMG.coffee, 'Kigali Home': IMG.homeDecor,
+  'Murukali': IMG.accessories, 'Ikirezi Bookshop': IMG.books,
+  'Bourbon Coffee': IMG.coffee, 'Kigali Farmers Market': IMG.market,
+  'Simba Supermarket': IMG.grocery, 'Amahoro Market': IMG.market,
+};
+
 const SHOP_DEMO_CATALOG = {
-  'House of Tayo':        [{ name: 'Ankara Wrap Dress', price_rwf: 14500, stock: 12 }, { name: 'Kitenge Blouse', price_rwf: 9800, stock: 6 }, { name: 'Wax Print Skirt', price_rwf: 11200, stock: 4 }, { name: 'Embroidered Kaftan', price_rwf: 22000, stock: 2 }],
-  'Moshions':             [{ name: 'Tailored Suit Jacket', price_rwf: 48000, stock: 3 }, { name: 'Printed Dress Shirt', price_rwf: 15000, stock: 9 }, { name: 'Slim Chino Trousers', price_rwf: 18500, stock: 7 }, { name: 'Leather Belt', price_rwf: 7200, stock: 14 }],
-  'Haute Baso':           [{ name: 'Evening Gown', price_rwf: 65000, stock: 2 }, { name: 'Cocktail Dress', price_rwf: 38000, stock: 5 }, { name: 'Silk Headwrap', price_rwf: 6500, stock: 11 }, { name: 'Beaded Clutch', price_rwf: 12000, stock: 8 }],
-  'Uzi Collections':      [{ name: 'Kitenge Maxi Dress', price_rwf: 17500, stock: 10 }, { name: 'Patterned Co-ord Set', price_rwf: 24000, stock: 3 }, { name: 'Wrap Blouse', price_rwf: 8800, stock: 0 }, { name: 'Printed Jumpsuit', price_rwf: 21000, stock: 6 }],
-  'Rwanda Clothing':      [{ name: 'Unisex Linen Shirt', price_rwf: 12000, stock: 18 }, { name: 'Mud-cloth Tote Bag', price_rwf: 9500, stock: 7 }, { name: 'Basket-weave Cap', price_rwf: 4500, stock: 5 }, { name: 'Ankara Shorts', price_rwf: 8000, stock: 13 }],
-  'Inzuki Designs':       [{ name: 'Natural Face Oil', price_rwf: 8500, stock: 22 }, { name: 'Shea Body Butter', price_rwf: 6800, stock: 30 }, { name: 'Argan Hair Serum', price_rwf: 11000, stock: 9 }, { name: 'Lip Balm Set (3)', price_rwf: 4200, stock: 15 }],
-  'Kwanda Goods':         [{ name: 'Woven Wall Hanging', price_rwf: 28000, stock: 4 }, { name: 'Sisal Placemats (4)', price_rwf: 9000, stock: 12 }, { name: 'Hand-painted Vase', price_rwf: 16500, stock: 3 }, { name: 'Raffia Table Runner', price_rwf: 11000, stock: 7 }],
-  'Nyamirambo Studio':    [{ name: 'Tailored Dress', price_rwf: 32000, stock: 5 }, { name: 'Custom Blazer', price_rwf: 45000, stock: 2 }, { name: 'Print Scarf', price_rwf: 7500, stock: 20 }, { name: 'Hand-stitched Bag', price_rwf: 19500, stock: 6 }],
-  'Azizi Life':           [{ name: 'Banana Leaf Bowl', price_rwf: 7200, stock: 14 }, { name: 'Sisal Basket (L)', price_rwf: 15000, stock: 8 }, { name: 'Beaded Coasters (6)', price_rwf: 8800, stock: 11 }, { name: 'Agaseke Gift Basket', price_rwf: 22000, stock: 3 }],
-  'Question Coffee':      [{ name: 'Single Origin Beans 250g', price_rwf: 5500, stock: 40 }, { name: 'Drip Coffee Pack', price_rwf: 3200, stock: 25 }, { name: 'Cold Brew Concentrate', price_rwf: 7800, stock: 12 }, { name: 'Coffee Gift Box', price_rwf: 14000, stock: 6 }],
-  'Kivu Noir':            [{ name: 'Dark Roast Beans 250g', price_rwf: 6000, stock: 35 }, { name: 'Flavored Ground Coffee', price_rwf: 4800, stock: 20 }, { name: 'Coffee Scrub', price_rwf: 9500, stock: 10 }, { name: 'Espresso Blend 500g', price_rwf: 11000, stock: 8 }],
-  'Kigali Home':          [{ name: 'Ceramic Mug Set (2)', price_rwf: 12500, stock: 9 }, { name: 'Linen Cushion Cover', price_rwf: 8000, stock: 15 }, { name: 'Soy Candle', price_rwf: 6500, stock: 22 }, { name: 'Bamboo Cutting Board', price_rwf: 14000, stock: 7 }],
-  'Murukali':             [{ name: 'Kanga Wrap Shirt', price_rwf: 10500, stock: 11 }, { name: 'Denim Jacket', price_rwf: 28000, stock: 5 }, { name: 'Ankara Sneakers', price_rwf: 22000, stock: 8 }, { name: 'Woven Bucket Hat', price_rwf: 6800, stock: 16 }],
-  'Ikirezi Bookshop':     [{ name: 'Rwandan History Collection', price_rwf: 18000, stock: 6 }, { name: "Children's Story Set (3)", price_rwf: 12000, stock: 14 }, { name: 'Art Supply Kit', price_rwf: 9500, stock: 9 }, { name: 'Kinyarwanda Phrasebook', price_rwf: 5500, stock: 20 }],
-  'Bourbon Coffee':       [{ name: 'Bourbon Blend 250g', price_rwf: 5800, stock: 30 }, { name: 'Iced Coffee Kit', price_rwf: 8500, stock: 11 }, { name: 'Travel Mug', price_rwf: 14000, stock: 7 }, { name: 'Coffee Subscription (1 mo)', price_rwf: 24000, stock: 99 }],
-  'Kigali Farmers Market':[{ name: 'Fresh Avocado Box (12)', price_rwf: 4500, stock: 20 }, { name: 'Seasonal Veg Bundle', price_rwf: 6000, stock: 15 }, { name: 'Raw Honey Jar 500g', price_rwf: 8500, stock: 10 }, { name: 'Dried Fruit Mix 300g', price_rwf: 5200, stock: 18 }],
-  'Simba Supermarket':    [{ name: 'Rice 5kg', price_rwf: 7800, stock: 50 }, { name: 'Cooking Oil 2L', price_rwf: 6200, stock: 40 }, { name: 'Tomato Paste 3-pack', price_rwf: 2800, stock: 60 }, { name: 'Sugar 2kg', price_rwf: 3500, stock: 45 }],
-  'Amahoro Market':       [{ name: 'Handmade Leather Sandals', price_rwf: 18000, stock: 8 }, { name: 'Batik Tote Bag', price_rwf: 7500, stock: 14 }, { name: 'Wooden Bangle Set', price_rwf: 5000, stock: 22 }, { name: 'Embroidered Cap', price_rwf: 6500, stock: 10 }],
+  'House of Tayo':        [{ name: 'Ankara Wrap Dress', price_rwf: 14500, stock: 12, img: IMG.ankaraDress }, { name: 'Kitenge Blouse', price_rwf: 9800, stock: 6, img: IMG.kitenge }, { name: 'Wax Print Skirt', price_rwf: 11200, stock: 4, img: IMG.headwrap }, { name: 'Embroidered Kaftan', price_rwf: 22000, stock: 2, img: IMG.eveningGown }],
+  'Moshions':             [{ name: 'Tailored Suit Jacket', price_rwf: 48000, stock: 3, img: IMG.suit }, { name: 'Printed Dress Shirt', price_rwf: 15000, stock: 9, img: IMG.shirt }, { name: 'Slim Chino Trousers', price_rwf: 18500, stock: 7, img: IMG.suit }, { name: 'Leather Belt', price_rwf: 7200, stock: 14, img: IMG.accessories }],
+  'Haute Baso':           [{ name: 'Evening Gown', price_rwf: 65000, stock: 2, img: IMG.eveningGown }, { name: 'Cocktail Dress', price_rwf: 38000, stock: 5, img: IMG.womenFashion }, { name: 'Silk Headwrap', price_rwf: 6500, stock: 11, img: IMG.headwrap }, { name: 'Beaded Clutch', price_rwf: 12000, stock: 8, img: IMG.bag }],
+  'Uzi Collections':      [{ name: 'Kitenge Maxi Dress', price_rwf: 17500, stock: 10, img: IMG.kitenge }, { name: 'Patterned Co-ord Set', price_rwf: 24000, stock: 3, img: IMG.ankaraDress }, { name: 'Wrap Blouse', price_rwf: 8800, stock: 0, img: IMG.womenFashion }, { name: 'Printed Jumpsuit', price_rwf: 21000, stock: 6, img: IMG.eveningGown }],
+  'Rwanda Clothing':      [{ name: 'Unisex Linen Shirt', price_rwf: 12000, stock: 18, img: IMG.shirt }, { name: 'Mud-cloth Tote Bag', price_rwf: 9500, stock: 7, img: IMG.bag }, { name: 'Basket-weave Cap', price_rwf: 4500, stock: 5, img: IMG.accessories }, { name: 'Ankara Shorts', price_rwf: 8000, stock: 13, img: IMG.kitenge }],
+  'Inzuki Designs':       [{ name: 'Natural Face Oil', price_rwf: 8500, stock: 22, img: IMG.faceOil }, { name: 'Shea Body Butter', price_rwf: 6800, stock: 30, img: IMG.bodyButter }, { name: 'Argan Hair Serum', price_rwf: 11000, stock: 9, img: IMG.faceOil }, { name: 'Lip Balm Set (3)', price_rwf: 4200, stock: 15, img: IMG.bodyButter }],
+  'Kwanda Goods':         [{ name: 'Woven Wall Hanging', price_rwf: 28000, stock: 4, img: IMG.basket }, { name: 'Sisal Placemats (4)', price_rwf: 9000, stock: 12, img: IMG.basket }, { name: 'Hand-painted Vase', price_rwf: 16500, stock: 3, img: IMG.vase }, { name: 'Raffia Table Runner', price_rwf: 11000, stock: 7, img: IMG.homeDecor }],
+  'Nyamirambo Studio':    [{ name: 'Tailored Dress', price_rwf: 32000, stock: 5, img: IMG.eveningGown }, { name: 'Custom Blazer', price_rwf: 45000, stock: 2, img: IMG.suit }, { name: 'Print Scarf', price_rwf: 7500, stock: 20, img: IMG.headwrap }, { name: 'Hand-stitched Bag', price_rwf: 19500, stock: 6, img: IMG.bag }],
+  'Azizi Life':           [{ name: 'Banana Leaf Bowl', price_rwf: 7200, stock: 14, img: IMG.basket }, { name: 'Sisal Basket (L)', price_rwf: 15000, stock: 8, img: IMG.basket }, { name: 'Beaded Coasters (6)', price_rwf: 8800, stock: 11, img: IMG.vase }, { name: 'Agaseke Gift Basket', price_rwf: 22000, stock: 3, img: IMG.basket }],
+  'Question Coffee':      [{ name: 'Single Origin Beans 250g', price_rwf: 5500, stock: 40, img: IMG.coffeeBeans }, { name: 'Drip Coffee Pack', price_rwf: 3200, stock: 25, img: IMG.coldBrew }, { name: 'Cold Brew Concentrate', price_rwf: 7800, stock: 12, img: IMG.coldBrew }, { name: 'Coffee Gift Box', price_rwf: 14000, stock: 6, img: IMG.coffeeMug }],
+  'Kivu Noir':            [{ name: 'Dark Roast Beans 250g', price_rwf: 6000, stock: 35, img: IMG.coffeeBeans }, { name: 'Flavored Ground Coffee', price_rwf: 4800, stock: 20, img: IMG.coffeeBeans }, { name: 'Coffee Scrub', price_rwf: 9500, stock: 10, img: IMG.bodyButter }, { name: 'Espresso Blend 500g', price_rwf: 11000, stock: 8, img: IMG.coldBrew }],
+  'Kigali Home':          [{ name: 'Ceramic Mug Set (2)', price_rwf: 12500, stock: 9, img: IMG.coffeeMug }, { name: 'Linen Cushion Cover', price_rwf: 8000, stock: 15, img: IMG.homeDecor }, { name: 'Soy Candle', price_rwf: 6500, stock: 22, img: IMG.candle }, { name: 'Bamboo Cutting Board', price_rwf: 14000, stock: 7, img: IMG.homeDecor }],
+  'Murukali':             [{ name: 'Kanga Wrap Shirt', price_rwf: 10500, stock: 11, img: IMG.shirt }, { name: 'Denim Jacket', price_rwf: 28000, stock: 5, img: IMG.suit }, { name: 'Ankara Sneakers', price_rwf: 22000, stock: 8, img: IMG.sandals }, { name: 'Woven Bucket Hat', price_rwf: 6800, stock: 16, img: IMG.accessories }],
+  'Ikirezi Bookshop':     [{ name: 'Rwandan History Collection', price_rwf: 18000, stock: 6, img: IMG.bookStack }, { name: "Children's Story Set (3)", price_rwf: 12000, stock: 14, img: IMG.bookStack }, { name: 'Art Supply Kit', price_rwf: 9500, stock: 9, img: IMG.bookStack }, { name: 'Kinyarwanda Phrasebook', price_rwf: 5500, stock: 20, img: IMG.bookStack }],
+  'Bourbon Coffee':       [{ name: 'Bourbon Blend 250g', price_rwf: 5800, stock: 30, img: IMG.coffeeBeans }, { name: 'Iced Coffee Kit', price_rwf: 8500, stock: 11, img: IMG.coldBrew }, { name: 'Travel Mug', price_rwf: 14000, stock: 7, img: IMG.coffeeMug }, { name: 'Coffee Subscription (1 mo)', price_rwf: 24000, stock: 99, img: IMG.coffee }],
+  'Kigali Farmers Market':[{ name: 'Fresh Avocado Box (12)', price_rwf: 4500, stock: 20, img: IMG.avocado }, { name: 'Seasonal Veg Bundle', price_rwf: 6000, stock: 15, img: IMG.market }, { name: 'Raw Honey Jar 500g', price_rwf: 8500, stock: 10, img: IMG.honey }, { name: 'Dried Fruit Mix 300g', price_rwf: 5200, stock: 18, img: IMG.grocery }],
+  'Simba Supermarket':    [{ name: 'Rice 5kg', price_rwf: 7800, stock: 50, img: IMG.grocery }, { name: 'Cooking Oil 2L', price_rwf: 6200, stock: 40, img: IMG.grocery }, { name: 'Tomato Paste 3-pack', price_rwf: 2800, stock: 60, img: IMG.market }, { name: 'Sugar 2kg', price_rwf: 3500, stock: 45, img: IMG.grocery }],
+  'Amahoro Market':       [{ name: 'Handmade Leather Sandals', price_rwf: 18000, stock: 8, img: IMG.sandals }, { name: 'Batik Tote Bag', price_rwf: 7500, stock: 14, img: IMG.bag }, { name: 'Wooden Bangle Set', price_rwf: 5000, stock: 22, img: IMG.accessories }, { name: 'Embroidered Cap', price_rwf: 6500, stock: 10, img: IMG.headwrap }],
 };
 const SHOP_DEMO_PRODUCTS = SHOP_DEMO_CATALOG['House of Tayo'];
 
@@ -1402,16 +1464,22 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
               const lowStock = !outOfStock && p.stock != null && p.stock <= 5;
               return (
                 <button key={p.id || p.name || i} disabled={outOfStock} onClick={() => !outOfStock && onBuy(p, shop)}
-                  style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px solid ${ink12}`, background: 'transparent', cursor: outOfStock ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, opacity: outOfStock ? 0.4 : 1 }}>
+                  style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px solid ${ink12}`, background: 'transparent', cursor: outOfStock ? 'default' : 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14, opacity: outOfStock ? 0.4 : 1 }}>
+                  {p.img && (
+                    <span style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 10, overflow: 'hidden', background: ink06 }}>
+                      <img src={p.img} alt={p.name} onError={(e) => { e.target.style.display = 'none'; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </span>
+                  )}
                   <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: ink, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+                    <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                       <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
-                      {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E53935', background: '#E5393512', padding: '2px 7px', borderRadius: 999, letterSpacing: '0.02em' }}>Out of stock</span>}
-                      {lowStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 7px', borderRadius: 999, letterSpacing: '0.02em' }}>Only {p.stock} left</span>}
+                      {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E53935', background: '#E5393512', padding: '2px 7px', borderRadius: 999 }}>Out of stock</span>}
+                      {lowStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 7px', borderRadius: 999 }}>Only {p.stock} left</span>}
                     </span>
                   </span>
-                  {!outOfStock && <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>}
+                  {!outOfStock && <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>}
                 </button>
               );
             })}
@@ -1618,15 +1686,18 @@ function ShopScreen({ web, onBack, isOperator = false }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
               {shown.map((brand) => {
                 const itemCount = (SHOP_DEMO_CATALOG[brand.name] || []).length;
+                const cover = SHOP_COVERS[brand.name] || shopInitialImg(brand.name);
+                const fallback = shopInitialImg(brand.name);
                 return (
                   <button key={brand.name} onClick={() => { pkHaptic('select'); setSelectedShop(brand); }}
-                    style={{ aspectRatio: '1', border: `1px solid ${ink12}`, borderRadius: 16, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '18px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 10, background: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                    style={{ aspectRatio: '1', border: `1px solid ${ink12}`, borderRadius: 16, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <span style={{ flex: 1, display: 'block', overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
+                      <img src={cover} alt={brand.name} onError={(e) => { e.target.src = fallback; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     </span>
-                    <span>
-                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 800, color: ink, letterSpacing: '-0.02em', lineHeight: 1.25 }}>{brand.name}</span>
-                      <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 4, fontWeight: 600 }}>{brand.cat}{itemCount > 0 ? ` · ${itemCount} items` : ''}</span>
+                    <span style={{ flexShrink: 0, padding: '10px 14px 12px', display: 'block' }}>
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: 800, color: ink, letterSpacing: '-0.02em', lineHeight: 1.25 }}>{brand.name}</span>
+                      <span style={{ display: 'block', fontSize: 10.5, color: ink40, marginTop: 2, fontWeight: 600 }}>{brand.cat}{itemCount > 0 ? ` · ${itemCount} items` : ''}</span>
                     </span>
                   </button>
                 );
