@@ -4580,10 +4580,25 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
   const liveProposals = (liveSave && liveSave.proposals) || [];
   const interestApr = (liveSave && liveSave.interestApr) || 0.08;
   const p = CC_PORTFOLIO;
+  // A signed-in account drives every figure from its own wallet/ledger so we
+  // never present demo numbers as the user's money. Interest earned = the sum of
+  // real interest credits; if none yet, it's zero (not the demo 318k).
+  const realAcct = !!(everyday && everyday.userId);
+  const realInterestEarned = (liveTransactions || [])
+    .filter((t) => t && t.kind === 'interest' && t.direction === 'in')
+    .reduce((sum, t) => sum + (t.amount_rwf || 0), 0);
   const s = liveWallet
-    ? Object.assign({}, CC_SAVINGS, { balance: liveWallet.savings_rwf || 0 })
+    ? Object.assign({}, CC_SAVINGS, {
+        balance: liveWallet.savings_rwf || 0,
+        returnsEarned: realAcct ? realInterestEarned : CC_SAVINGS.returnsEarned,
+      })
     : CC_SAVINGS;
-  const c = CC_CREDIT;
+  // Credit capacity is a fixed share of real savings (same 70% rule as the
+  // Credit feature). Live outstanding lives in the Credit vertical; here a real
+  // account shows full capacity available rather than a fabricated balance.
+  const c = realAcct
+    ? { ratio: CC_CREDIT.ratio, capacity: Math.round((liveWallet ? (liveWallet.savings_rwf || 0) : 0) * CC_CREDIT.ratio), outstanding: 0, status: 'Good standing', get available() { return this.capacity - this.outstanding; } }
+    : CC_CREDIT;
   const millions = (s.balance / 1000000).toFixed(2);
   const [hidden, setHidden] = React.useState(false);
   const [selectedSaveAction, setSelectedSaveAction] = React.useState('add');
@@ -4607,18 +4622,58 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
   const leftPct = Math.max(0, Math.min(100, Math.round((left / limit) * 100)));
   const leftDash = ringCirc * (leftPct / 100);
 
+  // Balance reliability — a real user's money must never be shown as demo data.
+  // For a signed-in account (store carries a userId, so private slices hydrate)
+  // we wait on the live save slice and surface loading/error explicitly. Only
+  // the pure local-demo preview (no userId) legitimately renders CC_SAVINGS.
+  const saveLoading = realAcct && liveSave && !liveSave.loaded && !liveSave.error;
+  const saveErrored = realAcct && liveSave && !!liveSave.error && !liveSave.loaded;
+  const retrySave = () => { try { window.EverydayStore && window.EverydayStore.hydrate.save(); } catch (e) {} };
+
+  const saveHeader = (
+    <ScreenHeader
+      left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {onBack && <IconBtn onClick={onBack}>
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </IconBtn>}
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
+      </div>}
+    />
+  );
+
+  if (saveLoading) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {saveHeader}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 }}>
+          <div className="pk-shimmer" style={{ width: ringSize * 0.7, height: ringSize * 0.7, borderRadius: '50%', background: ink06 }} />
+          <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Loading your savings</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (saveErrored) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {saveHeader}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '24px 32px', textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 999, background: '#C8102E12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Couldn't load your balance</div>
+          <div style={{ fontSize: 14, color: ink55, fontWeight: 500, maxWidth: 300, lineHeight: 1.5 }}>We couldn't reach your savings just now. Check your connection and try again — your money is safe.</div>
+          <button onClick={retrySave} style={{ marginTop: 6, height: 46, padding: '0 28px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 740 }}>Try again</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
-      <ScreenHeader
-        left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {onBack && <IconBtn onClick={onBack}>
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </IconBtn>}
-          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Save</span>
-        </div>}
-      />
+      {saveHeader}
 
       <div className="cc-scroll" style={{
         flex: 1,
@@ -8366,21 +8421,80 @@ Object.assign(window, {
 // Where money lives — invested capital, available, and pending in/out.
 
 function WalletScreen({ accent, onBack, onMoney, onActivity }) {
-  const w = CC_WALLET;
-  const total = w.invested + w.available;
   const [hidden, setHidden] = React.useState(false);
+
+  // Live wallet — for a signed-in account every figure comes from the user's own
+  // wallet, never demo data. Only the pure local-demo preview (no userId) shows
+  // CC_WALLET. Loading/error are surfaced so a pending/failed fetch is never
+  // shown as if it were real money.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const realAcct = !!(everyday && everyday.userId);
+  const saveSlice = everyday && everyday.save;
+  const liveWallet = saveSlice && saveSlice.wallet;
+  const walletLoading = realAcct && saveSlice && !saveSlice.loaded && !saveSlice.error;
+  const walletErrored = realAcct && saveSlice && !!saveSlice.error && !saveSlice.loaded;
+  const retryWallet = () => { try { window.EverydayStore && window.EverydayStore.hydrate.save(); } catch (e) {} };
+
+  const useReal = realAcct && liveWallet;
+  const available = useReal ? (liveWallet.balance_rwf || 0) : CC_WALLET.available;
+  const invested = useReal ? (liveWallet.savings_rwf || 0) : CC_WALLET.invested;
+  const total = available + invested;
+  // Holdings/pending have no live breakdown source yet. For a real account we
+  // show the user's actual savings as the single holding (or an empty state),
+  // never the demo investment book; the demo preview keeps CC_WALLET.
+  const holdings = useReal
+    ? (invested > 0
+        ? [{ id: 'sav', label: 'Everyday Savings', amount: 'RWF ' + Number(invested).toLocaleString('en-US'), pct: 100, sub: 'Earning ' + Math.round((((saveSlice && saveSlice.interestApr) || 0.08)) * 100) + '% a year' }]
+        : [])
+    : CC_WALLET.holdings;
+  const pending = useReal ? [] : CC_WALLET.pending;
+
+  const w = { invested, available, holdings, pending };
 
   const shown = (n) =>
     hidden
       ? '••••••'
       : 'RWF ' + Number(n).toLocaleString('en-US');
 
+  const walletHeader = (
+    <ScreenHeader
+      left={<BackBtn onClick={onBack} />}
+      right={<Eyebrow>Wallet</Eyebrow>}
+    />
+  );
+
+  if (walletLoading) {
+    return (
+      <div style={{ paddingBottom: 24 }}>
+        {walletHeader}
+        <div style={{ padding: '48px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="pk-shimmer" style={{ width: 160, height: 18, borderRadius: 6, background: ink06 }} />
+          <div className="pk-shimmer" style={{ width: 240, height: 44, borderRadius: 10, background: ink06 }} />
+          <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, marginTop: 8 }}>Loading your wallet</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (walletErrored) {
+    return (
+      <div style={{ paddingBottom: 24 }}>
+        {walletHeader}
+        <div style={{ padding: '64px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 999, background: '#C8102E12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Couldn't load your wallet</div>
+          <div style={{ fontSize: 14, color: ink55, fontWeight: 500, maxWidth: 300, lineHeight: 1.5 }}>We couldn't reach your wallet just now. Check your connection and try again — your money is safe.</div>
+          <button onClick={retryWallet} style={{ marginTop: 6, height: 46, padding: '0 28px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 740 }}>Try again</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ paddingBottom: 24 }}>
-      <ScreenHeader
-        left={<BackBtn onClick={onBack} />}
-        right={<Eyebrow>Wallet</Eyebrow>}
-      />
+      {walletHeader}
 
       {/* Hero — total balance with eye toggle */}
       <div style={{ padding: '32px 24px 28px' }}>
@@ -8419,6 +8533,11 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
 
       {/* Collapsible: Holdings */}
       <CollapsibleSection title="Holdings" meta={`${w.holdings.length}`}>
+        {w.holdings.length === 0 && (
+          <div style={{ padding: '18px 0', fontSize: 14, color: ink55, lineHeight: 1.5 }}>
+            No holdings yet. Start saving to grow your balance — your savings earn interest automatically.
+          </div>
+        )}
         {w.holdings.map((h, i) => (
           <div key={h.id} style={{
             padding: '14px 0',
