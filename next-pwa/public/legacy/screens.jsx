@@ -2079,13 +2079,13 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     }, 700);
   }, [folders, files]);
 
-  // When the rail is collapsed, the folder icons float in, then fade after 3s —
+  // When the rail is collapsed, the folder icons float in, then fade after 7s —
   // the open/close toggle always stays.
   const [railIcons, setRailIcons] = React.useState(false);
   React.useEffect(() => {
     if (railOpen) { setRailIcons(false); return; }
     setRailIcons(true);
-    const id = setTimeout(() => setRailIcons(false), 3000);
+    const id = setTimeout(() => setRailIcons(false), 7000);
     return () => clearTimeout(id);
   }, [railOpen]);
 
@@ -2264,8 +2264,10 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
       {header}
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: railOpen ? (web ? 22 : 14) : 12, padding: web ? '14px 28px 0' : '8px 16px 0' }}>
-        {/* Left rail — folders only */}
-        <div style={{ width: railOpen ? (web ? 200 : 128) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px dashed ${DASH}`, paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
+        {/* Left rail — folders only. When closed it keeps a slim gutter for the
+           toggle and briefly-floating icons, but drops its divider so no visible
+           sidebar remains and the canvas reads as one open surface. */}
+        <div style={{ width: railOpen ? (web ? 200 : 128) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: railOpen ? `1px dashed ${DASH}` : 'none', paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
           {railOpen ? (
             <React.Fragment>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0 10px' }}>
@@ -2339,7 +2341,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               <button onClick={() => setRailOpen(true)} aria-label="Show folders" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
               </button>
-              {/* Floating function icons — fade out after 3s; tap to jump */}
+              {/* Floating function icons — fade out after 7s; tap to jump */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginTop: 12, opacity: railIcons ? 1 : 0, transform: railIcons ? 'none' : 'translateY(-6px)', transition: 'opacity 400ms ease, transform 400ms ease', pointerEvents: railIcons ? 'auto' : 'none' }}>
                 <button onClick={() => { pkHaptic('select'); setView('insights'); }} aria-label="Insights" title="Insights" style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 3, display: 'flex', color: view === 'insights' ? ink : ink55 }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.2-1 2H9c0-.8-.4-1.4-1-2A6 6 0 0 1 12 3zM9 18h6M10 21h4"/></svg>
@@ -2552,22 +2554,28 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
         </div>
       )}
 
-      {/* Quick capture FAB (bottom-right) */}
-      {fabOpen && <div onClick={() => setFabOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 44 }} />}
-      <div style={{ position: 'absolute', right: web ? 28 : 18, bottom: `calc(${(web ? 24 : 20) + bottomInset}px + env(safe-area-inset-bottom, 0px))`, zIndex: 45, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-        {fabOpen && (
-          <div className="pk-rise" style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-            {[['New note', 'doc', () => createNote(activeFolder)], ['Voice recording', 'voice', () => { setFabOpen(false); setRecording(true); }], ['Upload attachment', 'image', () => { setFabOpen(false); if (!openFile) createNote(activeFolder); setTimeout(() => fileInputRef.current && fileInputRef.current.click(), 60); }]].map(([label, kind, act]) => (
-              <button key={label} onClick={act} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 42, padding: '0 14px', borderRadius: 999, border: 0, background: paper, color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 720, boxShadow: '0 10px 26px rgba(10,10,10,0.16)' }}>
-                <span style={{ color: ink55, display: 'flex' }}><PlanAttachmentIcon kind={kind} size={15} /></span>{label}
-              </button>
-            ))}
+      {/* Quick capture FAB (bottom-right) — hidden in the editor, where Record
+         and Attach already cover capture; shown in the files/insights views so
+         you can still create a note. */}
+      {view !== 'editor' && (
+        <React.Fragment>
+          {fabOpen && <div onClick={() => setFabOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 44 }} />}
+          <div style={{ position: 'absolute', right: web ? 28 : 18, bottom: `calc(${(web ? 24 : 20) + bottomInset}px + env(safe-area-inset-bottom, 0px))`, zIndex: 45, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+            {fabOpen && (
+              <div className="pk-rise" style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                {[['New note', 'doc', () => createNote(activeFolder)], ['Voice recording', 'voice', () => { setFabOpen(false); setRecording(true); }], ['Upload attachment', 'image', () => { setFabOpen(false); if (!openFile) createNote(activeFolder); setTimeout(() => fileInputRef.current && fileInputRef.current.click(), 60); }]].map(([label, kind, act]) => (
+                  <button key={label} onClick={act} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 42, padding: '0 14px', borderRadius: 999, border: 0, background: paper, color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 720, boxShadow: '0 10px 26px rgba(10,10,10,0.16)' }}>
+                    <span style={{ color: ink55, display: 'flex' }}><PlanAttachmentIcon kind={kind} size={15} /></span>{label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => { pkHaptic('select'); setFabOpen((o) => !o); }} aria-label="Quick capture" style={{ width: 54, height: 54, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px rgba(10,10,10,0.24)', transition: 'transform 260ms cubic-bezier(.16,.84,.28,1)', transform: fabOpen ? 'rotate(45deg)' : 'none' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
           </div>
-        )}
-        <button onClick={() => { pkHaptic('select'); setFabOpen((o) => !o); }} aria-label="Quick capture" style={{ width: 54, height: 54, borderRadius: '50%', border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px rgba(10,10,10,0.24)', transition: 'transform 260ms cubic-bezier(.16,.84,.28,1)', transform: fabOpen ? 'rotate(45deg)' : 'none' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-      </div>
+        </React.Fragment>
+      )}
 
       <input ref={fileInputRef} type="file" accept="image/*,application/pdf,.doc,.docx,.txt" onChange={onPickAttachment} style={{ display: 'none' }} />
 
