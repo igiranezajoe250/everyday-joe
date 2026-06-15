@@ -3423,59 +3423,63 @@ function Stars({ value }) {
 function EtaDisplay({ eta, duration, origin, destination, phase = 'route' }) {
   const arriving = phase === 'arriving';
   const accent = arriving ? '#2FAE9B' : ink;
-  const S = 110;
-  const R = 42;
+  // Unique per instance so the gradient + keyframes never collide when more than
+  // one EtaDisplay is on screen.
+  const uid = React.useRef('eta' + Math.random().toString(36).slice(2, 7)).current;
+  const S = 140, R = 54;
   const CIRC = +(2 * Math.PI * R).toFixed(2);
-  const ARC  = (CIRC * 0.20).toFixed(2);
+  const ARC = (CIRC * 0.30).toFixed(1);
   const hasRoute = origin || destination;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
       <style>{`
-        @keyframes eta-arc  { to { stroke-dashoffset: -${CIRC} } }
-        @keyframes eta-wash { 0%,100%{opacity:0.4}50%{opacity:1} }
+        @keyframes ${uid}-spin    { to { transform: rotate(360deg) } }
+        @keyframes ${uid}-ripple  { 0% { transform: scale(.5); opacity:.45 } 80%,100% { transform: scale(1.5); opacity:0 } }
+        @keyframes ${uid}-breathe { 0%,100% { opacity:.4; transform: scale(.96) } 50% { opacity:.85; transform: scale(1.05) } }
       `}</style>
 
       {/* ring + number */}
-      <div style={{ position: 'relative', width: S, height: S }}>
-        {arriving && (
-          <div style={{
-            position: 'absolute', inset: -20,
-            background: 'radial-gradient(circle, rgba(47,174,155,0.10) 0%, transparent 70%)',
-            animation: 'eta-wash 2.8s ease-in-out infinite',
-            pointerEvents: 'none',
-          }} />
-        )}
-        <svg width={S} height={S} style={{ position: 'absolute', inset: 0 }}>
-          <circle cx={S/2} cy={S/2} r={R}
-            fill="none"
-            stroke={arriving ? 'rgba(47,174,155,0.15)' : 'rgba(10,10,10,0.07)'}
-            strokeWidth="1.5"
-          />
-          <circle cx={S/2} cy={S/2} r={R}
-            fill="none" stroke={accent} strokeWidth="2" strokeLinecap="round"
-            strokeDasharray={`${ARC} ${CIRC}`}
-            transform={`rotate(-90 ${S/2} ${S/2})`}
-            style={{ animation: `eta-arc ${arriving ? '1.6s' : '4s'} linear infinite` }}
-          />
+      <div style={{ position: 'relative', width: S, height: S, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* live radar ripples — only while a ride is en route */}
+        {arriving && [0, 1].map((i) => (
+          <span key={i} style={{ position: 'absolute', width: R * 1.7, height: R * 1.7, borderRadius: '50%', border: `1.5px solid ${accent}`, opacity: 0, animation: `${uid}-ripple 3.4s cubic-bezier(.2,.6,.3,1) ${i * 1.7}s infinite` }} />
+        ))}
+        {/* soft breathing halo */}
+        <span style={{ position: 'absolute', width: R * 1.9, height: R * 1.9, borderRadius: '50%', background: `radial-gradient(circle, ${arriving ? 'rgba(47,174,155,0.18)' : 'rgba(10,10,10,0.05)'} 0%, transparent 68%)`, animation: `${uid}-breathe 3.2s ease-in-out infinite`, pointerEvents: 'none' }} />
+
+        <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} style={{ position: 'absolute', inset: 0 }}>
+          <defs>
+            <linearGradient id={`${uid}-grad`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={accent} stopOpacity="0" />
+              <stop offset="100%" stopColor={accent} stopOpacity="1" />
+            </linearGradient>
+          </defs>
+          {/* track */}
+          <circle cx={S/2} cy={S/2} r={R} fill="none" stroke={arriving ? 'rgba(47,174,155,0.14)' : 'rgba(10,10,10,0.07)'} strokeWidth="3" />
+          {/* sweeping comet arc — smooth, premium loader */}
+          <g style={{ transformOrigin: 'center', animation: `${uid}-spin ${arriving ? '2.4s' : '5s'} linear infinite` }}>
+            <circle cx={S/2} cy={S/2} r={R} fill="none" stroke={`url(#${uid}-grad)`} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${ARC} ${CIRC}`} />
+          </g>
         </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 38, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1, color: accent }}>{eta}</span>
-          <span style={{ fontFamily: CC_MONO, fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: arriving ? 'rgba(47,174,155,0.65)' : ink40, marginTop: 3 }}>min away</span>
+
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+          <span style={{ fontSize: 46, fontWeight: 880, letterSpacing: '-0.06em', color: accent, fontVariantNumeric: 'tabular-nums' }}>{eta}</span>
+          <span style={{ fontFamily: CC_MONO, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: arriving ? 'rgba(47,174,155,0.7)' : ink40, marginTop: 5 }}>min away</span>
           {duration && !arriving && (
-            <span style={{ fontFamily: CC_MONO, fontSize: 9, color: ink25, marginTop: 2 }}>{duration} min trip</span>
+            <span style={{ fontFamily: CC_MONO, fontSize: 9, color: ink25, marginTop: 3 }}>{duration} min trip</span>
           )}
         </div>
       </div>
 
-      {/* route — plain inline text, no card */}
+      {/* route — subtle pill */}
       {hasRoute && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, maxWidth: '100%', padding: '7px 14px', borderRadius: 999, background: arriving ? 'rgba(47,174,155,0.08)' : ink06 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink40, flexShrink: 0 }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: ink55, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 110 }}>{origin || 'Current location'}</span>
-          <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-          <span style={{ fontSize: 11, fontWeight: 700, color: ink55, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 110 }}>{destination || '—'}</span>
-          <span style={{ width: 6, height: 6, borderRadius: '1.5px 1.5px 1.5px 0', transform: 'rotate(45deg)', background: '#2FAE9B', flexShrink: 0 }} />
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: ink70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{origin || 'Current location'}</span>
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: ink70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{destination || '—'}</span>
+          <span style={{ width: 6, height: 6, borderRadius: '1.5px 1.5px 1.5px 0', transform: 'rotate(45deg)', background: accent, flexShrink: 0 }} />
         </div>
       )}
     </div>
@@ -3656,6 +3660,7 @@ function CommuteScreen({ web, onBack }) {
   const [query, setQuery] = React.useState('');
   const [tracking, setTracking] = React.useState(false);
   const [searching, setSearching] = React.useState(false);
+  const [requesting, setRequesting] = React.useState(false);
   const [error, setError] = React.useState('');
 
   const [typeFilter, setTypeFilter] = React.useState('all');
@@ -3762,16 +3767,35 @@ function CommuteScreen({ web, onBack }) {
   };
   const firstNameOf = (full) => (full || '').split(/[\s+]/)[0] || 'the driver';
 
+  // Persist the ride request to the backend, then show the live status. We only
+  // advance to the tracking screen once the request is really recorded — no fake
+  // success (PRODUCT_CONSTITUTION: honest states, never pretend money/actions).
+  const submitRide = async (ride, mode) => {
+    const r = ride || selected;
+    if (!r || requesting) return;
+    const price = mode === 'prepaid' ? (agreedPrice || r.price) : r.price;
+    setError(''); setRequesting(true); pkHaptic('medium');
+    try {
+      if (window.EverydayAPI && window.EverydayAPI.commute && window.EverydayAPI.commute.request) {
+        await window.EverydayAPI.commute.request({
+          option_id: r.id, driver_name: r.name, vehicle: r.vehicle, mode: r.type,
+          origin: origin || 'Current location', destination: destination,
+          eta_min: r.eta, price_rwf: price, pay_mode: mode,
+        });
+      }
+      setSelected(r); setPayMode(mode); setAgreedPrice(price);
+      pkHaptic('success'); setStep('success');
+    } catch (e) {
+      setError((e && e.message) || 'Could not request the ride. Please try again.');
+      pkHaptic('warning');
+    } finally {
+      setRequesting(false);
+    }
+  };
+
   // Quick path: pin the rider and call now — fare is negotiated and settled on
   // arrival. Works from the detail screen or straight from a results row.
-  const callOnArrival = (ride) => {
-    const r = ride || selected;
-    pkHaptic('success');
-    setSelected(r);
-    setPayMode('on-arrival');
-    setAgreedPrice(r.price);
-    setStep('success');
-  };
+  const callOnArrival = (ride) => { submitRide(ride, 'on-arrival'); };
   // Offer path: open the negotiation screen for a given ride (from a results row).
   const offerFor = (r) => {
     pkHaptic('select');
@@ -3794,8 +3818,8 @@ function CommuteScreen({ web, onBack }) {
     }, 900);
   };
   const acceptCounter = () => { pkHaptic('success'); setAgreedPrice(counter); setNegoStatus('agreed'); };
-  // Pay the agreed fare; the driver only heads over now.
-  const payPrepaid = () => { pkHaptic('success'); setPayMode('prepaid'); setStep('success'); };
+  // Pay the agreed fare; the driver only heads over once the request lands.
+  const payPrepaid = () => { submitRide(selected, 'prepaid'); };
 
   const mates = React.useMemo(() => {
     const q = mateQuery.trim().toLowerCase();
@@ -4014,15 +4038,15 @@ function CommuteScreen({ web, onBack }) {
             </div>
 
             <div style={{ marginTop: 22, display: 'grid', gap: 10 }}>
-              <button onClick={startNegotiate} style={{ width: '100%', minHeight: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 760, boxShadow: '0 16px 38px rgba(10,10,10,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 16px' }}>
+              <button onClick={startNegotiate} disabled={requesting} style={{ width: '100%', minHeight: 56, borderRadius: 18, border: 0, background: ink, color: paper, cursor: requesting ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 15.5, fontWeight: 760, boxShadow: '0 16px 38px rgba(10,10,10,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 16px', opacity: requesting ? 0.5 : 1 }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.5 12 9.5s5 1.1 5 3-2.2 3-5 3-5-1.1-5-3"/></svg>
                 Offer your price
               </button>
-              <button onClick={() => callOnArrival()} style={{ width: '100%', minHeight: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
-                Call &amp; pay on arrival
+              <button onClick={() => callOnArrival()} disabled={requesting} style={{ width: '100%', minHeight: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: requesting ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: requesting ? 0.5 : 1 }}>
+                {requesting ? 'Requesting…' : (<React.Fragment><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>Call &amp; pay on arrival</React.Fragment>)}
               </button>
             </div>
+            {error && <div style={{ marginTop: 12, fontSize: 12.5, color: '#C8102E', lineHeight: 1.45, textAlign: 'center' }}>{error}</div>}
             <div style={{ marginTop: 10, fontSize: 11.5, color: ink40, lineHeight: 1.45, textAlign: 'center' }}>Offer a fare and {firstNameOf(r.name)} comes once you agree and pay — or call now and settle the price when they reach you.</div>
           </div>
         </div>
@@ -4112,8 +4136,9 @@ function CommuteScreen({ web, onBack }) {
               )}
             </div>
 
+            {error && negoStatus === 'agreed' && <div style={{ marginTop: 16, fontSize: 12.5, color: '#C8102E', lineHeight: 1.45, textAlign: 'center' }}>{error}</div>}
             {negoStatus === 'agreed' ? (
-              <button onClick={payPrepaid} style={{ marginTop: 22, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)' }}>Pay {ccPrice(agreedPrice)} &amp; confirm</button>
+              <button onClick={payPrepaid} disabled={requesting} style={{ marginTop: error ? 12 : 22, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: requesting ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)', opacity: requesting ? 0.6 : 1 }}>{requesting ? 'Requesting…' : `Pay ${ccPrice(agreedPrice)} & confirm`}</button>
             ) : (
               <button onClick={sendOffer} disabled={negoStatus === 'thinking' || !offerNum} style={{ marginTop: 22, width: '100%', height: 58, borderRadius: 18, border: negoStatus === 'thinking' || !offerNum ? `2px dashed ${ink12}` : 0, background: negoStatus === 'thinking' || !offerNum ? 'transparent' : ink, color: negoStatus === 'thinking' || !offerNum ? ink25 : paper, cursor: negoStatus === 'thinking' || !offerNum ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: negoStatus === 'thinking' || !offerNum ? 'none' : '0 18px 40px rgba(10,10,10,0.22)', transition: 'background 180ms ease, color 180ms ease' }}>
                 {negoStatus === 'thinking' ? `Waiting for ${fn}…` : negoStatus === 'countered' ? 'Send new offer' : 'Send offer'}

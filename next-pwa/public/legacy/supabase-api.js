@@ -367,6 +367,12 @@
   async function listCommute() {
     return callService("/api/commute");
   }
+  // Request a ride — persists a per-user commute request and returns the saved
+  // row. `payload` carries the chosen ride (driver_name, vehicle, mode, eta_min,
+  // price_rwf), the trip (origin, destination) and pay_mode.
+  async function requestRide(payload) {
+    return callService("/api/commute", { method: "POST", body: payload || {} });
+  }
 
   // Listen service — /api/listen
   async function listListen() {
@@ -619,6 +625,7 @@
     },
     commute: {
       list: listCommute,
+      request: requestRide,
     },
     listen: {
       list: listListen,
