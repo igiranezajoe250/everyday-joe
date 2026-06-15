@@ -48,9 +48,12 @@ func (c Config) allowsOrigin(origin string) bool {
 	if origin == "" {
 		return false
 	}
-	switch origin {
-	case "http://localhost:3000", "http://127.0.0.1:3000",
-		"http://localhost:8787", "http://127.0.0.1:8787":
+	// Any localhost / 127.0.0.1 origin is a dev origin and is always allowed,
+	// regardless of port — local dev servers (e.g. the Next preview) often land
+	// on an arbitrary high port when the default is taken.
+	if origin == "http://localhost" || origin == "http://127.0.0.1" ||
+		strings.HasPrefix(origin, "http://localhost:") ||
+		strings.HasPrefix(origin, "http://127.0.0.1:") {
 		return true
 	}
 	for _, o := range c.AllowedOrigins {

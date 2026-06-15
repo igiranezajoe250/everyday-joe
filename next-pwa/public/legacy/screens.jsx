@@ -9,17 +9,15 @@
 
 // Shared catalogue of the six Everyday functions. Each maps to a route the app
 // already renders. `icon` is JSX; stroke colour is applied via cloneElement.
+// Focused catalogue: Save is the center (always on), Plan is the Bounty
+// workspace, Commute is the daily trigger. Shop is deferred and Pay is kept as
+// plumbing under Save — both still have live routes and are reachable from
+// Bounty's plan steps, they just aren't headline functions in the + menu.
 const EVERYDAY_FUNCTIONS = [
-  { id: 'shop', label: 'Shop', sub: 'Find trusted shops', color: '#A37BF2',
-    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>) },
   { id: 'save', label: 'Save', sub: 'Save and grow', color: '#2FAE9B', locked: true,
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
-  { id: 'pay', label: 'Pay', sub: 'Schedule payments', color: '#C8102E',
-    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>) },
-  { id: 'plan', label: 'Plan', sub: 'Plan your day', color: '#E2941F',
+  { id: 'plan', label: 'Plan', sub: 'Notes, files and plans', color: '#E2941F',
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
-  { id: 'listen', label: 'Listen', sub: 'Play podcasts', color: '#5B7CFA',
-    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="7" rx="2"/><rect x="17" y="13" width="4" height="7" rx="2"/></svg>) },
   { id: 'commute', label: 'Commute', sub: 'Book vetted rides', color: '#3B82F6',
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z"/><path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8"/><path d="M6 9h12"/></svg>) },
 ];
@@ -569,7 +567,7 @@ function BountyButton({ onOpen, bottomOffset = 18 }) {
   );
 }
 
-function BountyPanel({ onClose, onRoute }) {
+function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
   const first = { id: 'b0', role: 'assistant', text: 'What are you planning today? Tell me — by voice or text — and I’ll lay out the steps across Save, Pay, Commute, and Shop.' };
   const [messages, setMessages] = usePersisted('bounty_messages', [first]);
   const newChat = () => { setMessages([{ ...first, id: 'b' + Date.now() }]); setInput(''); setError(''); };
@@ -767,7 +765,7 @@ function BountyPanel({ onClose, onRoute }) {
                     }}>{m.action}</button>
                   )}
                 </div>
-                {hasPlan && <BountyPlanCard plan={m.plan} onStep={handleRoute} />}
+                {hasPlan && <BountyPlanCard plan={m.plan} onStep={handleRoute} onSave={onSaveToPlan || null} />}
               </div>
             );
           })}
@@ -802,7 +800,7 @@ function BountyPanel({ onClose, onRoute }) {
 // BountyPlanCard renders a Bounty plan as a numbered checklist. Each step opens
 // the section flow that completes it — money still moves only inside Save/Pay's
 // own confirm screens, so the plan hands off rather than executing silently.
-function BountyPlanCard({ plan, onStep }) {
+function BountyPlanCard({ plan, onStep, onSave }) {
   const meta = {
     save:    { label: 'Save',    icon: 'save' },
     pay:     { label: 'Pay',     icon: 'pay' },
@@ -837,6 +835,17 @@ function BountyPlanCard({ plan, onStep }) {
           <span style={{ flexShrink: 0, marginTop: 1, color: ink }}><HomeIcon kind="save" size={14} color="currentColor" /></span>
           <div style={{ fontSize: 12.5, color: ink, lineHeight: 1.4 }}>{plan.note}</div>
         </div>
+      )}
+      {onSave && (
+        <button onClick={() => onSave(plan)} style={{
+          marginTop: 12, width: '100%', height: 36,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+          borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760,
+        }}>
+          <HomeIcon kind="note" size={14} color="currentColor" />
+          Save to Plan
+        </button>
       )}
     </div>
   );
@@ -892,13 +901,13 @@ function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, on
   const [focus, setFocus] = React.useState(false);
   const inputRef = React.useRef(null);
 
-  // The six sections the Menu opens. Bounty is its own button, not a list item.
+  // The focused sections the Menu opens: Save (center), Plan (Bounty's
+  // workspace) and Commute (the daily trigger). Bounty is its own button, not a
+  // list item. Pay and Shop stay as plumbing — reachable from Save and Bounty's
+  // plan steps — so they're intentionally left out of this list.
   const sections = [
-    { key: 'shop',    label: 'Shop',    sub: 'Find trusted shops',  icon: 'shop',    run: onShop },
     { key: 'save',    label: 'Save',    sub: 'Track savings',       icon: 'save',    run: onSave },
-    { key: 'pay',     label: 'Pay',     sub: 'Pay or schedule',     icon: 'pay',     run: onPay },
     { key: 'plan',    label: 'Plan',    sub: 'Notes and files',     icon: 'note',    run: onPlan },
-    { key: 'listen',  label: 'Listen',  sub: 'Channels and shows',  icon: 'listen',  run: onListen },
     { key: 'commute', label: 'Commute', sub: 'Book a ride',         icon: 'commute', run: onCommute },
   ];
 
@@ -1803,6 +1812,21 @@ const PLAN_FILES_0 = [
 const PLAN_NEW_FOLDER_ICONS = ['user', 'work', 'wallet', 'bulb', 'plane', 'family', 'health', 'folder'];
 function planId(p) { return p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
 
+// Turn a Bounty plan (goal + ordered steps + savings note) into the plain-text
+// body of a Plan file, so an ephemeral chat plan becomes a durable, editable
+// note the user can return to. The savings note leads — savings is the base
+// every plan centers on.
+function planToNoteBody(plan) {
+  if (!plan) return '';
+  const lines = [];
+  if (plan.note) { lines.push(plan.note, ''); }
+  (plan.steps || []).forEach((s, i) => {
+    lines.push((i + 1) + '. ' + (s.title || '').trim());
+    if (s.detail) lines.push('   ' + s.detail.trim());
+  });
+  return lines.join('\n').trim();
+}
+
 function FolderIcon({ kind, size = 16, color }) {
   const c = color || 'currentColor';
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: c, strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' };
@@ -2065,11 +2089,22 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     return () => clearTimeout(id);
   }, [railOpen]);
 
-  // One-shot capture intent handed in from the Home "Ask anything" bar.
+  // One-shot capture intent handed in from the Home "Ask anything" bar or from a
+  // Bounty plan. Wait until hydration finishes — otherwise the async remote load
+  // (loadPlan → setFiles) lands after this and clobbers the file we just created.
   React.useEffect(() => {
-    if (!intent) return;
+    if (!intent || loading) return;
     if (intent.mode === 'open' && intent.openId) {
       setOpenId(intent.openId); setView('editor');
+    } else if (intent.mode === 'plan' && intent.plan) {
+      // A plan handed over from Bounty. Save it as a file in Finance (savings is
+      // the base every plan centers on), falling back to the active folder if
+      // the user renamed or removed Finance.
+      const id = planId('pf');
+      const fid = (folders.find((f) => f.id === 'finance') || {}).id || activeFolder;
+      const file = { id, folderId: fid, title: (intent.plan.goal || 'Plan').slice(0, 80), body: planToNoteBody(intent.plan), updated: Date.now(), attachments: [], voice: [] };
+      setFiles((listv) => [file, ...listv]);
+      setActiveFolder(fid); setOpenId(id); setView('editor'); setMovePicker(false);
     } else {
       const id = planId('pf');
       const file = { id, folderId: activeFolder, title: '', body: intent.text || '', updated: Date.now(), attachments: [], voice: [] };
@@ -2079,7 +2114,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
       if (intent.mode === 'image' || intent.mode === 'upload') setTimeout(() => fileInputRef.current && fileInputRef.current.click(), 140);
     }
     onIntentHandled && onIntentHandled();
-  }, [intent]);
+  }, [intent, loading]);
 
   const live = files.filter((f) => !f.trashed);
   const trashed = files.filter((f) => f.trashed);

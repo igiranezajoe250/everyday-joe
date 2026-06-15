@@ -512,6 +512,7 @@ function App() {
             <BountyPanel
               onClose={() => setBountyOpen(false)}
               onRoute={openBountyRoute}
+              onSaveToPlan={(plan) => { setBountyOpen(false); captureToPlan({ mode: 'plan', plan }); }}
             />
           )}
 
