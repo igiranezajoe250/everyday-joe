@@ -4982,6 +4982,23 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
             <SaveAction label="Withdraw" sub="Take money out" selected={selectedSaveAction === 'withdraw'} onClick={() => { setSelectedSaveAction('withdraw'); onMoney('withdraw'); }} compact={compactSave} />
           </div>
 
+          {/* Credit line — tap into the full Credit screen (limit = 70% of savings). */}
+          <button onClick={onCredit} className="pk-calm-action" style={{
+            width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+            background: 'transparent', border: `1px dashed ${DASH}`, borderRadius: 16,
+            padding: compactSave ? '10px 14px' : '12px 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <span style={{ minWidth: 0 }}>
+              <Eyebrow style={{ marginBottom: 3 }}>Credit line</Eyebrow>
+              <span style={{ display: 'block', fontSize: 16, fontWeight: 850, color: ink, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{showMoney(c.available)} available</span>
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 650, color: ink55, flexShrink: 0 }}>
+              70% of savings
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+            </span>
+          </button>
+
           <SaveGoalsCard
             goals={liveGoals}
             schedules={liveSchedules}
