@@ -367,7 +367,7 @@ function EverydayAuthGate({ accent, onReady, onDemo }) {
           }}>{isPassword ? 'Send a code instead' : 'Use password instead'}</button>
         )}
         {notice && <div style={{ marginTop: 16, color: ink55, fontSize: 13, lineHeight: 1.45 }}>{notice}</div>}
-        {error && <div style={{ marginTop: 16, color: '#A33', fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
+        {error && <div style={{ marginTop: 16, color: '#C8102E', fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
         <button type="submit" disabled={!ready || busy} style={{
           marginTop: 28, height: 54, borderRadius: 999, border: 0,
           background: ready && !busy ? ink : ink12, color: ready && !busy ? paper : ink40,
@@ -448,7 +448,7 @@ function EverydayProfileSetup({ profile, accent, onDone }) {
             </div>
           </div>
         </div>
-        {error && <div style={{ marginTop: 16, color: '#A33', fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
+        {error && <div style={{ marginTop: 16, color: '#C8102E', fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
         <button type="submit" disabled={!name.trim() || busy} style={{
           marginTop: 28, height: 54, borderRadius: 999, border: 0,
           background: name.trim() && !busy ? ink : ink12, color: name.trim() && !busy ? paper : ink40,
@@ -777,7 +777,7 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
         </div>
 
         <div style={{ padding: '8px 18px max(18px, env(safe-area-inset-bottom, 16px))', borderTop: `1px solid ${ink06}`, background: canvas }}>
-          {error && <div style={{ fontSize: 12.5, color: '#A33', margin: '0 2px 8px', lineHeight: 1.35 }}>{error}</div>}
+          {error && <div style={{ fontSize: 12.5, color: '#C8102E', margin: '0 2px 8px', lineHeight: 1.35 }}>{error}</div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: paper, border: `1px solid ${ink12}`, borderRadius: 16, padding: 7 }}>
             <button onClick={recording ? stopRecording : startRecording} disabled={busy && !recording} aria-label={recording ? 'Stop recording' : 'Start recording'} style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: recording ? '#2FAE9B' : ink06, color: recording ? paper : ink, cursor: busy && !recording ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: recording ? '0 0 0 4px rgba(47,174,155,0.20)' : 'none', transition: 'background 200ms, box-shadow 200ms' }}>
               <HomeIcon kind="voice" size={17} color="currentColor" />
@@ -1514,7 +1514,7 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
                     <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                       <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
-                      {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E53935', background: '#E5393512', padding: '2px 7px', borderRadius: 999 }}>Out of stock</span>}
+                      {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#C8102E', background: '#C8102E12', padding: '2px 7px', borderRadius: 999 }}>Out of stock</span>}
                       {lowStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 7px', borderRadius: 999 }}>Only {p.stock} left</span>}
                       {!outOfStock && sample && <span style={{ fontSize: 10, fontWeight: 700, color: ink55, background: ink06, padding: '2px 7px', borderRadius: 999 }}>Sample</span>}
                     </span>
@@ -1672,7 +1672,7 @@ function ShopScreen({ web, onBack, isOperator = false }) {
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{p.name}</span>
-                        {p.stock === 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5393580', background: '#E5393512', padding: '2px 8px', borderRadius: 999 }}>Out of stock</span>}
+                        {p.stock === 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#C8102E80', background: '#C8102E12', padding: '2px 8px', borderRadius: 999 }}>Out of stock</span>}
                         {p.stock > 0 && p.stock <= 5 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 8px', borderRadius: 999 }}>Low</span>}
                       </span>
                       <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{p.price} · {p.stock} in stock · {p.sold} sold</span>

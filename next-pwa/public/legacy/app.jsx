@@ -360,17 +360,17 @@ function App() {
           position: 'relative',
         }}>
           {!onboarded ? (
-            <Onboarding native={PK_NATIVE} accent={accent} onDone={finishOnboarding} />
+            <Onboarding native={PK_NATIVE} accent={ink} onDone={finishOnboarding} />
           ) : authConfigured && !authReady ? (
             <div className="pk-rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canvas, color: ink55, fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Loading account</div>
           ) : authConfigured && !session && !demoAuth ? (
-            <EverydayAuthGate accent={accent} onReady={refreshAuth} onDemo={handleDemoSignIn} />
+            <EverydayAuthGate accent={ink} onReady={refreshAuth} onDemo={handleDemoSignIn} />
           ) : authConfigured && session && !profile && !authError ? (
             <div className="pk-rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canvas, color: ink55, fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Loading profile</div>
           ) : authConfigured && session && profile && !profile.onboarding_completed ? (
-            <EverydayProfileSetup profile={profile} accent={accent} onDone={(next) => { setProfile(next); }} />
+            <EverydayProfileSetup profile={profile} accent={ink} onDone={(next) => { setProfile(next); }} />
           ) : !unlocked ? (
-            <LockGate accent={accent} native={PK_NATIVE} onUnlock={handleUnlock} />
+            <LockGate accent={ink} native={PK_NATIVE} onUnlock={handleUnlock} />
           ) : (
           <React.Fragment>
           <div style={{
