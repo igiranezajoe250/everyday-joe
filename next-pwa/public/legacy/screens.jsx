@@ -5454,8 +5454,45 @@ function EyeToggle({ hidden, onToggle }) {
 // the more you can borrow. Capacity = 70% of savings.
 
 function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
-  const s = CC_SAVINGS;
-  const c = CC_CREDIT;
+  // The limit is real — it's a fixed 70% share of the user's actual savings
+  // (same rule the Save screen uses). Borrowing itself isn't backed yet, so a
+  // real account always shows zero outstanding and Borrow/Repay stay a preview.
+  // The pure local/anon preview (no userId) still renders the CC_* demo numbers.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const liveSave = (everyday && everyday.save) || null;
+  const liveWallet = liveSave && liveSave.wallet;
+  const liveTransactions = (liveSave && liveSave.transactions) || [];
+  const realAcct = !!(everyday && everyday.userId);
+  const realSavings = liveWallet ? (liveWallet.savings_rwf || 0) : 0;
+  const realInterestEarned = liveTransactions
+    .filter((t) => t && t.kind === 'interest' && t.direction === 'in')
+    .reduce((sum, t) => sum + (t.amount_rwf || 0), 0);
+  const now = new Date();
+  const realSavedThisMonth = liveTransactions
+    .filter((t) => t && t.section === 'save' && t.direction === 'in' && t.kind !== 'interest')
+    .filter((t) => { const d = new Date(t.happened_at || t.created_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
+    .reduce((sum, t) => sum + (t.amount_rwf || 0), 0);
+
+  const s = realAcct
+    ? Object.assign({}, CC_SAVINGS, {
+        balance: realSavings,
+        returnsEarned: realInterestEarned,
+        savedThisMonth: realSavedThisMonth,
+        thisMonthLabel: now.toLocaleString('en-US', { month: 'long' }),
+      })
+    : CC_SAVINGS;
+  const c = realAcct
+    ? {
+        ratio: CC_CREDIT.ratio,
+        capacity: Math.round(realSavings * CC_CREDIT.ratio),
+        outstanding: 0,
+        status: 'Good standing',
+        nextPayment: { amount: fmtRWF(0), date: '—' },
+        get available() { return this.capacity - this.outstanding; },
+        get utilization() { return 0; },
+      }
+    : CC_CREDIT;
+
   const [hidden, setHidden] = React.useState(false);
   const capacityPct = Math.round(c.ratio * 100);
   const repaymentStatus = c.utilization < 15
@@ -5464,6 +5501,44 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
       ? 'Good'
       : 'Close to limit';
   const mask = (v) => (hidden ? '••••••' : v);
+
+  // A signed-in account must never show demo numbers as the user's money: wait
+  // on the live save slice, surface loading/error explicitly, offer retry.
+  const saveLoading = realAcct && liveSave && !liveSave.loaded && !liveSave.error;
+  const saveErrored = realAcct && liveSave && !!liveSave.error && !liveSave.loaded;
+  const retrySave = () => { try { window.EverydayStore && window.EverydayStore.hydrate.save(); } catch (e) {} };
+  const creditHeader = (
+    <ScreenHeader
+      left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {onBack && <IconBtn onClick={onBack}>
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </IconBtn>}
+        <Eyebrow>Credit</Eyebrow>
+      </div>}
+    />
+  );
+
+  if (saveLoading) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {creditHeader}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Loading your credit line</div>
+      </div>
+    );
+  }
+  if (saveErrored) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        {creditHeader}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, textAlign: 'center' }}>
+          <div style={{ fontSize: 13.5, color: ink55, maxWidth: 240 }}>Couldn't load your savings, so your limit isn't available right now.</div>
+          <button onClick={retrySave} style={{ height: 40, padding: '0 20px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700 }}>Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -5482,7 +5557,9 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
       <div style={{ flex: 1, overflow: 'hidden', scrollbarWidth: 'none' }} className="cc-scroll">
         <div style={{ margin: '12px 20px 0', padding: '9px 12px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink55, fontWeight: 700, flexShrink: 0 }}>Preview</span>
-          <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>Credit isn't live yet — these figures preview how your savings-backed line will work.</span>
+          <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>{realAcct
+            ? 'Your limit is 70% of your savings and rises as you save. Borrowing isn’t live yet, so Borrow and Repay are a preview.'
+            : 'Credit isn’t live yet — these figures preview how your savings-backed line will work.'}</span>
         </div>
         <div className="pk-page-pad pk-soft-card" style={{ padding: '14px 20px 0' }}>
           <div style={{
@@ -5757,9 +5834,6 @@ function CreditLimitCircle({ capacityPct, usedPct, outstanding, available }) {
 
   return (
     <div style={{ marginTop: 14, display: 'grid', justifyItems: 'center' }}>
-      <div style={{ fontSize: 11.5, fontWeight: 750, color: ink55, marginBottom: 4 }}>
-        Starts at RWF 1,000,000
-      </div>
       <div style={{ position: 'relative', width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           <circle cx={size / 2} cy={size / 2} r={r}
