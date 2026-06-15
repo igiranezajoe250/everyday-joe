@@ -498,6 +498,11 @@
     return callService("/api/pay", { method: "POST", body: { amount_rwf: amountRwf, recipient: recipient, note: note || "" } });
   }
 
+  // Activity service — /api/activity (this user's real money + section activity)
+  async function getActivity() {
+    return callService("/api/activity");
+  }
+
   // Bounty orchestrator — /api/bounty
   async function bountyAsk(ask) {
     return callService("/api/bounty", { method: "POST", body: { ask: ask || "" } });
@@ -629,6 +634,9 @@
     },
     listen: {
       list: listListen,
+    },
+    activity: {
+      get: getActivity,
     },
     bounty: {
       ask: bountyAsk,

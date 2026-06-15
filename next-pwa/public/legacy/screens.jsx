@@ -460,16 +460,120 @@ function EverydayProfileSetup({ profile, accent, onDone }) {
   );
 }
 
+// ── Real activity mapping ──────────────────────────────────────────────
+// Turns the user's live `transactions` + `activity_events` (from the store's
+// `activity` slice, served by /api/activity) into the shapes the Activity
+// screen and the Inbox already render. Demo/anon sessions (no `userId`) keep
+// their seed data, so nothing fake is ever shown as a real user's money.
+const EVERYDAY_SECTION_LABEL = { save: 'Savings', pay: 'Payment', shop: 'Shop', commute: 'Commute', credit: 'Credit' };
+
+function everydayActivityKind(tx) {
+  if (tx.kind === 'interest') return 'yield';
+  if (tx.kind === 'withdraw' || (tx.section === 'save' && tx.direction === 'out')) return 'withdraw';
+  if (tx.section === 'save' && tx.direction === 'in') return 'save';
+  if (tx.section === 'shop') return 'invest';
+  return tx.direction === 'in' ? 'topup' : 'withdraw';
+}
+
+function everydayFmtActivityDate(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const yest = new Date(now); yest.setDate(now.getDate() - 1);
+    if (d.toDateString() === now.toDateString()) return 'Today · ' + time;
+    if (d.toDateString() === yest.toDateString()) return 'Yesterday · ' + time;
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' · ' + time;
+  } catch (e) { return ''; }
+}
+
+function everydayAgo(iso) {
+  const t = new Date(iso).getTime();
+  if (!t) return '';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return 'now';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h';
+  return Math.floor(s / 86400) + 'd';
+}
+
+function everydayCap(s) { return s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : ''; }
+
+// Activity screen items (money movements only), newest first.
+function everydayActivityItems(state) {
+  const txs = (state && state.activity && state.activity.transactions) || [];
+  return txs.map((tx) => ({
+    id: tx.id,
+    kind: everydayActivityKind(tx),
+    title: tx.title || everydayCap(tx.section) || 'Transaction',
+    meta: EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Everyday',
+    date: everydayFmtActivityDate(tx.happened_at || tx.created_at),
+    amount: (tx.direction === 'in' ? '+ ' : '− ') + fmtRWF(tx.amount_rwf || 0),
+    dir: tx.direction === 'in' ? 'in' : 'out',
+    status: everydayCap(tx.status) || 'Completed',
+  }));
+}
+
+// Inbox items: money movements + non-money activity events, newest first.
+function everydayInboxItems(state, seenAt) {
+  seenAt = seenAt || 0;
+  const txs = (state && state.activity && state.activity.transactions) || [];
+  const events = (state && state.activity && state.activity.events) || [];
+  const fromTx = txs.map((tx) => {
+    const ts = new Date(tx.happened_at || tx.created_at).getTime() || 0;
+    const inbound = tx.direction === 'in';
+    const label = EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Everyday';
+    return {
+      id: 'tx-' + tx.id, type: 'notif', ts,
+      title: tx.kind === 'interest' ? 'Savings interest credited' : tx.title || label,
+      body: (inbound ? '+ ' : '− ') + fmtRWF(tx.amount_rwf || 0) + ' · ' + label,
+      time: everydayAgo(tx.happened_at || tx.created_at),
+      unread: ts > seenAt,
+    };
+  });
+  const fromEvents = events.map((ev) => {
+    const ts = new Date(ev.created_at).getTime() || 0;
+    return {
+      id: 'ev-' + ev.id, type: ev.section === 'commute' ? 'message' : 'notif', ts,
+      title: ev.title || 'Update',
+      body: ev.detail || '',
+      time: everydayAgo(ev.created_at),
+      unread: ts > seenAt,
+    };
+  });
+  return fromTx.concat(fromEvents).sort((a, b) => b.ts - a.ts).slice(0, 24);
+}
+
+// Unread badge count for a signed-in user; null when there's no real activity
+// slice loaded yet (caller falls back to the demo badge).
+function everydayUnreadCount(state, seenAt) {
+  if (!state || !state.activity || !state.activity.loaded) return null;
+  return everydayInboxItems(state, seenAt || 0).filter((it) => it.unread).length;
+}
+
+Object.assign(window, {
+  everydayActivityItems, everydayInboxItems, everydayUnreadCount,
+});
+
 // Inbox: notifications + messages received from the app.
-function NotificationsPanel({ onClose }) {
+function NotificationsPanel({ onClose, seenAt = 0 }) {
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const hasUser = !!(everyday && everyday.userId);
+  const slice = everyday && everyday.activity;
+  const realLoaded = hasUser && slice && slice.loaded;
+  const realItems = realLoaded ? everydayInboxItems(everyday, seenAt) : null;
+  const loadingReal = hasUser && slice && slice.loading && !slice.loaded;
   const [tab, setTab] = React.useState('all');
-  const items = [
+  // Demo seed — shown only for the local preview / anon session (no real userId).
+  const demoItems = [
     { id: 1, type: 'notif',   title: 'Savings interest credited', body: 'RWF 28,600 added to your savings.', time: '2h', unread: true },
     { id: 2, type: 'message', title: 'Aline N. · Moto',           body: 'I\'m 3 minutes away — meet at the gate?', time: '10m', unread: true },
     { id: 3, type: 'notif',   title: 'Payment sent',              body: 'RWF 5,000 to Eric Kwizera.', time: '1d', unread: false },
     { id: 4, type: 'message', title: 'Green Hills School',        body: 'Receipt for school fees attached.', time: '2d', unread: false },
     { id: 5, type: 'notif',   title: 'New trusted shop',          body: 'House of Tayo just joined Everyday.', time: '3d', unread: false },
   ];
+  const items = realItems || demoItems;
   const shown = tab === 'messages' ? items.filter((i) => i.type === 'message') : items;
   return (
     <div className="pk-rise" style={{ position: 'absolute', inset: 0, zIndex: 70, background: canvas, display: 'flex', flexDirection: 'column' }}>
@@ -489,7 +593,9 @@ function NotificationsPanel({ onClose }) {
         })}
       </div>
       <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: '6px 20px 24px' }}>
-        {shown.map((it, idx) => (
+        {loadingReal && (<div style={{ padding: '44px 0', textAlign: 'center', fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Loading inbox</div>)}
+        {!loadingReal && shown.length === 0 && (<div style={{ padding: '52px 0', textAlign: 'center', fontSize: 13, color: ink55 }}>{tab === 'messages' ? 'No messages yet.' : "You're all caught up."}</div>)}
+        {!loadingReal && shown.map((it, idx) => (
           <div key={it.id} style={{ display: 'flex', gap: 13, padding: '15px 0', borderTop: idx === 0 ? 'none' : `1px dashed ${DASH}`, alignItems: 'flex-start' }}>
             <span style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}>
               {it.type === 'message' ? (
@@ -1629,6 +1735,10 @@ function ShopScreen({ web, onBack, isOperator = false }) {
           <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
             <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Your shop.</div>
             <div style={{ fontSize: 14, color: ink55, marginTop: 8, fontWeight: 600 }}>House of Tayo · Kigali, Rwanda</div>
+            <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink55, fontWeight: 700, flexShrink: 0 }}>Preview</span>
+              <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>The operator dashboard is a sample of the merchant experience — these orders and totals are demo data.</span>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 24 }}>
               {[
@@ -5370,6 +5480,10 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
       />
 
       <div style={{ flex: 1, overflow: 'hidden', scrollbarWidth: 'none' }} className="cc-scroll">
+        <div style={{ margin: '12px 20px 0', padding: '9px 12px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink55, fontWeight: 700, flexShrink: 0 }}>Preview</span>
+          <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>Credit isn't live yet — these figures preview how your savings-backed line will work.</span>
+        </div>
         <div className="pk-page-pad pk-soft-card" style={{ padding: '14px 20px 0' }}>
           <div style={{
             background: paper, borderRadius: 20, padding: '16px 18px 18px',
@@ -5953,8 +6067,8 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
     foryou: 'For you',
   };
   const subByFilter = {
-    funds:  'Optional — once you\'re saving, put some to work in vetted funds.',
-    foryou: 'Businesses Everyday is helping grow directly.',
+    funds:  'Optional — once you\'re saving, put some to work in vetted funds. Preview — investing isn\'t live yet.',
+    foryou: 'Businesses Everyday is helping grow directly. Preview — investing isn\'t live yet.',
   };
 
   const sortOptions = [
@@ -8868,7 +8982,14 @@ function ActivityGlyph({ kind }) {
 }
 
 function ActivityScreen({ accent, onBack }) {
-  const items = CC_ACTIVITY;
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const hasUser = !!(everyday && everyday.userId);
+  const slice = everyday && everyday.activity;
+  const loadingReal = hasUser && slice && slice.loading && !slice.loaded;
+  const erroredReal = hasUser && slice && slice.error && !slice.loaded;
+  // Real money movements for a signed-in user; demo seed only for the anon preview.
+  const items = hasUser ? (slice && slice.loaded ? everydayActivityItems(everyday) : []) : CC_ACTIVITY;
+  const retry = () => { if (window.EverydayStore) window.EverydayStore.hydrate.activity(); };
   const [filter, setFilter] = React.useState('all');
   const filters = [
     { id: 'all', label: 'All' },
@@ -8907,12 +9028,23 @@ function ActivityScreen({ accent, onBack }) {
 
       <div style={{ padding: '0 20px' }}>
         <RoundedCard padding={0} radius={20}>
-          {filtered.length === 0 && (
+          {loadingReal && (
+            <div style={{ padding: '30px 18px', textAlign: 'center', fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>
+              Loading activity
+            </div>
+          )}
+          {erroredReal && (
+            <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: 13, color: ink55 }}>
+              Couldn't load your activity.
+              <button onClick={retry} style={{ display: 'block', margin: '12px auto 0', height: 36, padding: '0 18px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>Retry</button>
+            </div>
+          )}
+          {!loadingReal && !erroredReal && filtered.length === 0 && (
             <div style={{ padding: '26px 18px', textAlign: 'center', fontSize: 13, color: ink55 }}>
               Nothing here yet.
             </div>
           )}
-          {filtered.map((it, i) => (
+          {!loadingReal && !erroredReal && filtered.map((it, i) => (
             <div key={it.id} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               padding: '14px 18px',

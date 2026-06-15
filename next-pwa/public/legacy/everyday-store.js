@@ -21,6 +21,7 @@
       plan:    Object.assign(emptySlice(), { folders: [], files: [] }),
       listen:  Object.assign(emptySlice(), { sources: [], episodes: [] }),
       commute: Object.assign(emptySlice(), { options: [] }),
+      activity: Object.assign(emptySlice(), { transactions: [], events: [] }),
       bounty:  Object.assign(emptySlice(), { snapshot: null }),
     };
   }
@@ -123,6 +124,17 @@
     }
   }
 
+  async function hydrateActivity() {
+    if (!window.EverydayAPI) return;
+    patch("activity", { loading: true, error: null });
+    try {
+      var data = await window.EverydayAPI.activity.get();
+      patch("activity", { loading: false, loaded: true, transactions: data.transactions || [], events: data.events || [] });
+    } catch (err) {
+      patch("activity", { loading: false, error: err.message || String(err) });
+    }
+  }
+
   // Bounty is the bridge — used by the assistant panel, not auto-hydrated.
   async function ask(question) {
     if (!window.EverydayAPI) return null;
@@ -142,7 +154,7 @@
     opts = opts || {};
     var publicJobs = [hydrateShop(), hydrateListen(), hydrateCommute()];
     var privateJobs = opts.userId
-      ? [hydrateSave(), hydratePay(), hydratePlan()]
+      ? [hydrateSave(), hydratePay(), hydratePlan(), hydrateActivity()]
       : [];
     if (opts.userId) state.userId = opts.userId;
     await Promise.all(publicJobs.concat(privateJobs));
@@ -160,12 +172,12 @@
 
   async function deposit(amountRwf, title, goalId) {
     var res = await window.EverydayAPI.save.deposit(amountRwf, title, goalId);
-    await hydrateSave();
+    await Promise.all([hydrateSave(), hydrateActivity()]);
     return res;
   }
   async function withdraw(amountRwf, title) {
     var res = await window.EverydayAPI.save.withdraw(amountRwf, title);
-    await hydrateSave();
+    await Promise.all([hydrateSave(), hydrateActivity()]);
     return res;
   }
   async function createGoal(label, targetRwf, deadline) {
@@ -205,12 +217,12 @@
   }
   async function order(productId, quantity) {
     var res = await window.EverydayAPI.shop.order(productId, quantity);
-    await Promise.all([hydrateShop(), hydrateSave()]); // stock + wallet both change
+    await Promise.all([hydrateShop(), hydrateSave(), hydrateActivity()]); // stock + wallet + ledger
     return res;
   }
   async function pay(amountRwf, recipient, note) {
     var res = await window.EverydayAPI.pay.send(amountRwf, recipient, note);
-    await Promise.all([hydratePay(), hydrateSave()]); // pay log + wallet balance
+    await Promise.all([hydratePay(), hydrateSave(), hydrateActivity()]); // pay log + wallet + ledger
     return res;
   }
   async function savePlan(folders, files) {
@@ -230,6 +242,7 @@
       plan: hydratePlan,
       listen: hydrateListen,
       commute: hydrateCommute,
+      activity: hydrateActivity,
     },
     actions: {
       deposit: deposit,

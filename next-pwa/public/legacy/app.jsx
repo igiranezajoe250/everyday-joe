@@ -288,6 +288,18 @@ function App() {
   const [inboxOpen, setInboxOpen] = React.useState(false);
   const [bountyOpen, setBountyOpen] = React.useState(false);
   const [isOperator, setIsOperator] = usePersisted('cc_is_operator', false);
+
+  // Inbox unread — for a signed-in user this counts real activity newer than the
+  // last time they opened the inbox (an honest "unread" without a read-model).
+  // The local/anon preview keeps the demo badge so the seed inbox still reads.
+  const everyday = window.useEveryday ? window.useEveryday() : null;
+  const hasRealUser = !!(everyday && everyday.userId);
+  const [inboxSeen, setInboxSeen] = usePersisted('inbox_seen_at', 0);
+  const [inboxSnap, setInboxSnap] = React.useState(0);
+  const headerUnread = hasRealUser
+    ? ((window.everydayUnreadCount && window.everydayUnreadCount(everyday, inboxSeen)) || 0)
+    : 2;
+  const openInbox = () => { pkHaptic('select'); setInboxSnap(inboxSeen); setInboxOpen(true); setInboxSeen(Date.now()); };
   const HEADER_ACTION_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
   const showHeaderActions = HEADER_ACTION_ROUTES.includes(route);
 
@@ -486,9 +498,9 @@ function App() {
 
           {showHeaderActions && (
             <HeaderActions
-              unread={2}
+              unread={headerUnread}
               initials={activeProfile ? everydayProfileInitials(activeProfile) : "JK"}
-              onInbox={() => { pkHaptic('select'); setInboxOpen(true); }}
+              onInbox={openInbox}
               onWallet={openWallet}
               onProfile={openSettings}
               showOperator={route === 'shop'}
@@ -497,7 +509,7 @@ function App() {
             />
           )}
 
-          {inboxOpen && <NotificationsPanel onClose={() => setInboxOpen(false)} />}
+          {inboxOpen && <NotificationsPanel onClose={() => setInboxOpen(false)} seenAt={inboxSnap} />}
 
           {/* The hub already has a centre Bounty button, so hide the floating
               FAB there; keep it on every other screen as the global entry. */}
