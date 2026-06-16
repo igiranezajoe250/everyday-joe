@@ -3,7 +3,7 @@
   "short_name": "Everyday",
   "description": "Save consistently, grow your money, and unlock a credit line backed by your savings.",
   "id": "/",
-  "start_url": "./Poketee.html?app=1",
+  "start_url": "./index.html?app=1",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

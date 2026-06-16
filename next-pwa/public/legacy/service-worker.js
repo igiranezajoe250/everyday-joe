@@ -1,11 +1,11 @@
-// service-worker.js — offline support for Poketee
+// service-worker.js — offline support for Everyday
 // Network-first for app code (so updates land when online), falling back to
 // cache when offline. Bump CACHE to force a clean slate.
-const CACHE = 'poketee-v2';
+const CACHE = 'everyday-v3';
 
 const SHELL = [
   './',
-  './Poketee.html',
+  './Everyday.html',
   './manifest.webmanifest',
   './ui.jsx',
   './data.jsx',
@@ -52,7 +52,7 @@ self.addEventListener('fetch', (e) => {
       return res;
     }).catch(() =>
       caches.match(req).then((hit) =>
-        hit || (req.mode === 'navigate' ? caches.match('./Poketee.html') : undefined)
+        hit || (req.mode === 'navigate' ? caches.match('./Everyday.html') : undefined)
       )
     )
   );

@@ -263,7 +263,7 @@
   };
 
   // React bridge — components subscribe via this hook and re-render on emit.
-  // Loaded after React in Poketee.html, so React is available here.
+  // Loaded after React in Everyday.html, so React is available here.
   if (typeof React !== "undefined") {
     window.useEveryday = function useEveryday() {
       var pair = React.useState(state);

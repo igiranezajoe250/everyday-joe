@@ -1,4 +1,4 @@
-// ui.jsx — shared low-fi swiss primitives for Poketee
+// ui.jsx — shared low-fi swiss primitives for Everyday
 
 // ───────────────────────────── theming ─────────────────────────────
 

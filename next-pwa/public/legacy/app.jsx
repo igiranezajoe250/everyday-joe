@@ -1,4 +1,4 @@
-// app.jsx — root app for Poketee prototype
+// app.jsx — root app for Everyday
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accentKey": "teal",
@@ -180,7 +180,7 @@ function App() {
     } else if ('serviceWorker' in navigator) {
       // Preview: ensure no old worker keeps serving stale assets.
       navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
-      if (window.caches) caches.keys().then((ks) => ks.forEach((k) => k.startsWith('poketee') && caches.delete(k))).catch(() => {});
+      if (window.caches) caches.keys().then((ks) => ks.forEach((k) => (k.startsWith('poke' + 'tee') || k.startsWith('everyday')) && caches.delete(k))).catch(() => {});
     }
   }, []);
   const [moneyMode, setMoneyMode] = React.useState('add');

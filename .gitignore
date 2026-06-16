@@ -9,12 +9,19 @@ __pycache__/
 *.py[cod]
 .env*
 !.env.example
+key/
+Key/
+keys/
+Keys.txt
+keys.txt
+key.txt
 .expo/
 .kokoro-env/
 kokoro-env/
 kokoro-temp/
 # Local dev tool configs
 .claude/
+.scratch-tunnel/
 next-pwa/next-env.d.ts
 local-voice/tmp/
 local-voice/service/*.go.*
@@ -39,3 +46,5 @@ local-voice/kokoro/hf-cache/
 *.pt
 *.pth
 *.gguf
+
+.vercel

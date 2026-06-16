@@ -135,7 +135,7 @@ npm run dev
 Open:
 
 ```txt
-http://localhost:3000/legacy/Poketee.html?app=1
+http://localhost:3000/legacy/Everyday.html?app=1
 ```
 
 ## Test English Voice
@@ -165,13 +165,37 @@ Bounty is the app-wide conversational entry point. The button stays pinned in th
 - Profile language still controls English vs Kinyarwanda transcription
 - The agent response can include an app route such as `shop`, `commute`, `pay`, `capital`, `plan`, or `listen`
 
-By default, Bounty uses deterministic local routing so the app remains testable without a running LLM. To connect a local LLM, point the service at an Ollama-compatible chat endpoint:
+By default, Bounty uses deterministic local routing so the app remains testable without a running LLM. For the full AI chain, keep API keys server-side in this Go service. Bounty tries providers in this order:
+
+1. Google AI Studio / Gemini API primary: `GEMINI_API_KEY` + `GEMINI_MODEL`
+2. Qwen fallback: hosted OpenAI-compatible Qwen, then local Ollama Qwen
+3. Gemma fallback: Google AI Studio Gemma model, then local Ollama Gemma
+
+To enable the free Google AI Studio primary path:
+
+```powershell
+$env:GEMINI_API_KEY="your-ai-studio-key"
+$env:GEMINI_MODEL="gemini-3.5-flash"
+go run .
+```
+
+For local development, the service also checks a private `key/` folder or
+`Keys.txt` file in the Everyday project folder. On this laptop it will also use
+`OneDrive\Desktop\Everyday Joe\Keys.txt` as a fallback source when
+`GEMINI_API_KEY` is not already set.
+
+To connect the local Qwen fallback, point the service at an Ollama-compatible chat endpoint:
 
 ```powershell
 $env:BOUNTY_LLM_URL="http://127.0.0.1:11434/api/chat"
-$env:BOUNTY_LLM_MODEL="llama3.1"
+$env:BOUNTY_LLM_MODEL="qwen3:8b"
+$env:BOUNTY_GEMMA_MODEL="gemma3:4b"
 go run .
 ```
+
+For a hosted Qwen fallback, set `LLM_OPENAI_BASE_URL`, `LLM_OPENAI_MODEL`, and `LLM_OPENAI_KEY`.
+For the Gemma online fallback, set `GOOGLE_GEMMA_MODEL`; the default is `gemma-3-4b-it`.
+If you get access to a newer Gemma model id, put it in `GOOGLE_GEMMA_MODEL` without changing code.
 
 Examples:
 

@@ -66,38 +66,31 @@ func extractPlan(reply string) (*bountyPlan, string) {
 // strict block-only nudge — small models like Gemma sometimes ask questions on
 // the first pass but comply when pushed. Returns the plan (or nil), the cleaned
 // conversational text, and the raw reply (reused as a plain answer when no plan).
-func runPlanner(cfg Config, req agentRequest, lang string) (plan *bountyPlan, clean, raw string) {
+func runPlanner(cfg Config, req agentRequest, lang string) (plan *bountyPlan, clean, raw, model string) {
 	// history carries the "What are you planning?" greeting, which primes small
 	// models to ask questions back. Pass it on the first try (keeps context) but
 	// drop it on the retry so nothing competes with the block-only instruction.
-	call := func(message string, history []agentMessage) string {
-		switch {
-		case cfg.GoogleAIKey != "":
-			if r, err := callGemma3Online(cfg, buildPlannerPrompt(req, lang), message, history); err == nil {
-				return strings.TrimSpace(r)
-			}
-		case cfg.AgentLLMURL != "":
-			if r, err := callGemma3Local(cfg, buildPlannerPrompt(req, lang), message, history); err == nil {
-				return strings.TrimSpace(r)
-			}
+	call := func(message string, history []agentMessage) (string, string) {
+		if r, m := generate(cfg, buildPlannerPrompt(req, lang), message, history); strings.TrimSpace(r) != "" {
+			return strings.TrimSpace(r), m
 		}
-		return ""
+		return "", ""
 	}
 
-	raw = call(req.Message, req.History)
+	raw, model = call(req.Message, req.History)
 	if raw == "" {
-		return nil, "", ""
+		return nil, "", "", ""
 	}
 	if p, c := extractPlan(raw); p != nil {
-		return p, c, raw
+		return p, c, raw, model
 	}
 	// No plan on the first pass — push once, history-free, for the block only.
-	retry := call(req.Message+"\n\nOutput ONLY the fenced ```plan``` JSON block for this goal. Make reasonable assumptions. Do not ask any questions.", nil)
+	retry, retryModel := call(req.Message+"\n\nOutput ONLY the fenced ```plan``` JSON block for this goal. Make reasonable assumptions. Do not ask any questions.", nil)
 	if p, c := extractPlan(retry); p != nil {
-		return p, c, retry
+		return p, c, retry, retryModel
 	}
 	_, clean = extractPlan(raw)
-	return nil, clean, raw
+	return nil, clean, raw, model
 }
 
 // buildPlannerPrompt is Bounty's plan-first system prompt. It asks the model to

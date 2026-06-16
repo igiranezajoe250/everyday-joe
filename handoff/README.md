@@ -1,8 +1,8 @@
-# Poketee — Native App Handoff
+# Everyday �?Native App Handoff
 
-This package wraps the Poketee web app as a real **iOS** and **Android** app using
+This package wraps the Everyday web app as a real **iOS** and **Android** app using
 [Capacitor](https://capacitorjs.com). The web app is fully self-contained and runs
-**offline** — no server or internet connection required at runtime. All data is
+**offline** �?no server or internet connection required at runtime. All data is
 mock data baked into the app (no backend yet).
 
 > You need a developer with **Xcode** (for iOS) and/or **Android Studio** (for Android)
@@ -14,27 +14,27 @@ mock data baked into the app (no backend yet).
 
 ```
 handoff/
-├── www/                     ← the built, offline web app (this is what ships)
-│   ├── index.html           ← single self-contained file (React, styles, screens, data)
-│   ├── manifest.webmanifest
-│   ├── service-worker.js
-│   └── icons/
-├── resources/               ← source art for icon + splash generation
-│   ├── icon.png             ← 1024×1024 app icon
-│   ├── splash.png           ← 2732×2732 splash (dark)
-│   └── splash-dark.png
-├── capacitor.config.json    ← app id, name, splash, status bar, push config
-├── package.json             ← Capacitor deps + helper scripts
-├── start.command            ← double-click to run the app locally (macOS)
-├── start.bat                ← double-click to run the app locally (Windows)
-├── TESTING.md               ← how to test: local, on your phone, TestFlight, Play
-└── README.md                ← you are here
+├── www/                     �?the built, offline web app (this is what ships)
+�?  ├── index.html           �?single self-contained file (React, styles, screens, data)
+�?  ├── manifest.webmanifest
+�?  ├── service-worker.js
+�?  └── icons/
+├── resources/               �?source art for icon + splash generation
+�?  ├── icon.png             �?1024×1024 app icon
+�?  ├── splash.png           �?2732×2732 splash (dark)
+�?  └── splash-dark.png
+├── capacitor.config.json    �?app id, name, splash, status bar, push config
+├── package.json             �?Capacitor deps + helper scripts
+├── start.command            �?double-click to run the app locally (macOS)
+├── start.bat                �?double-click to run the app locally (Windows)
+├── TESTING.md               �?how to test: local, on your phone, TestFlight, Play
+└── README.md                �?you are here
 ```
 
 > **Just want to see it run?** Double-click `start.command` (macOS) or `start.bat`
-> (Windows) — no setup. Full testing instructions are in **`TESTING.md`**.
+> (Windows) �?no setup. Full testing instructions are in **`TESTING.md`**.
 
-The app id is **`rw.poketee.app`** and the display name is **Poketee**. Change both in
+The app id is **`com.everydayjoe.app`** and the display name is **Everyday**. Change both in
 `capacitor.config.json` (and at project creation) if you need different ones.
 
 ---
@@ -52,14 +52,14 @@ The app id is **`rw.poketee.app`** and the display name is **Poketee**. Change b
 From an empty folder you control:
 
 ```bash
-mkdir poketee-app && cd poketee-app
+mkdir everyday-app && cd everyday-app
 
 # Copy the contents of this handoff/ folder into here, so you have:
 #   ./www  ./resources  ./capacitor.config.json  ./package.json
 
 npm install
-npx cap init "Poketee" "rw.poketee.app" --web-dir=www
-# (keep the provided capacitor.config.json — it has splash/status-bar/push set up)
+npx cap init "Everyday" "com.everydayjoe.app" --web-dir=www
+# (keep the provided capacitor.config.json �?it has splash/status-bar/push set up)
 ```
 
 ## 2. Add the native platforms
@@ -85,11 +85,11 @@ launch/splash screens (dark background `#0A0A0A`, centered cream mark).
 ## 4. Open and run
 
 ```bash
-npx cap open ios       # opens Xcode  → pick a simulator/device → Run
-npx cap open android   # opens Android Studio → Run
+npx cap open ios       # opens Xcode  �?pick a simulator/device �?Run
+npx cap open android   # opens Android Studio �?Run
 ```
 
-That's it — the app launches to the **passcode screen**, then the Capital home.
+That's it �?the app launches to the **passcode screen**, then the Capital home.
 
 ---
 
@@ -110,33 +110,32 @@ ongoing production work see **Going to production** below.
 
 ## Features already wired
 
-- **First-run onboarding** — 3 quiet intro slides explaining the fund / expert /
+- **First-run onboarding** �?3 quiet intro slides explaining the fund / expert /
   direct model, shown once.
-- **Passcode gate** — first launch asks the user to *create* a 4-digit passcode;
+- **Passcode gate** �?first launch asks the user to *create* a 4-digit passcode;
   later launches *enter* it (or tap **Face ID** to unlock). **Forgot passcode?**
-  resets it. Stored locally on device. Sign out (Profile → Sign out) re-locks.
-  _Mock auth — no server check._
-- **Haptics** — tactile feedback on passcode entry, unlock, tab switches, and every
+  resets it. Stored locally on device. Sign out (Profile �?Sign out) re-locks.
+  _Mock auth �?no server check._
+- **Haptics** �?tactile feedback on passcode entry, unlock, tab switches, and every
   confirmation (Capacitor Haptics on device; included in `package.json`).
-- **Activity history** — full transaction log (top-ups, investments, withdrawals,
-  yield payouts) under Wallet → *View all activity*.
-- **Offline** — the whole app (code, styles, data, libraries) is bundled in `www/`.
+- **Activity history** �?full transaction log (top-ups, investments, withdrawals,
+  yield payouts) under Wallet �?*View all activity*.
+- **Offline** �?the whole app (code, styles, data, libraries) is bundled in `www/`.
   Works in airplane mode. A service worker also makes the PWA build offline-capable.
-- **State persistence** — the user returns to the last screen they were on; tweaks,
+- **State persistence** �?the user returns to the last screen they were on; tweaks,
   passcode, onboarding, and progress survive restarts (via `localStorage`).
-- **Safe areas** — the layout fills the screen and respects the notch / home
+- **Safe areas** �?the layout fills the screen and respects the notch / home
   indicator (`env(safe-area-inset-*)`), no simulated phone bezel.
-- **Push readiness** — see below.
+- **Push readiness** �?see below.
 
 ## Push notifications (finish the wiring)
 
-The JS scaffold is in place (`PoketeePush.init()` runs on unlock). To go live:
+The JS scaffold is in place (`EverydayPush.init()` runs on unlock). To go live:
 
 1. Already in `package.json`: `@capacitor/push-notifications`.
-2. **iOS:** in Xcode enable **Push Notifications** + **Background Modes →
-   Remote notifications** capabilities; set up an APNs key in your Apple Developer
+2. **iOS:** in Xcode enable **Push Notifications** + **Background Modes �?   Remote notifications** capabilities; set up an APNs key in your Apple Developer
    account.
-3. **Android:** create a Firebase project, add the Android app (`rw.poketee.app`),
+3. **Android:** create a Firebase project, add the Android app (`com.everydayjoe.app`),
    download `google-services.json` into `android/app/`, and the plugin handles FCM.
 4. The scaffold already listens for `registration` (logs the device token) and
    `pushNotificationReceived`. Send the token to your backend when you have one.

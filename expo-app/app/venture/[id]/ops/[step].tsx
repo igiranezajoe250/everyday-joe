@@ -6,10 +6,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Eyebrow, ScreenHeader, BackBtn, RoundedCard, Rule,
-} from "../../../../../src/components/primitives";
-import { ExternalLink } from "../../../../../src/components/icons";
-import { pkLookup } from "../../../../../src/data/mock";
-import { ink, ink12, ink25, ink55, ink70, paper, FONT, RADIUS } from "../../../../../src/theme/tokens";
+} from "@/components/primitives";
+import { ExternalLink } from "@/components/icons";
+import { Operation, pkLookup } from "@/data/mock";
+import { ink, ink12, ink25, ink55, ink70, paper, FONT, RADIUS } from "@/theme/tokens";
 
 export default function OpsDetailScreen() {
   const { id, step } = useLocalSearchParams<{ id: string; step: string }>();
@@ -60,7 +60,7 @@ export default function OpsDetailScreen() {
               <Eyebrow style={{ marginBottom: 14, paddingHorizontal: 4 }}>Key indicators</Eyebrow>
               <RoundedCard padding={0} radius={RADIUS.lg}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-                  {op.kpis.map((k, i) => (
+                  {op.kpis.map((k: Operation["kpis"][number], i: number) => (
                     <View key={i} style={{
                       width: "50%", padding: 18,
                       borderRightWidth: i % 2 === 0 ? 1 : 0, borderRightColor: ink12,
@@ -94,7 +94,7 @@ export default function OpsDetailScreen() {
           <>
             <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24 }}>
               <Eyebrow style={{ marginBottom: 14 }}>Activities</Eyebrow>
-              {op.activities.map((a, i) => (
+              {op.activities.map((a: string, i: number) => (
                 <View key={i} style={{
                   flexDirection: "row", gap: 18, paddingVertical: 16,
                   borderTopWidth: i === 0 ? 1 : 0, borderTopColor: ink12,
@@ -117,7 +117,7 @@ export default function OpsDetailScreen() {
         {op.partners?.length ? (
           <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
             <Eyebrow style={{ marginBottom: 14 }}>Partners</Eyebrow>
-            {op.partners.map((p, i) => (
+            {op.partners.map((p: string, i: number) => (
               <View key={i} style={{
                 flexDirection: "row", alignItems: "center", gap: 14,
                 paddingVertical: 14,

@@ -58,7 +58,7 @@ instead of a code.
 
 During local development, the app runs at:
 
-`http://localhost:3000/legacy/Poketee.html?app=1`
+`http://localhost:3000/legacy/Everyday.html?app=1`
 
 When OAuth redirects back to the app, the legacy page reads the Supabase session from the
 URL and then continues into the normal Everyday profile/onboarding flow.

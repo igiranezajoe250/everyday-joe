@@ -1,22 +1,23 @@
 {
   "expo": {
-    "name": "Poketee",
-    "slug": "poketee",
+    "name": "Everyday",
+    "slug": "everyday",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "poketee",
+    "scheme": "everyday",
     "userInterfaceStyle": "light",
+    "jsEngine": "jsc",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.poketee.invest",
+      "bundleIdentifier": "com.everydayjoe.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "app.poketee.invest",
+      "package": "com.everydayjoe.app",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
@@ -42,7 +43,11 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "068d0dc4-0bee-44c1-8154-93ba678dac7a"
+      }
+    },
+    "owner": "joe250"
   }
 }

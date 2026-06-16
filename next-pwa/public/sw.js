@@ -4,7 +4,7 @@ const SHELL = [
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
-  "/legacy/Poketee.html?app=1",
+  "/legacy/Everyday.html?app=1",
   "/legacy/ui.jsx",
   "/legacy/data.jsx",
   "/legacy/ios-frame.jsx",
@@ -55,7 +55,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() =>
-        caches.match("/legacy/Poketee.html?app=1").then((hit) => hit || fetch(request))
+        caches.match("/legacy/Everyday.html?app=1").then((hit) => hit || fetch(request))
       )
     );
     return;

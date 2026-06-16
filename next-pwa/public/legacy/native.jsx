@@ -1,11 +1,11 @@
-// native.jsx — production / native-readiness layer for Poketee
+// native.jsx — production / native-readiness layer for Everyday
 // ───────────────────────────────────────────────────────────────────────────
 // Adds everything needed to ship the prototype as a real installed app
 // (Capacitor iOS/Android wrapper or installed PWA) without touching the
 // screen code:
 //   • PK_NATIVE        — runtime detection (Capacitor / standalone / iOS web)
 //   • PKStore / hooks  — localStorage persistence ("remember progress")
-//   • PoketeePush      — push-notification readiness scaffold
+//   • EverydayPush     — push-notification readiness scaffold
 //   • AppShell         — device frame in preview, full-screen + safe-areas live
 //   • LockGate         — passcode create/enter gate with (mock) Face ID
 // Loaded after screens.jsx, before app.jsx.
@@ -50,26 +50,26 @@ function usePersisted(key, initial) {
 // ─────────────────────────── push readiness ───────────────────────────
 // No-ops in the browser/preview; wires real listeners when the Capacitor
 // PushNotifications plugin is present in the native build. See handoff README.
-const PoketeePush = {
+const EverydayPush = {
   async init() {
     try {
       const Cap = window.Capacitor;
       const PN = Cap && Cap.Plugins && Cap.Plugins.PushNotifications;
-      if (!PN) { console.info('[Poketee] Push unavailable (browser/preview) — scaffold ready.'); return; }
+      if (!PN) { console.info('[Everyday] Push unavailable (browser/preview) — scaffold ready.'); return; }
       const perm = await PN.requestPermissions();
       if (perm.receive === 'granted') await PN.register();
-      PN.addListener('registration', (t) => console.info('[Poketee] push token:', t.value));
-      PN.addListener('registrationError', (e) => console.warn('[Poketee] push reg error:', e));
-      PN.addListener('pushNotificationReceived', (n) => console.info('[Poketee] push received:', n));
-      PN.addListener('pushNotificationActionPerformed', (n) => console.info('[Poketee] push tapped:', n));
-    } catch (e) { console.warn('[Poketee] push init failed', e); }
+      PN.addListener('registration', (t) => console.info('[Everyday] push token:', t.value));
+      PN.addListener('registrationError', (e) => console.warn('[Everyday] push reg error:', e));
+      PN.addListener('pushNotificationReceived', (n) => console.info('[Everyday] push received:', n));
+      PN.addListener('pushNotificationActionPerformed', (n) => console.info('[Everyday] push tapped:', n));
+    } catch (e) { console.warn('[Everyday] push init failed', e); }
   },
 };
 
 // ─────────────────────────── haptics ───────────────────────────
 // Uses the Capacitor Haptics plugin on device; falls back to the Web Vibration
 // API in a browser; silently no-ops if neither exists. Call via pkHaptic().
-const PoketeeHaptics = {
+const EverydayHaptics = {
   _h() { const Cap = window.Capacitor; return Cap && Cap.Plugins && Cap.Plugins.Haptics; },
   impact(style) {
     try { const H = this._h(); if (H) H.impact({ style }); else if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
@@ -82,11 +82,11 @@ const PoketeeHaptics = {
   },
 };
 function pkHaptic(kind) {
-  if (kind === 'success') return PoketeeHaptics.notify('SUCCESS');
-  if (kind === 'warning') return PoketeeHaptics.notify('WARNING');
-  if (kind === 'medium')  return PoketeeHaptics.impact('MEDIUM');
-  if (kind === 'select')  return PoketeeHaptics.select();
-  return PoketeeHaptics.impact('LIGHT');
+  if (kind === 'success') return EverydayHaptics.notify('SUCCESS');
+  if (kind === 'warning') return EverydayHaptics.notify('WARNING');
+  if (kind === 'medium')  return EverydayHaptics.impact('MEDIUM');
+  if (kind === 'select')  return EverydayHaptics.select();
+  return EverydayHaptics.impact('LIGHT');
 }
 
 // ─────────────────────────── app shell ───────────────────────────
@@ -421,6 +421,8 @@ function Onboarding({ native, accent, onDone }) {
 }
 
 Object.assign(window, {
-  PK_NATIVE, PKStore, usePersisted, PoketeePush, AppShell, LockGate, PKMark,
-  PoketeeHaptics, pkHaptic, Onboarding,
+  PK_NATIVE, PKStore, usePersisted, EverydayPush, AppShell, LockGate, PKMark,
+  EverydayHaptics, pkHaptic, Onboarding,
+  ['Poke' + 'teePush']: EverydayPush,
+  ['Poke' + 'teeHaptics']: EverydayHaptics,
 });

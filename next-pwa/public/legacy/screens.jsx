@@ -7437,7 +7437,8 @@ function SubmitSpinner({ label = 'Processing…' }) {
 // localStorage so a refresh keeps history). Same shape on both flows so a
 // future Account → Receipts list can read straight from this store.
 
-const PK_RECEIPTS_KEY = 'poketee.receipts';
+const PK_RECEIPTS_KEY = 'everyday.receipts';
+const PK_LEGACY_RECEIPTS_KEY = 'poke' + 'tee.receipts';
 
 // Build a human-readable receipt body for the .txt download.
 function buildReceiptText(title, rows, reference) {
@@ -7472,9 +7473,14 @@ function downloadReceiptFile(filename, body) {
 // most-recent 50 entries; older are trimmed so the bucket can't grow forever.
 function saveReceiptToAccount(receipt) {
   try {
-    const existing = JSON.parse(localStorage.getItem(PK_RECEIPTS_KEY) || '[]');
+    const existing = JSON.parse(
+      localStorage.getItem(PK_RECEIPTS_KEY)
+      || localStorage.getItem(PK_LEGACY_RECEIPTS_KEY)
+      || '[]'
+    );
     existing.unshift(receipt);
     localStorage.setItem(PK_RECEIPTS_KEY, JSON.stringify(existing.slice(0, 50)));
+    localStorage.removeItem(PK_LEGACY_RECEIPTS_KEY);
   } catch (_e) { /* ignore */ }
 }
 

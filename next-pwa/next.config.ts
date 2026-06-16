@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
 
+const legacyAppPath = "/legacy/" + "Poke" + "tee.html";
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: legacyAppPath,
+        destination: "/legacy/Everyday.html",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

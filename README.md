@@ -41,7 +41,7 @@ directories — `expo-app/` and `handoff/` — are separate and not part of the 
   handles the mobile/desktop view toggle. Sets security headers in
   [`next.config.ts`](./next-pwa/next.config.ts).
 - **The live application** — [`next-pwa/public/legacy/`](./next-pwa/public/legacy).
-  A React app authored as **in-browser Babel JSX**, loaded by `Poketee.html`:
+  A React app authored as **in-browser Babel JSX**, loaded by `Everyday.html`:
   - `app.jsx` — root `App`, routing/state, header actions, function launcher, global player.
   - `screens.jsx` — every feature screen and its sub-components.
   - `ui.jsx` — the shared design system: tokens (`ink`, `paper`, `canvas`, `DASH`,
@@ -73,8 +73,8 @@ npm run dev        # http://localhost:3000  (mobile + desktop responsive)
 Open the app directly (skips the phone frame) at:
 
 ```
-http://localhost:3000/legacy/Poketee.html?app=1            # mobile layout
-http://localhost:3000/legacy/Poketee.html?app=1&layout=web # desktop layout
+http://localhost:3000/legacy/Everyday.html?app=1            # mobile layout
+http://localhost:3000/legacy/Everyday.html?app=1&layout=web # desktop layout
 ```
 
 ### Production build

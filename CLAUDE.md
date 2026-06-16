@@ -21,7 +21,7 @@ same guidance shared across AI coding tools.
 ## Orientation
 
 The live app is the in-browser-Babel React JSX under `next-pwa/public/legacy/`
-(`screens.jsx`, `app.jsx`, `ui.jsx`, `data.jsx`, `Poketee.html`). Because that JSX
+(`screens.jsx`, `app.jsx`, `ui.jsx`, `data.jsx`, `Everyday.html`). Because that JSX
 is transformed in the browser, `next build` will **not** catch JSX errors there —
 always run the app (`npm run dev` in `next-pwa/`) and verify every state on mobile
 and desktop. Deploy by pushing to `main` (Vercel auto-deploys). Full repository

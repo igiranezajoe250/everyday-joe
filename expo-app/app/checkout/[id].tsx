@@ -287,7 +287,7 @@ const ReviewStep = ({
         <Text style={{
           fontFamily: FONT.body, fontSize: 12, color: ink70, lineHeight: 19,
         }}>
-          By confirming you authorise Poketee to allocate funds from your selected
+          By confirming you authorise Everyday to allocate funds from your selected
           source into {project.name}. Capital is locked for the stated period.
           Projected yields are not guaranteed.
         </Text>

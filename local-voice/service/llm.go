@@ -3,11 +3,9 @@ package main
 // llm.go — Unified model chain for Bounty and the section agents.
 //
 // Priority (first that is configured AND answers wins):
-//   1. GPU box  — self-hosted Qwen via an OpenAI-compatible API (vLLM/TGI)
-//   2. Ollama   — local Qwen for dev (cfg.AgentLLMURL + cfg.AgentModel)
-//   3. Gemma 3  — Google AI Studio, the online fallback
-//
-// Qwen is the default brain; Gemma is the safety net.
+//   1. Gemini API — Google AI Studio key (primary Bounty brain)
+//   2. Qwen       — hosted OpenAI-compatible endpoint, then local Ollama
+//   3. Gemma      — Google AI Studio model, then local Ollama
 
 import (
 	"encoding/json"
@@ -20,19 +18,29 @@ import (
 
 // generate runs the model chain and returns (text, modelLabel).
 func generate(cfg Config, system, userMsg string, history []agentMessage) (string, string) {
+	if cfg.GoogleAIKey != "" && cfg.GeminiModel != "" {
+		if reply, err := callGoogleAIModel(cfg, cfg.GeminiModel, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
+			return strings.TrimSpace(reply), cfg.GeminiModel
+		}
+	}
 	if cfg.OpenAIBaseURL != "" {
 		if reply, err := callOpenAICompatible(cfg, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
 			return strings.TrimSpace(reply), cfg.OpenAIModel
 		}
 	}
 	if cfg.AgentLLMURL != "" {
-		if reply, err := callGemma3Local(cfg, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
+		if reply, err := callOllamaModel(cfg, cfg.AgentModel, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
 			return strings.TrimSpace(reply), cfg.AgentModel
 		}
 	}
-	if cfg.GoogleAIKey != "" {
-		if reply, err := callGemma3Online(cfg, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
-			return strings.TrimSpace(reply), "gemma-3-4b-it"
+	if cfg.GoogleAIKey != "" && cfg.GoogleGemmaModel != "" && cfg.GoogleGemmaModel != cfg.GeminiModel {
+		if reply, err := callGoogleAIModel(cfg, cfg.GoogleGemmaModel, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
+			return strings.TrimSpace(reply), cfg.GoogleGemmaModel
+		}
+	}
+	if cfg.AgentLLMURL != "" && cfg.AgentGemmaModel != "" && cfg.AgentGemmaModel != cfg.AgentModel {
+		if reply, err := callOllamaModel(cfg, cfg.AgentGemmaModel, system, userMsg, history); err == nil && strings.TrimSpace(reply) != "" {
+			return strings.TrimSpace(reply), cfg.AgentGemmaModel
 		}
 	}
 	return "", ""

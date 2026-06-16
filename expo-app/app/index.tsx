@@ -1,5 +1,5 @@
-// Root route — redirect into the tab group so the user lands on Capital.
-import { Redirect } from "expo-router";
+import { EverydayWebView } from "../src/native/EverydayWebView";
+
 export default function Index() {
-  return <Redirect href="/(tabs)/capital" />;
+  return <EverydayWebView />;
 }

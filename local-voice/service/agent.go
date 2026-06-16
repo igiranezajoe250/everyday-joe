@@ -101,9 +101,9 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 		// Plan-first: ask the model to decompose the goal into a cross-section
 		// plan. A clean plan block supersedes single-section routing; a plain
 		// answer (no block) is reused as the reply so questions still work.
-		p, clean, plannerReply := runPlanner(cfg, req, lang)
+		p, clean, plannerReply, plannerModel := runPlanner(cfg, req, lang)
 		if p != nil {
-			plan, model = p, "bounty-planner"
+			plan, model = p, plannerModel
 			route, action = "", "" // a plan replaces the single Open-X button
 			if text = clean; text == "" {
 				text = "Here's a plan to get this done."
@@ -126,7 +126,7 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 					}
 				}
 			} else if plannerReply != "" {
-				text, model = plannerReply, cfg.AgentModel
+				text, model = plannerReply, plannerModel
 			}
 		}
 
@@ -194,7 +194,7 @@ func askGoogleAI(cfg Config, req agentRequest, route string) (string, error) {
 	if route != "" {
 		userMsg += "\nLikely app route: " + route
 	}
-	return callGemma3Online(cfg, system, userMsg, req.History)
+	return callGoogleAIModel(cfg, cfg.GeminiModel, system, userMsg, req.History)
 }
 
 // ── Ollama (local) ────────────────────────────────────────────────────────────
@@ -205,11 +205,11 @@ func askLocalLLM(cfg Config, req agentRequest, route, modelName string) (string,
 	if route != "" {
 		userMsg += "\nLikely app route: " + route
 	}
-	return callGemma3Local(cfg, system, userMsg, req.History)
+	return callOllamaModel(cfg, modelName, system, userMsg, req.History)
 }
 
 // ── Low-level callers (used by both Bounty and section agents) ────────────────
-// These live in sections.go: callGemma3Online, callGemma3Local
+// These live in sections.go: callGoogleAIModel, callOllamaModel
 
 func hasAny(value string, words ...string) bool {
 	for _, word := range words {

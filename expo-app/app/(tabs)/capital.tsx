@@ -28,7 +28,7 @@ export default function CapitalScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: paper }}>
       <ScreenHeader
-        left={<Eyebrow>Poketee</Eyebrow>}
+        left={<Eyebrow>Everyday</Eyebrow>}
         right={
           <>
             <IconBtn onPress={() => router.push("/wallet")}>

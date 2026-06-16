@@ -5,7 +5,7 @@ package main
 // Each section agent:
 //   1. Has MCP tools that fetch live data from the Everyday API
 //   2. Exposes an A2A task endpoint for Bounty to delegate to
-//   3. Runs Gemma 3 4B with a domain-specific system prompt
+//   3. Runs the shared Gemini -> Qwen -> Gemma model chain with a domain-specific system prompt
 
 import (
 	"encoding/json"
@@ -49,7 +49,7 @@ func (sa *SectionAgent) Card(cfg Config) AgentCard {
 	}
 }
 
-// Handle is the A2A tasks/send handler: fetches context, calls Gemma 3, returns task.
+// Handle is the A2A tasks/send handler: fetches context, calls the model chain, returns task.
 func (sa *SectionAgent) Handle(cfg Config, task a2aTaskSend) a2aTask {
 	userMsg := ""
 	for _, p := range task.Message.Parts {
@@ -73,7 +73,7 @@ func (sa *SectionAgent) Handle(cfg Config, task a2aTaskSend) a2aTask {
 		system += "\n\nBounty context snapshot:\n" + string(task.Context)
 	}
 
-	// Run the model chain (Qwen → Gemma).
+	// Run the model chain (Gemini -> Qwen -> Gemma).
 	reply := sa.callGemma(cfg, system, userMsg)
 
 	// The Save agent may emit ```proposal {...}``` blocks. Persist each as a
@@ -93,7 +93,7 @@ func (sa *SectionAgent) Handle(cfg Config, task a2aTaskSend) a2aTask {
 	}
 }
 
-// callGemma runs the unified model chain (GPU-box Qwen → Ollama Qwen → Gemma).
+// callGemma runs the unified model chain (Gemini -> Qwen -> Gemma).
 // Name kept for call-site stability.
 func (sa *SectionAgent) callGemma(cfg Config, system, userMsg string) string {
 	if reply, _ := generate(cfg, system, userMsg, nil); strings.TrimSpace(reply) != "" {
@@ -102,10 +102,14 @@ func (sa *SectionAgent) callGemma(cfg Config, system, userMsg string) string {
 	return "I'm the " + sa.Name + " agent. " + sa.Description + " Ask me anything about " + strings.ToLower(sa.Name) + "."
 }
 
-// ── Shared low-level Gemma 3 callers ──────────────────────────────────────────
+// ── Shared low-level Google AI and Ollama callers ─────────────────────────────
 
-// callGemma3Online calls Gemma 3 4B via Google AI Studio with an explicit system prompt.
-func callGemma3Online(cfg Config, systemPrompt, userMsg string, history []agentMessage) (string, error) {
+// callGoogleAIModel calls a configured Gemini API model through Google AI Studio.
+func callGoogleAIModel(cfg Config, model, systemPrompt, userMsg string, history []agentMessage) (string, error) {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return "", fmt.Errorf("google AI: missing model")
+	}
 	var contents []googleContent
 	for _, h := range history {
 		role := "user"
@@ -124,9 +128,15 @@ func callGemma3Online(cfg Config, systemPrompt, userMsg string, history []agentM
 	}
 	body, _ := json.Marshal(payload)
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemma-3-4b-it:generateContent?key=%s", cfg.GoogleAIKey)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", model)
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Post(url, "application/json", strings.NewReader(string(body)))
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(string(body)))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-goog-api-key", cfg.GoogleAIKey)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -145,8 +155,14 @@ func callGemma3Online(cfg Config, systemPrompt, userMsg string, history []agentM
 	return out.Candidates[0].Content.Parts[0].Text, nil
 }
 
-// callGemma3Local calls Gemma 3 4B via Ollama with an explicit system prompt.
-func callGemma3Local(cfg Config, systemPrompt, userMsg string, history []agentMessage) (string, error) {
+// callGemma3Online keeps older call sites working while routing through the
+// configured Google Gemma fallback model.
+func callGemma3Online(cfg Config, systemPrompt, userMsg string, history []agentMessage) (string, error) {
+	return callGoogleAIModel(cfg, cfg.GoogleGemmaModel, systemPrompt, userMsg, history)
+}
+
+// callOllamaModel calls a local Ollama chat model with an explicit system prompt.
+func callOllamaModel(cfg Config, model, systemPrompt, userMsg string, history []agentMessage) (string, error) {
 	messages := []ollamaMessage{{Role: "system", Content: systemPrompt}}
 	for _, h := range history {
 		role := "user"
@@ -159,9 +175,11 @@ func callGemma3Local(cfg Config, systemPrompt, userMsg string, history []agentMe
 	}
 	messages = append(messages, ollamaMessage{Role: "user", Content: userMsg})
 
-	model := cfg.AgentModel
 	if model == "" {
-		model = "gemma3:4b"
+		model = cfg.AgentModel
+	}
+	if model == "" {
+		model = "qwen3:8b"
 	}
 	body, _ := json.Marshal(ollamaRequest{Model: model, Messages: messages, Stream: false})
 	client := &http.Client{Timeout: 45 * time.Second}
@@ -178,6 +196,12 @@ func callGemma3Local(cfg Config, systemPrompt, userMsg string, history []agentMe
 		return "", err
 	}
 	return out.Message.Content, nil
+}
+
+// callGemma3Local keeps older call sites working while routing through the
+// configured local Gemma fallback model.
+func callGemma3Local(cfg Config, systemPrompt, userMsg string, history []agentMessage) (string, error) {
+	return callOllamaModel(cfg, cfg.AgentGemmaModel, systemPrompt, userMsg, history)
 }
 
 // ── API fetch helper ──────────────────────────────────────────────────────────

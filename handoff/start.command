@@ -1,7 +1,7 @@
 #!/bin/bash
-# Poketee — double-click launcher (macOS / Linux)
+# Everyday �?double-click launcher (macOS / Linux)
 # Starts a local server in ./www and opens the app full-screen in your browser.
-# First time on macOS: right-click → Open (to bypass the unidentified-dev warning),
+# First time on macOS: right-click �?Open (to bypass the unidentified-dev warning),
 # or run once in Terminal:  chmod +x start.command
 
 cd "$(dirname "$0")/www" || { echo "www/ folder not found next to this script."; read -r -p "Press enter to close"; exit 1; }
@@ -9,7 +9,7 @@ cd "$(dirname "$0")/www" || { echo "www/ folder not found next to this script.";
 PORT=8080
 URL="http://localhost:${PORT}/index.html?app=1"
 echo "──────────────────────────────────────────────"
-echo "  Poketee is starting at:"
+echo "  Everyday is starting at:"
 echo "  $URL"
 echo "  (Leave this window open. Press Ctrl+C to stop.)"
 echo "──────────────────────────────────────────────"

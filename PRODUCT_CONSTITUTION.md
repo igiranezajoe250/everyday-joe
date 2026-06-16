@@ -401,7 +401,7 @@ relying on any line here; update it when the structure changes.
 * **`next-pwa/`** — the Next.js (App Router) PWA shell and the single source of
   truth for the running product. Deployed to Vercel.
 * **`next-pwa/public/legacy/`** — the actual application UI. It is a React app
-  authored as in-browser Babel JSX and loaded by `Poketee.html`:
+  authored as in-browser Babel JSX and loaded by `Everyday.html`:
   * `screens.jsx` — all feature screens (Hub, Shop, Save/Capital, Pay, Plan,
     Listen, Commute, Wallet, Activity, Settings, etc.) and their sub-components.
   * `app.jsx` — the root `App`, routing/state, header actions, function launcher.
@@ -409,7 +409,7 @@ relying on any line here; update it when the structure changes.
     `ink40`/`ink25`/`ink06`, `DASH`, `CC_MONO`, palettes) and primitives
     (`DashField`, `ScreenHeader`, `IconBtn`, `RecentSection`, etc.).
   * `data.jsx` — shared demo data.
-  * `Poketee.html` — bootstraps React + Babel, global CSS keyframes/animation
+  * `Everyday.html` — bootstraps React + Babel, global CSS keyframes/animation
     classes (`pk-rise`, `pk-stagger`, `pk-shimmer`, `pk-check-path`, …).
 * **`expo-app/`** and **`handoff/`** — separate; do not edit when working on the
   web product unless explicitly asked.

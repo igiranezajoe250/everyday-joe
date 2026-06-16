@@ -18,9 +18,12 @@ Render Blueprint (`service/render.yaml`) or manually:
 cd local-voice/service
 docker build -t everyday-agent .
 docker run -p 8787:8787 \
+  -e GEMINI_API_KEY=<google-ai-studio-key> \
+  -e GEMINI_MODEL=gemini-3.5-flash \
   -e LLM_OPENAI_BASE_URL=https://<hosted-qwen>/v1 \
   -e LLM_OPENAI_MODEL=Qwen/Qwen3-8B \
   -e LLM_OPENAI_KEY=sk-... \
+  -e GOOGLE_GEMMA_MODEL=gemma-3-4b-it \
   -e EVERYDAY_API_BASE=https://<your-app>.vercel.app \
   -e ALLOWED_ORIGINS=https://<your-app>.vercel.app \
   everyday-agent
@@ -32,10 +35,16 @@ docker run -p 8787:8787 \
 cd local-voice
 docker build -f Dockerfile.voice -t everyday-agent-voice .
 docker run -p 8787:8787 \
+  -e GEMINI_API_KEY=... -e GEMINI_MODEL=gemini-3.5-flash \
   -e LLM_OPENAI_BASE_URL=... -e LLM_OPENAI_MODEL=... -e LLM_OPENAI_KEY=... \
+  -e GOOGLE_GEMMA_MODEL=gemma-3-4b-it \
   -e EVERYDAY_API_BASE=... -e ALLOWED_ORIGINS=... \
   everyday-agent-voice
 ```
+
+The model chain is Gemini API primary, Qwen fallback, then Gemma fallback. Keep
+`GEMINI_API_KEY` / `GOOGLE_API_KEY` on the service only; do not expose it through
+the static frontend or mobile app.
 
 **Resources:** Whisper-small + Torch (CPU) need ~3–4 GB RAM. This OOMs on tiny
 instances (e.g. Render starter) — use a ≥4 GB host, or a GPU box for real-time

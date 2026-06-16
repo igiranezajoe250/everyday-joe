@@ -26,12 +26,12 @@ npm run dev        # http://localhost:3000  (responsive shell)
 Open the app directly (skips the phone frame):
 
 ```
-http://localhost:3000/legacy/Poketee.html?app=1            # mobile layout
-http://localhost:3000/legacy/Poketee.html?app=1&layout=web # desktop layout
+http://localhost:3000/legacy/Everyday.html?app=1            # mobile layout
+http://localhost:3000/legacy/Everyday.html?app=1&layout=web # desktop layout
 ```
 
 The live UI is **in-browser-Babel React JSX** in [`next-pwa/public/legacy/`](next-pwa/public/legacy)
-(`app.jsx`, `screens.jsx`, `ui.jsx`, `native.jsx`, `data.jsx`, `Poketee.html`). Edit those
+(`app.jsx`, `screens.jsx`, `ui.jsx`, `native.jsx`, `data.jsx`, `Everyday.html`). Edit those
 files and reload the app.
 
 ## 3. Test & verify (the important part)
@@ -50,8 +50,8 @@ errors or runtime bugs there.** You must verify by running the app:
 
 Check both breakpoints for every change:
 
-- **Mobile** — `…/Poketee.html?app=1` at a narrow viewport (~390px).
-- **Desktop** — `…/Poketee.html?app=1&layout=web` at a wide viewport (≥1024px).
+- **Mobile** — `…/Everyday.html?app=1` at a narrow viewport (~390px).
+- **Desktop** — `…/Everyday.html?app=1&layout=web` at a wide viewport (≥1024px).
 
 Confirm: no overflow, no clipped text, layouts reflow cleanly (two-pane screens collapse
 sensibly), and tap targets stay comfortable. Mobile-first, but desktop must be first-class.

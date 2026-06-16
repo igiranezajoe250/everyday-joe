@@ -1,29 +1,31 @@
 # start-local-ai.ps1 — One command to bring up the local Bounty brain.
 #
 #   1. Ensures `ollama serve` is running (starts it hidden if not)
-#   2. Ensures the Qwen model is pulled (default qwen3:8b)
+#   2. Ensures local Qwen and Gemma fallback models are pulled
 #   3. Builds and launches the Go agent service on :8787 (foreground, with logs)
 #
 # Usage:
-#   ./start-local-ai.ps1                 # qwen3:8b (best quality)
-#   ./start-local-ai.ps1 -Model qwen3:4b # smaller + much faster on a CPU laptop
+#   ./start-local-ai.ps1                            # local qwen3:8b/qwen3:4b + gemma3:4b fallbacks
+#   ./start-local-ai.ps1 -Model qwen3:4b            # smaller Qwen fallback
+#   $env:GEMINI_API_KEY="..." ; ./start-local-ai.ps1 # Gemini primary + local fallbacks
 #
 # The frontend (npm run dev in next-pwa) reaches this at 127.0.0.1:8787 by
 # default — no extra config needed for local testing.
 
 param(
-  [string]$Model = ""   # empty = auto-pick: qwen3:8b > qwen3:4b > gemma3:4b
+  [string]$Model = "",   # empty = auto-pick: qwen3:8b > qwen3:4b
+  [string]$GemmaModel = "gemma3:4b"
 )
 
 $ErrorActionPreference = "Stop"
 $svcDir = Join-Path $PSScriptRoot "service"
 
-# Pick the best already-installed model unless one was named. Prefers Qwen (the
-# default brain); falls back to Gemma so Bounty always has something to run.
+# Pick the best already-installed Qwen fallback unless one was named. Gemini is
+# primary when GEMINI_API_KEY / GOOGLE_API_KEY is present.
 function Resolve-Model([string]$requested) {
   if ($requested) { return $requested }
   $installed = (& ollama list 2>$null | Out-String)
-  foreach ($m in @("qwen3:8b", "qwen3:4b", "gemma3:4b")) {
+  foreach ($m in @("qwen3:8b", "qwen3:4b")) {
     if ($installed -match [regex]::Escape($m)) { return $m }
   }
   return "qwen3:4b"  # nothing installed yet — we'll pull this
@@ -67,6 +69,14 @@ if (-not $have) {
   & ollama pull $Model
 }
 Ok "Model $Model is ready."
+if ($GemmaModel) {
+  $haveGemma = (& ollama list) -match [regex]::Escape($GemmaModel)
+  if (-not $haveGemma) {
+    Info "Pulling Gemma fallback $GemmaModel (one-time download, several GB)..."
+    & ollama pull $GemmaModel
+  }
+  Ok "Gemma fallback $GemmaModel is ready."
+}
 
 # ── 3. Agent service ─────────────────────────────────────────────────────────
 if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
@@ -80,9 +90,11 @@ try {
   & go build -o "local-voice.exe" .
   Ok "Built. Launching on http://127.0.0.1:8787  (Ctrl+C to stop)`n"
 
-  # Qwen is the local default; Gemma 3 (if GOOGLE_AI_KEY is set) stays as fallback.
+  # Gemini is primary when GEMINI_API_KEY / GOOGLE_API_KEY is set.
+  if (-not $env:GEMINI_MODEL) { $env:GEMINI_MODEL = "gemini-3.5-flash" }
   $env:BOUNTY_LLM_MODEL  = $Model
   $env:BOUNTY_LLM_URL    = "http://127.0.0.1:11434/api/chat"
+  $env:BOUNTY_GEMMA_MODEL = $GemmaModel
   if (-not $env:EVERYDAY_API_BASE) { $env:EVERYDAY_API_BASE = "http://localhost:3000" }
 
   # CORS — allow local dev AND the deployed Vercel frontend so the browser can

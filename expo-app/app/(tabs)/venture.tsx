@@ -68,7 +68,7 @@ export default function VentureFeedScreen() {
               <Text style={{
                 fontFamily: FONT.body, fontSize: 13, color: ink70,
                 marginTop: 8, lineHeight: 18,
-              }}>Businesses Poketee is helping grow — invest directly from your wallet.</Text>
+              }}>Businesses Everyday is helping grow — invest directly from your wallet.</Text>
             </View>
 
             <View style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14 }}>

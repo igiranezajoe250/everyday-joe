@@ -102,7 +102,7 @@ separate and not part of the web build):
   registers the service worker, handles the mobile/desktop view toggle. Security headers in
   [`next.config.ts`](next-pwa/next.config.ts).
 - [`next-pwa/public/legacy/`](next-pwa/public/legacy) — **the live application**, authored
-  as JSX transformed *in the browser* by Babel, loaded via `Poketee.html`:
+  as JSX transformed *in the browser* by Babel, loaded via `Everyday.html`:
   - `app.jsx` — root `App`: routing/state, the global header cluster, the function
     launcher, the lifted global audio player, and capture intents.
   - `screens.jsx` — every feature screen and its sub-components (the bulk of the app).

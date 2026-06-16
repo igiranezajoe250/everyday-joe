@@ -1,5 +1,5 @@
 # Render blueprint for the Everyday agent service (Bounty + section agents +
-# Qwen model chain). Deploy: New → Blueprint → point at this repo.
+# Gemini -> Qwen -> Gemma model chain). Deploy: New -> Blueprint -> point at this repo.
 # Root directory must be local-voice/service so the Dockerfile context is right.
 services:
   - type: web
@@ -10,16 +10,23 @@ services:
     plan: starter
     healthCheckPath: /health
     envVars:
-      # Primary brain: self-hosted Qwen via an OpenAI-compatible endpoint.
-      # For first testers, point this at a hosted Qwen (Together / Fireworks /
-      # DeepInfra). Swap to your own GPU box (vLLM) later — no code change.
+      # Primary Bounty brain: Google AI Studio / Gemini API. Keep this server-side.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      # Second fallback: Qwen through an OpenAI-compatible endpoint.
+      # Point this at hosted Qwen first, then swap to your own vLLM box later.
       - key: LLM_OPENAI_BASE_URL
         sync: false
       - key: LLM_OPENAI_MODEL
         value: Qwen/Qwen3-8B
       - key: LLM_OPENAI_KEY
         sync: false
-      # Fallback model (optional).
+      # Third fallback: Google AI Studio Gemma model when available.
+      - key: GOOGLE_GEMMA_MODEL
+        value: gemma-3-4b-it
+      # Legacy alias; prefer GEMINI_API_KEY for new deploys.
       - key: GOOGLE_AI_KEY
         sync: false
       # Next.js API base — your Vercel deployment, for section-agent tool calls.

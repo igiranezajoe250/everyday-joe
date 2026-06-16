@@ -1,5 +1,5 @@
 @echo off
-REM Poketee â€” double-click launcher (Windows)
+REM Everyday â€?double-click launcher (Windows)
 REM Starts a local server in .\www and opens the app full-screen in your browser.
 
 cd /d "%~dp0www"
@@ -7,7 +7,7 @@ set PORT=8080
 set URL=http://localhost:%PORT%/index.html?app=1
 
 echo --------------------------------------------------
-echo   Poketee is starting at:
+echo   Everyday is starting at:
 echo   %URL%
 echo   (Leave this window open. Close it to stop.)
 echo --------------------------------------------------

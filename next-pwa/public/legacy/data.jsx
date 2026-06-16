@@ -1,4 +1,4 @@
-// data.jsx — mock data for Poketee.
+// data.jsx — mock data for Everyday.
 // Six funds (no sub-companies). All amounts in RWF.
 
 const CC_PORTFOLIO = {

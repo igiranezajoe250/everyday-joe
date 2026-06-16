@@ -1,5 +1,5 @@
 # Lean agent service: Go-only. Serves Bounty + section agents + the model chain
-# (GPU-box Qwen → Ollama → Gemma). The Python ASR/TTS path is invoked lazily and
+# (Gemini -> Qwen -> Gemma). The Python ASR/TTS path is invoked lazily and
 # is intentionally NOT bundled here — voice synthesis is a later phase. Chat,
 # A2A, MCP, and the Save expert all work without it.
 FROM golang:1.25-alpine AS build

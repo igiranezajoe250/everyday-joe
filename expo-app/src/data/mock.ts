@@ -1,4 +1,4 @@
-// Mock data for the Poketee prototype. All amounts in RWF (Rwandan Franc).
+// Mock data for the Everyday prototype. All amounts in RWF (Rwandan Franc).
 // Typed so a future move to a real API surface (REST / tRPC / GraphQL) is a
 // straight swap of the source — the rest of the app already codes against
 // these types.
@@ -102,7 +102,7 @@ export const PK_DESTINATIONS: Picker[] = [
 export const PK_MANDATE_TARGETS: Picker[] = [
   { id: "cash", label: "Hold as Cash Reserve",
     sub: "Sit in your wallet until you allocate it." },
-  { id: "house", label: "Invest with Poketee",
+  { id: "house", label: "Invest with Everyday",
     sub: "Our team allocates across the live projects." },
   { id: "savannah", label: "Savannah Creek",
     sub: "Eco-tourism · safari camps in Akagera." },

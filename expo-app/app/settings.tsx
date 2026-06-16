@@ -105,7 +105,7 @@ export default function SettingsScreen() {
 
         <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
           <Text style={{ fontFamily: FONT.mono, fontSize: 10, color: ink55, letterSpacing: 1.0, textTransform: "uppercase" }}>
-            Poketee · v0.1.0 · Prototype
+            Everyday · v0.1.0 · Prototype
           </Text>
         </View>
       </ScrollView>
