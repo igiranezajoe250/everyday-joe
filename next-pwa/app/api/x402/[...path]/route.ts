@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SB_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const SB_SVC = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SB_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SB_ANON = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const SB_SVC = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const NETWORK = 'everyday-wallet';
 
 function adminClient() {
+  if (!SB_URL || !SB_SVC) throw new Error('Supabase service credentials are required for wallet settlement.');
   return createClient(SB_URL, SB_SVC, { auth: { persistSession: false } });
 }
 
@@ -16,6 +17,7 @@ function getToken(req: NextRequest) {
 
 async function getUserId(token: string): Promise<string | null> {
   if (!token) return null;
+  if (!SB_URL || !SB_ANON) throw new Error('Supabase auth credentials are required for wallet settlement.');
   const { data } = await createClient(SB_URL, SB_ANON).auth.getUser(token);
   return data?.user?.id ?? null;
 }
@@ -59,7 +61,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { return fail(400, 'invalid json'); }
 
-    const amount = Number(body.amount_rwf ?? 0);
+    const requirements = (body.requirements ?? {}) as Record<string, unknown>;
+    const amount = Number(body.amount_rwf ?? requirements.amount_rwf ?? requirements.amount ?? 0);
     if (!amount) return fail(400, 'amount_rwf required');
 
     const svc = adminClient();
@@ -90,7 +93,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     let body: Record<string, unknown>;
     try { body = await req.json(); } catch { return fail(400, 'invalid json'); }
 
-    const amount = Number(body.amount_rwf ?? 0);
+    const requirements = (body.requirements ?? {}) as Record<string, unknown>;
+    const amount = Number(body.amount_rwf ?? requirements.amount_rwf ?? requirements.amount ?? 0);
     const title = String(body.title ?? 'Payment');
     const section = String(body.section ?? 'shop');
     if (!amount) return fail(400, 'amount_rwf required');

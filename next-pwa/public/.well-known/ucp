@@ -1,9 +1,13 @@
 {
   "version": "2026-04-08",
+  "merchant": "Everyday",
   "network": "everyday-wallet",
+  "currency": "RWF",
   "endpoints": {
     "checkout_sessions": "/api/ucp/checkout-sessions",
-    "orders": "/api/ucp/orders"
+    "checkout_complete": "/api/ucp/checkout-sessions/{id}/complete",
+    "orders": "/api/ucp/orders/{id}",
+    "x402": "/.well-known/x402"
   },
-  "capabilities": ["checkout", "orders"]
+  "capabilities": ["checkout", "orders", "wallet_settlement"]
 }

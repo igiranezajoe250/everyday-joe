@@ -6,6 +6,112 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "showTabBar": true
 }/*EDITMODE-END*/;
 
+function LeftRailButton({ label, active, onClick, badge, children }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label} style={{
+      position: 'relative',
+      width: 40,
+      height: 40,
+      borderRadius: 999,
+      border: 0,
+      background: active ? ink : 'transparent',
+      color: active ? paper : ink55,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'background 180ms ease, color 180ms ease, transform 180ms ease',
+      padding: 0,
+    }}>
+      {children}
+      {badge ? (
+        <span style={{ position: 'absolute', top: 4, right: 4, minWidth: 14, height: 14, padding: '0 4px', borderRadius: 999, background: '#C8102E', color: '#fff', fontFamily: CC_MONO, fontSize: 8.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${canvas}` }}>{badge}</span>
+      ) : null}
+    </button>
+  );
+}
+
+function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onBounty, onInbox, unread = 0, onProfile, initials = 'JK', showOperator = false, isOperator = false, onOperator }) {
+  const stroke = 'currentColor';
+  const iconProps = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const railWidth = PK_WEB ? 58 : 52;
+  const items = [
+    { id: 'hub', label: 'Home', onClick: onHome, icon: (<svg {...iconProps}><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></svg>) },
+    { id: 'shop', label: 'Marketplace', onClick: onMarketplace, icon: (<svg {...iconProps}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>) },
+    { id: 'wallet', label: 'Wallet', onClick: onWallet, icon: (<svg {...iconProps}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>) },
+    { id: 'plan', label: 'Plan', onClick: onPlan, icon: (<svg {...iconProps}><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M4 9h16M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
+  ];
+  return (
+    <nav aria-label="Everyday shortcuts" style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      width: railWidth,
+      zIndex: 44,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: PK_WEB ? '16px 0 18px' : '10px 0 max(12px, env(safe-area-inset-bottom, 12px))',
+      borderRight: `1px dashed ${DASH}`,
+      background: 'rgba(250,246,241,0.78)',
+      backdropFilter: 'blur(12px)',
+    }}>
+      <button onClick={onHome} aria-label="Everyday home" title="Everyday" style={{
+        width: 40,
+        height: 40,
+        borderRadius: 999,
+        border: 0,
+        background: 'transparent',
+        color: ink,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+      }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3.5 18.5 7v7L12 20.5 5.5 14V7z"/><path d="M12 3.5v17M5.5 7 12 10.5 18.5 7M5.5 14 12 10.5 18.5 14"/></svg>
+      </button>
+      <div style={{ display: 'grid', gap: 8, marginTop: PK_WEB ? 24 : 18 }}>
+        {items.map((item) => (
+          <LeftRailButton key={item.id} label={item.label} active={active === item.id || (active === 'capital' && item.id === 'wallet')} onClick={item.onClick}>
+            {item.icon}
+          </LeftRailButton>
+        ))}
+      </div>
+      <div style={{ marginTop: 'auto', display: 'grid', gap: 8 }}>
+        <LeftRailButton label="Ask Bounty" active={false} onClick={onBounty}>
+          <svg {...iconProps}><path d="M12 3a7.5 7.5 0 0 1 7.5 7.5c0 4.6-4.3 7.5-7.5 10.5-3.2-3-7.5-5.9-7.5-10.5A7.5 7.5 0 0 1 12 3z"/><path d="M9 10h6M9.5 13h5"/></svg>
+        </LeftRailButton>
+        <LeftRailButton label="Notifications" active={false} onClick={onInbox} badge={unread}>
+          <svg {...iconProps}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </LeftRailButton>
+        {showOperator && (
+          <LeftRailButton label={isOperator ? 'Switch to client mode' : 'Switch to operator mode'} active={isOperator} onClick={onOperator}>
+            <svg {...iconProps}><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+          </LeftRailButton>
+        )}
+        <button onClick={onProfile} aria-label="Profile" title="Profile" style={{
+          width: 40,
+          height: 40,
+          borderRadius: 999,
+          border: `1px solid ${ink25}`,
+          background: 'transparent',
+          color: ink70,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: CC_MONO,
+          fontSize: 11,
+          fontWeight: 800,
+          padding: 0,
+        }}>{initials}</button>
+      </div>
+    </nav>
+  );
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const accent = (CC_PALETTES[t.accentKey] || CC_PALETTES.teal).accent;
@@ -13,7 +119,7 @@ function App() {
 
   // route: 'hub' | 'shop' | 'capital' | 'pay' | 'plan' | 'listen' | 'commute' | ...
   const TRANSIENT = ['money'];
-  const MAIN_TABS = ['shop', 'capital', 'pay', 'plan', 'listen', 'commute', 'credit'];
+  const MAIN_TABS = ['shop', 'wallet', 'plan'];
   const ALLOWED_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'listen', 'commute', 'credit', 'growth', 'money', 'wallet', 'settings', 'activity'];
   const [route, setRoute] = React.useState(() => {
     return 'hub';
@@ -99,8 +205,6 @@ function App() {
           if (!nextSession) {
             if (!PKStore.get('demo_auth', false)) {
               setProfile(null);
-              try { sessionStorage.removeItem('pk_sess'); } catch (e) {}
-              setUnlocked(false);
             }
           } else {
             refreshAuth();
@@ -111,18 +215,6 @@ function App() {
     return () => { if (off) off(); };
   }, [refreshAuth]);
 
-  // Lock gate — re-prompts on a true cold start (new session); a refresh
-  // inside the same session stays unlocked. Face ID / passcode unlock both
-  // set the session flag.
-  const [unlocked, setUnlocked] = React.useState(
-    () => sessionStorage.getItem('pk_sess') === '1'
-  );
-  const handleUnlock = () => {
-    try { sessionStorage.setItem('pk_sess', '1'); } catch (e) {}
-    setUnlocked(true);
-    // Push permission is NOT requested here — asking at unlock is "jumping the
-    // gun". It should be triggered by an explicit Notifications opt-in instead.
-  };
   const handleSignOut = async () => {
     PKStore.del('demo_auth');
     setDemoAuth(false);
@@ -132,8 +224,6 @@ function App() {
       setProfile(null);
     }
     if (window.EverydayStore) window.EverydayStore.reset();
-    try { sessionStorage.removeItem('pk_sess'); } catch (e) {}
-    setUnlocked(false);
     setTab('hub'); setRoute('hub');
   };
   const handleDemoSignIn = async () => {
@@ -152,9 +242,7 @@ function App() {
         setSession(data && data.session ? data.session : null);
         setProfile(nextProfile);
         PKStore.set('onboarded', true);
-        try { sessionStorage.setItem('pk_sess', '1'); } catch (e) {}
         setOnboarded(true);
-        setUnlocked(true);
         setTab('hub');
         setRoute('hub');
         return;
@@ -164,10 +252,8 @@ function App() {
     }
     PKStore.set('demo_auth', true);
     PKStore.set('onboarded', true);
-    try { sessionStorage.setItem('pk_sess', '1'); } catch (e) {}
     setDemoAuth(true);
     setOnboarded(true);
-    setUnlocked(true);
     setTab('hub');
     setRoute('hub');
   };
@@ -240,11 +326,11 @@ function App() {
 
   const openMoney = (mode) => {
     setMoneyMode(mode);
-    setMoneyReturn(route === 'credit' ? 'credit' : 'capital');
+    setMoneyReturn(route === 'credit' ? 'credit' : route === 'wallet' ? 'wallet' : 'capital');
     setRoute('money');
   };
   const closeMoney = () => {
-    const r = moneyReturn === 'credit' ? 'credit' : 'capital';
+    const r = moneyReturn === 'credit' ? 'credit' : moneyReturn === 'wallet' ? 'wallet' : 'capital';
     setTab(r); setRoute(r);
   };
 
@@ -252,7 +338,7 @@ function App() {
   const openGrowth = () => { setRoute('growth'); };
   const backFromGrowth = () => { const r = tab === 'credit' ? 'credit' : 'capital'; setRoute(r); };
 
-  const openWallet   = () => { setTab('capital'); setRoute('wallet'); };
+  const openWallet   = () => { setTab('wallet'); setRoute('wallet'); };
   const openSettings = () => { setTab('capital'); setRoute('settings'); };
   const openActivity = () => { setTab('capital'); setRoute('activity'); };
   const backToCapital = () => { setTab('capital'); setRoute('capital'); };
@@ -271,14 +357,10 @@ function App() {
   // 'capital' route; every other function id is its own route.
   const openFunctionById = (id) => {
     pkHaptic('select');
+    if (id === 'wallet') { openWallet(); return; }
     const r = id === 'save' ? 'capital' : id;
     setTab(r); setRoute(r);
   };
-  // The + launcher rides along on the function pages, so the user can hop
-  // between functions without first returning home.
-  const FUNCTION_ROUTES = ['shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
-  const showLauncher = FUNCTION_ROUTES.includes(route);
-
   // Global header actions (notifications · wallet · profile) appear on the
   // primary browsing surfaces (hub + the six functions) where quick access is
   // useful. Secondary destinations — wallet, profile/settings, activity, credit,
@@ -300,9 +382,6 @@ function App() {
     ? ((window.everydayUnreadCount && window.everydayUnreadCount(everyday, inboxSeen)) || 0)
     : 2;
   const openInbox = () => { pkHaptic('select'); setInboxSnap(inboxSeen); setInboxOpen(true); setInboxSeen(Date.now()); };
-  const HEADER_ACTION_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'listen', 'commute'];
-  const showHeaderActions = HEADER_ACTION_ROUTES.includes(route);
-
   // ── Global audio player ──
   // Lifted here so playback (and the mini player) persist while the user moves
   // through the rest of the app. `pl` is the current episode; the timer keeps
@@ -346,8 +425,6 @@ function App() {
   const showMini = !!pl && !playerOpen && route !== 'money';
 
   const showTab = false;
-  const bountyBottomOffset = 84 + (showMini ? 66 : 0);
-
   const openBountyRoute = (id) => {
     const target = id === 'moto' ? 'commute' : id === 'save' ? 'capital' : id;
     if (target === 'wallet') { openWallet(); return; }
@@ -381,8 +458,6 @@ function App() {
             <div className="pk-rise" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: canvas, color: ink55, fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Loading profile</div>
           ) : authConfigured && session && profile && !profile.onboarding_completed ? (
             <EverydayProfileSetup profile={profile} accent={ink} onDone={(next) => { setProfile(next); }} />
-          ) : !unlocked ? (
-            <LockGate accent={ink} native={PK_NATIVE} onUnlock={handleUnlock} />
           ) : (
           <React.Fragment>
           <div style={{
@@ -393,6 +468,7 @@ function App() {
           <div style={{
             flex: 1, overflow: 'auto', position: 'relative',
             scrollbarWidth: 'none',
+            marginLeft: PK_WEB ? 58 : 52,
           }}>
             <style>{`.cc-scroll::-webkit-scrollbar { display: none; }`}</style>
             <div className="cc-scroll" style={{ height: '100%' }}>
@@ -401,6 +477,7 @@ function App() {
                   web={PK_WEB}
                   profile={activeProfile}
                   onShop={() => openModeFromHub('shop')}
+                  onWallet={openWallet}
                   onSave={openSaveFromHub}
                   onPay={() => openModeFromHub('pay')}
                   onPlan={() => openModeFromHub('plan')}
@@ -417,6 +494,8 @@ function App() {
                   web={PK_WEB}
                   onBack={backToHub}
                   isOperator={isOperator}
+                  onOperatorChange={setIsOperator}
+                  onOpenRoute={openBountyRoute}
                 />
               )}
               {route === 'capital' && (
@@ -479,6 +558,8 @@ function App() {
                 <WalletScreen accent={accent}
                   onBack={backToHub}
                   onMoney={openMoney}
+                  onPay={() => openModeFromHub('pay')}
+                  onCredit={openCredit}
                   onActivity={openActivity} />
               )}
               {route === 'activity' && (
@@ -496,44 +577,28 @@ function App() {
             </div>
           </div>
 
-          {showHeaderActions && (
-            <HeaderActions
-              unread={headerUnread}
-              initials={activeProfile ? everydayProfileInitials(activeProfile) : "JK"}
-              onInbox={openInbox}
-              onWallet={openWallet}
-              onProfile={openSettings}
-              showOperator={route === 'shop'}
-              isOperator={isOperator}
-              onOperator={() => { pkHaptic('select'); setIsOperator((v) => !v); }}
-            />
-          )}
+          <EverydayLeftRail
+            active={route === 'wallet' ? 'wallet' : route}
+            onHome={backToHub}
+            onMarketplace={() => openModeFromHub('shop')}
+            onWallet={openWallet}
+            onPlan={() => openModeFromHub('plan')}
+            onBounty={() => { pkHaptic('select'); setBountyOpen(true); }}
+            unread={headerUnread}
+            onInbox={openInbox}
+            onProfile={openSettings}
+            showOperator={route === 'shop'}
+            isOperator={isOperator}
+            onOperator={() => { pkHaptic('select'); setIsOperator((v) => !v); }}
+          />
 
           {inboxOpen && <NotificationsPanel onClose={() => setInboxOpen(false)} seenAt={inboxSnap} />}
-
-          {/* The hub already has a centre Bounty button, so hide the floating
-              FAB there; keep it on every other screen as the global entry. */}
-          {route !== 'hub' && (
-            <BountyButton
-              onOpen={() => { pkHaptic('select'); setBountyOpen(true); }}
-              bottomOffset={bountyBottomOffset}
-            />
-          )}
 
           {bountyOpen && (
             <BountyPanel
               onClose={() => setBountyOpen(false)}
               onRoute={openBountyRoute}
               onSaveToPlan={(plan) => { setBountyOpen(false); captureToPlan({ mode: 'plan', plan }); }}
-            />
-          )}
-
-          {showLauncher && (
-            <FunctionLauncher
-              variant="fab"
-              functions={pkSelectedFunctions()}
-              onSelect={openFunctionById}
-              bottomOffset={(route === 'pay' ? 92 : route === 'shop' ? 80 : 22) + (showMini ? 66 : 0)}
             />
           )}
 
@@ -595,7 +660,7 @@ function App() {
             if (v === 'capital')   { setTab('capital'); setRoute('capital'); }
             else if (v === 'credit')   { setTab('credit'); setRoute('credit'); }
             else if (v === 'growth')   { setRoute('growth'); }
-            else if (v === 'wallet')   { setTab('capital'); setRoute('wallet'); }
+            else if (v === 'wallet')   { setTab('wallet'); setRoute('wallet'); }
             else if (v === 'settings') { setTab('capital'); setRoute('settings'); }
             else { setMoneyMode(v); setMoneyReturn('capital'); setRoute('money'); }
           }} />

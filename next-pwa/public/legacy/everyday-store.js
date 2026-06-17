@@ -15,7 +15,7 @@
     return {
       ready: false,
       userId: null,
-      shop:    Object.assign(emptySlice(), { shops: [], products: [] }),
+      shop:    Object.assign(emptySlice(), { shops: [], products: [], source: null, note: null }),
       save:    Object.assign(emptySlice(), { wallet: null, transactions: [], goals: [], schedules: [], proposals: [], interestApr: 0.08 }),
       pay:     Object.assign(emptySlice(), { transactions: [] }),
       plan:    Object.assign(emptySlice(), { folders: [], files: [] }),
@@ -55,7 +55,7 @@
     patch("shop", { loading: true, error: null });
     try {
       var data = await window.EverydayAPI.shop.list();
-      patch("shop", { loading: false, loaded: true, shops: data.shops || [], products: data.products || [] });
+      patch("shop", { loading: false, loaded: true, shops: data.shops || [], products: data.products || [], source: data.source || null, note: data.note || null });
     } catch (err) {
       patch("shop", { loading: false, error: err.message || String(err) });
     }

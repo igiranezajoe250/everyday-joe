@@ -1,7 +1,7 @@
 // service-worker.js — offline support for Everyday
 // Network-first for app code (so updates land when online), falling back to
 // cache when offline. Bump CACHE to force a clean slate.
-const CACHE = 'everyday-v3';
+const CACHE = 'everyday-v17';
 
 const SHELL = [
   './',

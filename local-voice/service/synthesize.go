@@ -50,6 +50,7 @@ func handleSynthesize(cfg Config) http.HandlerFunc {
 		cmd.Env = append(os.Environ(),
 			"HF_HOME="+cfg.HFHome,
 			"PYTHONUNBUFFERED=1",
+			"KOKORO_TTS_SPEED="+env("KOKORO_TTS_SPEED", "1.16"),
 		)
 		out, err := cmd.CombinedOutput()
 		if err != nil {

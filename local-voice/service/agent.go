@@ -28,7 +28,14 @@ type agentResponse struct {
 	Text     string      `json:"text"`
 	Route    string      `json:"route,omitempty"`
 	Action   string      `json:"action,omitempty"`
+	Calls    []agentCall `json:"calls,omitempty"`
 	Plan     *bountyPlan `json:"plan,omitempty"`
+}
+
+type agentCall struct {
+	Name  string         `json:"name"`
+	Label string         `json:"label"`
+	Args  map[string]any `json:"args,omitempty"`
 }
 
 // ── Ollama types ──────────────────────────────────────────────────────────────
@@ -94,6 +101,7 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 		}
 
 		lang := normalizeLanguage(req.Language)
+		token := bearerToken(r)
 		route, action, fallback := inferBountyIntent(msg, lang)
 		text, model := fallback, "bounty-local"
 		var plan *bountyPlan
@@ -118,6 +126,7 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 					task := agent.Handle(cfg, a2aTaskSend{
 						ID:      fmt.Sprintf("bounty-%d", time.Now().UnixMilli()),
 						Message: a2aMsg{Role: "user", Parts: []a2aPart{{Type: "text", Text: msg}}},
+						Token:   token,
 						Context: req.Context,
 					})
 					if len(task.Artifacts) > 0 && len(task.Artifacts[0].Parts) > 0 {
@@ -136,8 +145,75 @@ func handleAgentChat(cfg Config, agents map[string]*SectionAgent) http.HandlerFu
 			Text:     text,
 			Route:    route,
 			Action:   action,
+			Calls:    buildAgentCalls(route, action, plan),
 			Plan:     plan,
 		})
+	}
+}
+
+func bearerToken(r *http.Request) string {
+	auth := strings.TrimSpace(r.Header.Get("Authorization"))
+	if len(auth) > 7 && strings.EqualFold(auth[:7], "Bearer ") {
+		return strings.TrimSpace(auth[7:])
+	}
+	return ""
+}
+
+func buildAgentCalls(route, action string, plan *bountyPlan) []agentCall {
+	var calls []agentCall
+	if route != "" {
+		label := action
+		if label == "" {
+			label = "Open " + routeLabel(route)
+		}
+		calls = append(calls, agentCall{
+			Name:  "open_section",
+			Label: label,
+			Args:  map[string]any{"route": route},
+		})
+	}
+	if plan != nil {
+		seen := map[string]bool{}
+		for _, step := range plan.Steps {
+			section := strings.TrimSpace(step.Section)
+			if section == "" || seen[section] {
+				continue
+			}
+			seen[section] = true
+			calls = append(calls, agentCall{
+				Name:  "open_section",
+				Label: "Open " + routeLabel(section),
+				Args:  map[string]any{"route": section},
+			})
+		}
+		calls = append(calls, agentCall{
+			Name:  "save_plan",
+			Label: "Save to Plan",
+			Args:  map[string]any{},
+		})
+	}
+	return calls
+}
+
+func routeLabel(route string) string {
+	switch route {
+	case "save", "capital":
+		return "Save"
+	case "pay":
+		return "Pay"
+	case "shop":
+		return "Shop"
+	case "commute", "moto":
+		return "Commute"
+	case "plan":
+		return "Plan"
+	case "listen":
+		return "Listen"
+	default:
+		if route == "" {
+			return "Everyday"
+		}
+		return strings.ToUpper(route[:1]) + route[1:]
 	}
 }
 

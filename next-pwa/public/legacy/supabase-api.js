@@ -248,6 +248,12 @@
       attachments: Array.isArray(row.attachments) ? row.attachments : [],
       voice: Array.isArray(row.voice) ? row.voice : [],
       trashed: !!row.trashed,
+      mode: row.mode || "personal",
+      metadata: row.metadata || {},
+      versions: Array.isArray(row.versions) ? row.versions : [],
+      aiHistory: Array.isArray(row.ai_history) ? row.ai_history : [],
+      privacy: row.privacy || { level: "private", bount_access: true },
+      links: Array.isArray(row.links) ? row.links : [],
     };
   }
 
@@ -319,6 +325,12 @@
         voice: Array.isArray(file.voice) ? file.voice : [],
         trashed: !!file.trashed,
         updated: file.updated || Date.now(),
+        mode: file.mode || "personal",
+        metadata: file.metadata || {},
+        versions: Array.isArray(file.versions) ? file.versions : [],
+        ai_history: Array.isArray(file.aiHistory) ? file.aiHistory : [],
+        privacy: file.privacy || { level: "private", bount_access: true },
+        links: Array.isArray(file.links) ? file.links : [],
       };
     });
     var deleteFiles = await client.from("plan_files").delete().eq("user_id", user.id);
@@ -485,7 +497,8 @@
   // One-shot purchase: create a session then complete it. Returns the completed
   // session including the created order.
   async function ucpCheckout(lineItems, fulfillment) {
-    var session = await ucpCreateCheckout(lineItems, fulfillment);
+    var created = await ucpCreateCheckout(lineItems, fulfillment);
+    var session = created && created.session ? created.session : created;
     if (!session || !session.id) throw new Error("Could not start checkout");
     return ucpCompleteCheckout(session.id);
   }
@@ -561,6 +574,7 @@
     state: state,
     auth: {
       getSession: getSession,
+      headers: bearerHeaders,
       signIn: signIn,
       signUp: signUp,
       signInWithGoogle: signInWithGoogle,

@@ -5,15 +5,42 @@ import { anonClient, userClient, getToken, getUserId, fail, ok } from '../_lib/s
 // POST /api/shop { product_id, quantity }
 //      Places an order: records a ledger entry and decrements stock.
 
+const seedShops = [
+  { id: 'house-of-tayo', name: 'House of Tayo', category: 'Women', city: 'Kigali', trust_label: 'trusted', meta: 'Fashion - local designer' },
+  { id: 'moshions', name: 'Moshions', category: 'Men', city: 'Kigali', trust_label: 'verified', meta: 'Premium tailoring' },
+  { id: 'haute-baso', name: 'Haute Baso', category: 'Women', city: 'Kigali', trust_label: 'trusted', meta: 'Modern Rwandan design' },
+  { id: 'rwanda-clothing', name: 'Rwanda Clothing', category: 'Unisex', city: 'Kigali', trust_label: 'verified', meta: 'Everyday apparel' },
+  { id: 'azizi-life', name: 'Azizi Life', category: 'Home decor', city: 'Kigali', trust_label: 'vetted', meta: 'Handmade home goods' },
+  { id: 'question-coffee', name: 'Question Coffee', category: 'Food', city: 'Kigali', trust_label: 'verified', meta: 'Coffee and gifts' },
+  { id: 'kimironko-market', name: 'Kigali Farmers Market', category: 'Food', city: 'Kigali', trust_label: 'verified', meta: 'Groceries and fresh goods' },
+];
+
+const seedProducts = [
+  { id: 'ankara-wrap-dress', shop_id: 'house-of-tayo', name: 'Ankara Wrap Dress', category: 'Women', price_rwf: 14500, stock: 12, sold: 38 },
+  { id: 'kitenge-headwrap', shop_id: 'house-of-tayo', name: 'Kitenge Headwrap', category: 'Women', price_rwf: 4200, stock: 3, sold: 91 },
+  { id: 'tailored-linen-shirt', shop_id: 'moshions', name: 'Tailored Linen Shirt', category: 'Men', price_rwf: 28000, stock: 8, sold: 22 },
+  { id: 'woven-basket-bag', shop_id: 'azizi-life', name: 'Handwoven Basket Bag', category: 'Home decor', price_rwf: 18000, stock: 0, sold: 24 },
+  { id: 'single-origin-coffee', shop_id: 'question-coffee', name: 'Single Origin Coffee', category: 'Food', price_rwf: 6800, stock: 19, sold: 112 },
+];
+
 export async function GET(_req: NextRequest) {
-  const sb = anonClient();
-  const [shops, products] = await Promise.all([
-    sb.from('shops').select('*').order('name', { ascending: true }),
-    sb.from('products').select('*').order('sold', { ascending: false }),
-  ]);
-  if (shops.error) return fail(502, shops.error.message);
-  if (products.error) return fail(502, products.error.message);
-  return ok({ shops: shops.data ?? [], products: products.data ?? [] });
+  try {
+    const sb = anonClient();
+    const [shops, products] = await Promise.all([
+      sb.from('shops').select('*').order('name', { ascending: true }),
+      sb.from('products').select('*').order('sold', { ascending: false }),
+    ]);
+    if (shops.error) return fail(502, shops.error.message);
+    if (products.error) return fail(502, products.error.message);
+    return ok({ shops: shops.data ?? [], products: products.data ?? [], source: 'supabase' });
+  } catch (err) {
+    return ok({
+      shops: seedShops,
+      products: seedProducts,
+      source: 'seed',
+      note: err instanceof Error ? err.message : 'Supabase catalog unavailable',
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {

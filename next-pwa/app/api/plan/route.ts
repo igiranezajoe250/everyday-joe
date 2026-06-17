@@ -23,6 +23,8 @@ type InFolder = { id: string; name?: string; icon?: string };
 type InFile = {
   id: string; folderId?: string; title?: string; body?: string;
   updated?: number; attachments?: unknown; voice?: unknown; trashed?: boolean;
+  mode?: string; metadata?: unknown; versions?: unknown; aiHistory?: unknown;
+  ai_history?: unknown; privacy?: unknown; links?: unknown;
 };
 
 export async function POST(req: NextRequest) {
@@ -56,6 +58,12 @@ export async function POST(req: NextRequest) {
     voice: f.voice ?? [],
     trashed: !!f.trashed,
     updated: f.updated || now,
+    mode: f.mode || 'personal',
+    metadata: f.metadata ?? {},
+    versions: f.versions ?? [],
+    ai_history: f.aiHistory ?? f.ai_history ?? [],
+    privacy: f.privacy ?? { level: 'private', bount_access: true },
+    links: f.links ?? [],
   }));
 
   const sb = userClient(token);

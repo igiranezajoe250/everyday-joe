@@ -1,25 +1,24 @@
-// screens.jsx — Capital home, Venture feed, Detail, Checkout
-// Everyday — low-fi swiss wireframes, pill-rounded geometry.
+﻿// screens.jsx 鈥?Capital home, Venture feed, Detail, Checkout
+// Everyday 鈥?low-fi swiss wireframes, pill-rounded geometry.
 
 
-// ────────────────────────────── EVERYDAY HUB ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ EVERYDAY HUB 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Minimal home: a single premium "+" launcher. Tapping it opens a card of the
 // functions the user chose at sign-up; tapping one opens that page. The old
 // vertical scroll-wheel switcher has been retired in favour of this.
 
 // Shared catalogue of the six Everyday functions. Each maps to a route the app
 // already renders. `icon` is JSX; stroke colour is applied via cloneElement.
-// Focused catalogue: Save is the center (always on), Plan is the Bounty
-// workspace, Commute is the daily trigger. Shop is deferred and Pay is kept as
-// plumbing under Save — both still have live routes and are reachable from
-// Bounty's plan steps, they just aren't headline functions in the + menu.
+// Focused catalogue: Marketplace is the trusted daily-life browser, Wallet is
+// the money surface, and Plan is the brain. Save/Pay/Commute/Listen still have
+// their own live routes, but sit under these primary surfaces.
 const EVERYDAY_FUNCTIONS = [
-  { id: 'save', label: 'Save', sub: 'Save and grow', color: '#2FAE9B', locked: true,
-    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>) },
+  { id: 'shop', label: 'Marketplace', sub: 'Vetted goods and services', color: '#A37BF2',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>) },
+  { id: 'wallet', label: 'Wallet', sub: 'Save, pay and borrow', color: '#2FAE9B', locked: true,
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>) },
   { id: 'plan', label: 'Plan', sub: 'Notes, files and plans', color: '#E2941F',
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
-  { id: 'commute', label: 'Commute', sub: 'Book vetted rides', color: '#3B82F6',
-    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 17h14V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v11z"/><path d="M5 17l-1.5 3M19 17l1.5 3M8 20h8"/><path d="M6 9h12"/></svg>) },
 ];
 const DEFAULT_FUNCTION_IDS = EVERYDAY_FUNCTIONS.map((f) => f.id);
 
@@ -28,7 +27,7 @@ const DEFAULT_FUNCTION_IDS = EVERYDAY_FUNCTIONS.map((f) => f.id);
 function pkSelectedFunctions() {
   const ids = PKStore.get('functions', null);
   const chosen = Array.isArray(ids) && ids.length ? ids : DEFAULT_FUNCTION_IDS;
-  const set = new Set(chosen); set.add('save');
+  const set = new Set(chosen); set.add('shop'); set.add('wallet'); set.add('plan');
   return EVERYDAY_FUNCTIONS.filter((f) => set.has(f.id));
 }
 
@@ -136,7 +135,7 @@ function FunctionLauncher({ functions, onSelect, variant = 'hero', bottomOffset 
   return (<React.Fragment>{plusBtn}{overlay}</React.Fragment>);
 }
 
-// ── Global header actions: notifications · wallet · profile ──
+// 鈹€鈹€ Global header actions: notifications 路 wallet 路 profile 鈹€鈹€
 // Rendered top-right on every main screen so payment balance and quick
 // profile access are always one tap away.
 function ActionIcon({ onClick, label, badge, children }) {
@@ -460,12 +459,12 @@ function EverydayProfileSetup({ profile, accent, onDone }) {
   );
 }
 
-// ── Real activity mapping ──────────────────────────────────────────────
+// 鈹€鈹€ Real activity mapping 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Turns the user's live `transactions` + `activity_events` (from the store's
 // `activity` slice, served by /api/activity) into the shapes the Activity
 // screen and the Inbox already render. Demo/anon sessions (no `userId`) keep
 // their seed data, so nothing fake is ever shown as a real user's money.
-const EVERYDAY_SECTION_LABEL = { save: 'Savings', pay: 'Payment', shop: 'Shop', commute: 'Commute', credit: 'Credit' };
+const EVERYDAY_SECTION_LABEL = { save: 'Savings', pay: 'Payment', shop: 'Marketplace', commute: 'Commute', credit: 'Credit' };
 
 function everydayActivityKind(tx) {
   if (tx.kind === 'interest') return 'yield';
@@ -482,9 +481,9 @@ function everydayFmtActivityDate(iso) {
     const now = new Date();
     const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     const yest = new Date(now); yest.setDate(now.getDate() - 1);
-    if (d.toDateString() === now.toDateString()) return 'Today · ' + time;
-    if (d.toDateString() === yest.toDateString()) return 'Yesterday · ' + time;
-    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' · ' + time;
+    if (d.toDateString() === now.toDateString()) return 'Today 路 ' + time;
+    if (d.toDateString() === yest.toDateString()) return 'Yesterday 路 ' + time;
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' 路 ' + time;
   } catch (e) { return ''; }
 }
 
@@ -509,7 +508,7 @@ function everydayActivityItems(state) {
     title: tx.title || everydayCap(tx.section) || 'Transaction',
     meta: EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Everyday',
     date: everydayFmtActivityDate(tx.happened_at || tx.created_at),
-    amount: (tx.direction === 'in' ? '+ ' : '− ') + fmtRWF(tx.amount_rwf || 0),
+    amount: (tx.direction === 'in' ? '+ ' : '鈭?') + fmtRWF(tx.amount_rwf || 0),
     dir: tx.direction === 'in' ? 'in' : 'out',
     status: everydayCap(tx.status) || 'Completed',
   }));
@@ -527,7 +526,7 @@ function everydayInboxItems(state, seenAt) {
     return {
       id: 'tx-' + tx.id, type: 'notif', ts,
       title: tx.kind === 'interest' ? 'Savings interest credited' : tx.title || label,
-      body: (inbound ? '+ ' : '− ') + fmtRWF(tx.amount_rwf || 0) + ' · ' + label,
+      body: (inbound ? '+ ' : '鈭?') + fmtRWF(tx.amount_rwf || 0) + ' 路 ' + label,
       time: everydayAgo(tx.happened_at || tx.created_at),
       unread: ts > seenAt,
     };
@@ -565,13 +564,13 @@ function NotificationsPanel({ onClose, seenAt = 0 }) {
   const realItems = realLoaded ? everydayInboxItems(everyday, seenAt) : null;
   const loadingReal = hasUser && slice && slice.loading && !slice.loaded;
   const [tab, setTab] = React.useState('all');
-  // Demo seed — shown only for the local preview / anon session (no real userId).
+  // Demo seed 鈥?shown only for the local preview / anon session (no real userId).
   const demoItems = [
     { id: 1, type: 'notif',   title: 'Savings interest credited', body: 'RWF 28,600 added to your savings.', time: '2h', unread: true },
-    { id: 2, type: 'message', title: 'Aline N. · Moto',           body: 'I\'m 3 minutes away — meet at the gate?', time: '10m', unread: true },
+    { id: 2, type: 'message', title: 'Aline N. 路 Moto',           body: 'I\'m 3 minutes away 鈥?meet at the gate?', time: '10m', unread: true },
     { id: 3, type: 'notif',   title: 'Payment sent',              body: 'RWF 5,000 to Eric Kwizera.', time: '1d', unread: false },
     { id: 4, type: 'message', title: 'Green Hills School',        body: 'Receipt for school fees attached.', time: '2d', unread: false },
-    { id: 5, type: 'notif',   title: 'New trusted shop',          body: 'House of Tayo just joined Everyday.', time: '3d', unread: false },
+    { id: 5, type: 'notif',   title: 'New marketplace provider',  body: 'House of Tayo just joined Everyday.', time: '3d', unread: false },
   ];
   const items = realItems || demoItems;
   const shown = tab === 'messages' ? items.filter((i) => i.type === 'message') : items;
@@ -674,7 +673,7 @@ function BountyButton({ onOpen, bottomOffset = 18 }) {
 }
 
 function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
-  const first = { id: 'b0', role: 'assistant', text: 'What are you planning today? Tell me — by voice or text — and I’ll lay out the steps across Save, Pay, Commute, and Shop.' };
+  const first = { id: 'b0', role: 'assistant', text: 'What are you planning today? Tell me 鈥?by voice or text 鈥?and I鈥檒l lay out the steps across Save, Pay, Commute, and Marketplace.' };
   const [messages, setMessages] = usePersisted('bounty_messages', [first]);
   const newChat = () => { setMessages([{ ...first, id: 'b' + Date.now() }]); setInput(''); setError(''); };
   const [input, setInput] = React.useState('');
@@ -696,7 +695,7 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
   }, []);
   React.useEffect(() => () => stopStream(), []);
 
-  // Consume any home-bar preload — when the user typed in the home bar with
+  // Consume any home-bar preload 鈥?when the user typed in the home bar with
   // Bounty selected, or hit the mic, hand the intent off here.
   React.useEffect(() => {
     let preload = null;
@@ -707,7 +706,7 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
     } else if (preload.mode === 'voice') {
       startRecording();
     }
-    // image/upload preload: nothing to auto-trigger yet — surfaced in the next pass.
+    // image/upload preload: nothing to auto-trigger yet 鈥?surfaced in the next pass.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -723,6 +722,7 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
       text: data.text,
       route: data.route,
       action: data.action,
+      calls: data.calls,
       plan: data.plan,
       model: data.model,
     };
@@ -781,7 +781,10 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
     } catch (e) {
       stopStream();
       setRecording(false);
-      setError(e && e.message ? e.message : 'Microphone permission was not granted.');
+      const name = e && e.name ? e.name : '';
+      setError(name === 'NotAllowedError'
+        ? 'Microphone permission is blocked. Allow microphone access for this site, then tap the mic again.'
+        : (e && e.message ? e.message : 'Microphone permission was not granted.'));
     }
   };
 
@@ -799,6 +802,19 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
     pkHaptic('select');
     onRoute && onRoute(route);
     onClose && onClose();
+  };
+
+  const runFunctionCall = (call, plan) => {
+    if (!call || !call.name) return;
+    pkHaptic('select');
+    if (call.name === 'open_section') {
+      const route = call.args && call.args.route;
+      handleRoute(route);
+      return;
+    }
+    if (call.name === 'save_plan' && plan && onSaveToPlan) {
+      onSaveToPlan(plan);
+    }
   };
 
   return (
@@ -841,6 +857,7 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
           {messages.map((m) => {
             const mine = m.role === 'user';
             const hasPlan = m.plan && Array.isArray(m.plan.steps) && m.plan.steps.length > 0;
+            const calls = Array.isArray(m.calls) ? m.calls : [];
             return (
               <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', gap: 8 }}>
                 <div style={{
@@ -855,7 +872,25 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
                   boxShadow: mine ? 'none' : '0 1px 0 rgba(10,10,10,0.02)',
                 }}>
                   <div>{m.text}</div>
-                  {m.route && m.action && (
+                  {calls.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
+                      {calls.map((call, idx) => (
+                        <button key={idx} onClick={() => runFunctionCall(call, m.plan)} style={{
+                          height: 32,
+                          padding: '0 12px',
+                          borderRadius: 999,
+                          border: `1px solid ${ink}`,
+                          background: call.name === 'save_plan' ? ink : 'transparent',
+                          color: call.name === 'save_plan' ? paper : ink,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          fontSize: 12,
+                          fontWeight: 760,
+                        }}>{call.label || 'Run action'}</button>
+                      ))}
+                    </div>
+                  )}
+                  {!calls.length && m.route && m.action && (
                     <button onClick={() => handleRoute(m.route)} style={{
                       marginTop: 10,
                       height: 32,
@@ -894,7 +929,7 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
               disabled={busy || recording}
               style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15.5, fontWeight: 500, padding: '0 4px' }} />
             <button onClick={() => sendText(input)} disabled={!input.trim() || busy || recording} aria-label="Send to Bounty" style={{ width: 36, height: 36, borderRadius: 999, border: 0, background: 'transparent', color: input.trim() && !busy && !recording ? ink : ink25, cursor: input.trim() && !busy && !recording ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(8deg) translateX(1px)' }}><path d="M4 11.5L20 4l-7.5 16-2.2-6.3L4 11.5z"/><path d="M10.3 13.7L20 4"/></svg>
             </button>
           </div>
         </div>
@@ -904,19 +939,19 @@ function BountyPanel({ onClose, onRoute, onSaveToPlan }) {
 }
 
 // BountyPlanCard renders a Bounty plan as a numbered checklist. Each step opens
-// the section flow that completes it — money still moves only inside Save/Pay's
+// the section flow that completes it 鈥?money still moves only inside Save/Pay's
 // own confirm screens, so the plan hands off rather than executing silently.
 function BountyPlanCard({ plan, onStep, onSave }) {
   const meta = {
     save:    { label: 'Save',    icon: 'save' },
     pay:     { label: 'Pay',     icon: 'pay' },
     commute: { label: 'Commute', icon: 'commute' },
-    shop:    { label: 'Shop',    icon: 'shop' },
+    shop:    { label: 'Marketplace', icon: 'shop' },
   };
   return (
     <div style={{ width: '100%', background: paper, border: `1px solid ${ink12}`, borderRadius: 18, padding: '12px 13px', boxShadow: '0 1px 0 rgba(10,10,10,0.02)' }}>
       {plan.goal && (
-        <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, marginBottom: 9 }}>Plan · {plan.goal}</div>
+        <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, marginBottom: 9 }}>Plan 路 {plan.goal}</div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {plan.steps.map((s, i) => {
@@ -968,13 +1003,14 @@ function HomeIcon({ kind, size = 16, color }) {
   if (kind === 'note')    return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/></svg>);
   if (kind === 'doc')     return (<svg {...p}><path d="M14 3v5h5M7 3h8l5 5v13H7z"/><path d="M9.5 13h5M9.5 16.5h5"/></svg>);
   if (kind === 'save')    return (<svg {...p}><path d="M12 3v18M16.5 6H9.8a3.2 3.2 0 0 0 0 6.4h4.4a3.2 3.2 0 0 1 0 6.4H7"/></svg>);
+  if (kind === 'wallet')  return (<svg {...p}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>);
   if (kind === 'commute') return (<svg {...p}><path d="M3 13l1.8-4.6A2 2 0 0 1 6.7 7h10.6a2 2 0 0 1 1.9 1.4L21 13v4h-2.2M5.2 17H3v-4m18 0v4h-2.2"/><circle cx="7.2" cy="17" r="1.6"/><circle cx="16.8" cy="17" r="1.6"/></svg>);
   if (kind === 'pay')     return (<svg {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>);
   return (<svg {...p}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>);
 }
 
 // Build a small set of contextual "continue" cards from real persisted state,
-// then fill with evergreen entry points. Kept light — never a dashboard.
+// then fill with evergreen entry points. Kept light 鈥?never a dashboard.
 function buildHomeSuggestions(nav) {
   const out = [];
   const seen = new Set();
@@ -993,89 +1029,263 @@ function buildHomeSuggestions(nav) {
   } catch (e) {}
 
   // Evergreen entry points so the main destinations stay one tap away.
-  push({ key: 'save', icon: 'save', label: 'Savings plan', sub: 'On track', run: nav.onSave });
-  push({ key: 'commute', icon: 'commute', label: 'Commute', sub: 'Where to?', run: nav.onCommute });
-  push({ key: 'pay', icon: 'pay', label: 'Payment', sub: 'Pay or schedule', run: nav.onPay });
-  push({ key: 'shop', icon: 'shop', label: 'Shop', sub: 'Nearby', run: nav.onShop });
+  push({ key: 'shop', icon: 'shop', label: 'Marketplace', sub: 'Goods, services, mobility', run: nav.onShop });
+  push({ key: 'wallet', icon: 'wallet', label: 'Wallet', sub: 'Save, pay, loan', run: nav.onWallet || nav.onSave });
+  push({ key: 'plan', icon: 'note', label: 'Plan', sub: 'Calendar and notes', run: nav.onPlan });
 
   return out.slice(0, 6);
 }
 
-function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenBounty, onOpenNote }) {
+function BountyThinkingCard({ web }) {
+  return (
+    <div className="pk-rise" style={{ width: '100%', borderTop: `1px dashed ${ink12}`, borderBottom: `1px dashed ${ink12}`, padding: web ? '18px 0' : '14px 0', textAlign: 'left' }}>
+      <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink40, marginBottom: 12 }}>Bount is composing</div>
+      <div style={{ display: 'grid', gap: 9 }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="pk-shimmer" style={{
+            height: i === 0 ? 15 : 11,
+            width: i === 0 ? '74%' : i === 1 ? '92%' : '58%',
+            borderRadius: 999,
+            background: ink06,
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BountyGeneratedResult({ item, web, onRoute, onSaveToPlan }) {
+  const data = item && item.data ? item.data : null;
+  const plan = data && data.plan;
+  const calls = data && Array.isArray(data.calls) ? data.calls : [];
+  const intent = (plan && plan.intent) || (calls[0] && calls[0].args && calls[0].args.intent) || null;
+  const route = data && data.route;
+  const action = data && data.action;
+  const label = route === 'capital' ? 'Save' : route ? route.charAt(0).toUpperCase() + route.slice(1) : 'Everyday';
+  const hasPlan = plan && Array.isArray(plan.steps) && plan.steps.length > 0;
+  const pendingQuestion = calls.find((call) => call && call.name === 'clarify_missing_field');
+
+  const openRoute = (r) => {
+    if (!r || !onRoute) return;
+    pkHaptic('select');
+    onRoute(r);
+  };
+  const runCall = (call) => {
+    if (!call || !call.name) return;
+    if (call.name === 'open_section') {
+      openRoute(call.args && call.args.route);
+      return;
+    }
+    if (call.name === 'save_plan' && plan && onSaveToPlan) {
+      onSaveToPlan(plan);
+    }
+  };
+
+  if (!data) return <BountyThinkingCard web={web} />;
+
+  return (
+    <div className="pk-rise" style={{ width: '100%', borderTop: `1px dashed ${ink12}`, padding: web ? '18px 0 0' : '14px 0 0', textAlign: 'left' }}>
+      <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink40, marginBottom: 10 }}>
+        {intent && intent.primary_intent ? intent.primary_intent : 'Bount'} / {label}
+      </div>
+      <div style={{ fontSize: web ? 23 : 19, fontWeight: 760, letterSpacing: '-0.02em', lineHeight: 1.18, color: ink, marginBottom: 10 }}>{item.query}</div>
+      <div style={{ border: `1px solid ${ink12}`, borderRadius: 18, background: paper, padding: web ? 18 : 15, boxShadow: '0 10px 30px rgba(10,10,10,0.06)' }}>
+        <div style={{ fontSize: pendingQuestion ? (web ? 19 : 17) : 15, lineHeight: pendingQuestion ? 1.25 : 1.5, fontWeight: pendingQuestion ? 720 : 500, color: pendingQuestion ? ink : ink70 }}>
+          {pendingQuestion ? (pendingQuestion.label || data.text) : data.text}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+          {pendingQuestion ? (
+            <button onClick={() => openRoute(route)} style={{ height: 36, padding: '0 14px', borderRadius: 999, border: `1px solid ${ink}`, background: ink, color: paper, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, cursor: 'pointer' }}>Answer in {label}</button>
+          ) : (
+            <React.Fragment>
+              {calls.filter((call) => call && call.name !== 'clarify_missing_field').slice(0, 2).map((call, idx) => (
+                <button key={idx} onClick={() => runCall(call)} style={{ height: 36, padding: '0 14px', borderRadius: 999, border: `1px solid ${idx === 0 ? ink : ink12}`, background: idx === 0 ? ink : 'transparent', color: idx === 0 ? paper : ink, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, cursor: 'pointer' }}>{call.label || 'Run action'}</button>
+              ))}
+              {!calls.length && route && action && (
+                <button onClick={() => openRoute(route)} style={{ height: 36, padding: '0 14px', borderRadius: 999, border: `1px solid ${ink}`, background: ink, color: paper, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, cursor: 'pointer' }}>{action}</button>
+              )}
+            </React.Fragment>
+          )}
+          {intent && intent.urgency && (
+            <span style={{ height: 36, padding: '0 12px', borderRadius: 999, border: `1px solid ${ink12}`, display: 'inline-flex', alignItems: 'center', fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>{String(intent.urgency).replace(/_/g, ' ')}</span>
+          )}
+        </div>
+      </div>
+      {hasPlan && (
+        <div style={{ marginTop: 10 }}>
+          <BountyPlanCard plan={plan} onStep={openRoute} onSave={onSaveToPlan || null} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EverydayHub({ web, profile, onShop, onWallet, onSave, onPay, onPlan, onListen, onCommute, onCapture, onOpenBounty, onOpenNote }) {
   const [text, setText] = React.useState('');
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [focus, setFocus] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [results, setResults] = React.useState([]);
   const inputRef = React.useRef(null);
 
-  // The focused sections the Menu opens: Save (center), Plan (Bounty's
-  // workspace) and Commute (the daily trigger). Bounty is its own button, not a
-  // list item. Pay and Shop stay as plumbing — reachable from Save and Bounty's
-  // plan steps — so they're intentionally left out of this list.
+  // Menu lives inside the Bounty search surface. Keep every primary service one
+  // tap away, but keep the first screen calm: one bar, one prompt, one send.
   const sections = [
-    { key: 'save',    label: 'Save',    sub: 'Track savings',       icon: 'save',    run: onSave },
-    { key: 'plan',    label: 'Plan',    sub: 'Notes and files',     icon: 'note',    run: onPlan },
-    { key: 'commute', label: 'Commute', sub: 'Book a ride',         icon: 'commute', run: onCommute },
+    { key: 'shop',    label: 'Marketplace', sub: 'Vetted goods and services', icon: 'shop',    run: onShop },
+    { key: 'wallet',  label: 'Wallet',  sub: 'Save, pay, loan',     icon: 'wallet',  run: onWallet || onSave },
+    { key: 'plan',    label: 'Plan',    sub: 'Calendar and notes',  icon: 'note',    run: onPlan },
   ];
 
-  // Ask Bounty with whatever's typed (empty just opens the panel). Bounty is the
-  // single conversational entry point — no mic / image / upload / send clutter.
-  const askBounty = () => {
-    const t = text.trim();
+  // Ask Bounty with whatever is typed. Empty submit focuses the bar instead of
+  // opening a blank chat, keeping the landing page intentional.
+  const routeBountyResult = (route) => {
+    if (route === 'capital' && onSave) return onSave();
+    if (route === 'shop' && onShop) return onShop();
+    if (route === 'pay' && onPay) return onPay();
+    if (route === 'plan' && onPlan) return onPlan();
+    if (route === 'listen' && onListen) return onListen();
+    if (route === 'commute' && onCommute) return onCommute();
+    return null;
+  };
+
+  const askBounty = async () => {
+    const t = ((inputRef.current && inputRef.current.value) || text).trim();
+    if (!t || busy) {
+      inputRef.current && inputRef.current.focus();
+      setFocus(true);
+      return;
+    }
     pkHaptic('medium');
-    try { window.__EVERYDAY_BOUNTY_PRELOAD__ = t ? { text: t } : null; } catch (e) {}
-    if (onOpenBounty) onOpenBounty();
+    const id = 'hr' + Date.now();
+    const pending = { id, query: t, status: 'thinking' };
+    const previous = Array.isArray(results) ? results : [];
+    setResults([pending].concat(previous.slice(0, 4)));
     setText('');
+    if (inputRef.current) inputRef.current.value = '';
+    setMenuOpen(false);
+    setBusy(true);
+    try {
+      const history = [];
+      previous.slice(0, 4).reverse().forEach((r) => {
+        if (r.query) history.push({ role: 'user', text: r.query });
+        if (r.data && r.data.text) history.push({ role: 'assistant', text: r.data.text });
+      });
+      const data = await ccSendBountyMessage(t, history);
+      setResults((cur) => (cur || []).map((r) => r.id === id ? { ...r, status: 'done', data } : r));
+    } catch (e) {
+      const data = { text: e && e.message ? e.message : 'Bounty could not respond.', model: 'error', route: 'plan', action: 'Open Plan' };
+      setResults((cur) => (cur || []).map((r) => r.id === id ? { ...r, status: 'error', data } : r));
+    } finally {
+      setBusy(false);
+    }
   };
   const goSection = (s) => {
     pkHaptic('select');
     setMenuOpen(false);
     if (s.run) s.run();
   };
+  const hasInlineResults = (results || []).length > 0;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative', overflow: 'hidden' }}>
-      {/* Top wordmark — actions live in the global header cluster (top-right) */}
+      {/* Top wordmark 鈥?actions live in the global header cluster (top-right). */}
       <div style={{ padding: web ? '24px 40px 0' : '14px 24px 0', display: 'flex', alignItems: 'center' }}>
         <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
       </div>
 
-      {/* Centre: greeting, one input, then Bounty + Menu */}
-      <div className="pk-stagger" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: web ? '0 28px' : '0 18px', textAlign: 'center' }}>
-        <div style={{ fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink55, marginBottom: 14 }}>Hello, {everydayFirstName(profile)}</div>
-        <div style={{ fontSize: web ? 30 : 26, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.15, color: ink, maxWidth: 320, marginBottom: 30 }}>
-          What would you like to do today?
+      {/* Generated Bount surface. Results appear in-place instead of a side chat. */}
+      <div className="cc-scroll pk-stagger" style={{
+        flex: 1,
+        overflow: 'auto',
+        padding: hasInlineResults ? (web ? '24px 40px 132px' : '18px 22px 124px') : (web ? '0 40px' : '0 22px'),
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: hasInlineResults ? 'flex-end' : 'center',
+        alignItems: 'center',
+        textAlign: 'center',
+      }}>
+        <div style={{ width: '100%', maxWidth: web ? 760 : 430 }}>
+          {hasInlineResults && (
+            <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 18 }}>
+              {(results || []).map((item) => (
+                <BountyGeneratedResult key={item.id} item={item} web={web} onRoute={routeBountyResult} onSaveToPlan={(plan) => onCapture && onCapture({ mode: 'plan', plan })} />
+              ))}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Two buttons: Bounty (primary, centre) next to Menu */}
-        <div style={{ width: '100%', maxWidth: 640, position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-            <button onClick={askBounty} aria-label="Ask Bounty" style={{
-              height: 46, padding: '0 24px', borderRadius: 999, border: 0,
-              background: ink, color: paper, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontFamily: 'inherit', fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
-              boxShadow: '0 12px 28px rgba(10,10,10,0.16)',
+      {/* Search starts centered; after results, it becomes the fixed command bar. */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: hasInlineResults ? 'auto' : '50%',
+        bottom: hasInlineResults ? 0 : 'auto',
+        transform: hasInlineResults ? 'none' : 'translateY(-50%)',
+        zIndex: 45,
+        padding: hasInlineResults ? (web ? '0 40px 30px' : '0 18px max(20px, env(safe-area-inset-bottom, 16px))') : (web ? '0 40px' : '0 18px'),
+        pointerEvents: 'none',
+      }}>
+        <div style={{ width: '100%', maxWidth: hasInlineResults ? (web ? 760 : 430) : (web ? 680 : 430), margin: '0 auto', position: 'relative', pointerEvents: 'auto' }}>
+          {!hasInlineResults && (
+            <div style={{ fontFamily: CC_MONO, fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: ink40, marginBottom: 16, textAlign: 'center' }}>
+              Hello, {everydayFirstName(profile)}
+            </div>
+          )}
+          <form onSubmit={(e) => { e.preventDefault(); askBounty(); }} style={{
+            height: web ? 64 : 58,
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: web ? '0 12px' : '0 10px',
+            borderRadius: 999,
+            background: paper,
+            border: `1px solid ${focus || menuOpen ? ink : ink12}`,
+            boxShadow: focus || menuOpen ? '0 18px 44px rgba(10,10,10,0.12)' : '0 10px 30px rgba(10,10,10,0.07)',
+            transition: 'border-color 180ms ease, box-shadow 220ms ease',
+          }}>
+            <button type="button" onClick={() => { pkHaptic('select'); setMenuOpen((o) => !o); }} aria-label="Open menu" aria-haspopup="menu" aria-expanded={menuOpen} style={{
+              width: web ? 44 : 40, height: web ? 44 : 40, borderRadius: '50%',
+              border: 0, background: menuOpen ? ink : 'transparent', color: menuOpen ? paper : ink,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
-              Bounty
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
             </button>
 
-            <button onClick={() => { pkHaptic('select'); setMenuOpen((o) => !o); }} aria-label="Open menu" aria-haspopup="menu" aria-expanded={menuOpen} style={{
-              height: 46, padding: '0 20px', borderRadius: 999,
-              border: `1px solid ${ink12}`, background: 'transparent', color: ink, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontFamily: 'inherit', fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
-            }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-              Menu
-            </button>
-          </div>
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onFocus={() => setFocus(true)}
+              onBlur={() => setFocus(false)}
+              placeholder="What can Bounty help you with today?"
+              disabled={busy}
+              style={{
+                flex: 1, minWidth: 0, height: '100%',
+                border: 0, outline: 0, background: 'transparent',
+                color: ink, fontFamily: 'inherit',
+                fontSize: web ? 18 : 15.5, fontWeight: 560,
+                letterSpacing: '-0.01em',
+              }}
+            />
 
-          {/* Menu popover — go straight to any section */}
+            <button type="submit" aria-label="Send to Bounty" style={{
+              width: web ? 44 : 40, height: web ? 44 : 40, borderRadius: '50%',
+              border: 0, background: text.trim() && !busy ? ink : ink06,
+              color: text.trim() && !busy ? paper : ink40,
+              cursor: text.trim() && !busy ? 'pointer' : 'default',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(8deg) translateX(1px)' }}><path d="M4 11.5L20 4l-7.5 16-2.2-6.3L4 11.5z"/><path d="M10.3 13.7L20 4"/></svg>
+            </button>
+          </form>
+
+          {/* Menu popover 鈥?services stay inside the search surface. */}
           {menuOpen && (
             <React.Fragment>
               <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-              <div className="pk-rise" style={{ position: 'absolute', bottom: 62, left: 'calc(50% - 140px)', zIndex: 41, width: 280, maxWidth: '90vw', background: paper, border: `1px solid ${ink12}`, borderRadius: 16, boxShadow: '0 -18px 44px rgba(10,10,10,0.16)', padding: '6px', textAlign: 'left' }}>
+              <div className="pk-rise" style={{ position: 'absolute', top: web ? 76 : 68, left: 0, zIndex: 41, width: web ? 320 : '100%', maxWidth: '100%', background: paper, border: `1px solid ${ink12}`, borderRadius: 18, boxShadow: '0 18px 48px rgba(10,10,10,0.14)', padding: '8px', textAlign: 'left' }}>
                 {sections.map((s) => (
                   <button key={s.key} onClick={() => goSection(s)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '10px 10px', borderRadius: 10, transition: 'background 140ms ease' }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = ink06; }}
@@ -1095,27 +1305,22 @@ function EverydayHub({ web, profile, onShop, onSave, onPay, onPlan, onListen, on
           )}
         </div>
       </div>
-
-      {/* Footer */}
-      <div style={{ padding: '0 28px 26px', textAlign: 'center' }}>
-        <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink25 }}>Everyday Joe</span>
-      </div>
     </div>
   );
 }
 
 
-// ────────────────────────────── SAVE HOME ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ SAVE HOME 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Savings is the hero behaviour. The screen answers, top to bottom:
-// how much have I saved · how much has it grown · how much can I access.
+// how much have I saved 路 how much has it grown 路 how much can I access.
 
-function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, intent, onIntentHandled, isOperator = false }) {
+function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, intent, onIntentHandled, isOperator = false, onOperatorChange, onOpenRoute }) {
   const modes = {
     shop: {
-      title: 'Shop',
-      intro: 'Find trusted shops.',
-      actions: ['Browse products', 'Saved shops', 'Follow merchants'],
-      items: ['Kigali essentials', 'Trusted services', 'Popular stores'],
+      title: 'Marketplace',
+      intro: 'Demand or access trusted goods and services.',
+      actions: ['Browse providers', 'Command a request', 'Saved services'],
+      items: ['Government services', 'Form sharing', 'Trusted providers'],
     },
     pay: {
       title: 'Pay',
@@ -1145,7 +1350,7 @@ function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, in
   const m = modes[mode] || modes.shop;
 
   if (mode === 'shop') {
-    return <ShopScreen web={web} onBack={onBack} isOperator={isOperator} />;
+    return <ShopScreen web={web} onBack={onBack} isOperator={isOperator} onOperatorChange={onOperatorChange} onOpenRoute={onOpenRoute} />;
   }
   if (mode === 'plan') {
     return <PlanScreen web={web} onBack={onBack} bottomInset={bottomInset} intent={intent} onIntentHandled={onIntentHandled} />;
@@ -1265,7 +1470,7 @@ function SectionShell({ title, web, onBack, children }) {
   );
 }
 
-// Minimal monoline glyphs for the search input modes. Drawn at 24×24 and
+// Minimal monoline glyphs for the search input modes. Drawn at 24脳24 and
 // scaled into the 38px control, so each mode reads as an icon rather than a
 // bare letter.
 const SEARCH_MODE_ICONS = {
@@ -1344,7 +1549,7 @@ function SearchSurface({ value, onChange, placeholder, modes = [] }) {
 }
 
 function ShopCheckoutFlow({ product, shop, web, onBack }) {
-  // 3 steps: fulfillment → review → done
+  // 3 steps: fulfillment 鈫?review 鈫?done
   const [step, setStep] = React.useState(0); // 0=fulfillment 1=review 2=done
   const [fulfillment, setFulfillment] = React.useState('delivery');
   const [address, setAddress] = React.useState('');
@@ -1354,7 +1559,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
 
   // A product is purchasable only when it carries a real catalog id. The sample
   // catalog (shown on cold-load / offline / shops with no listed products) has
-  // no id, so it must never reach a real wallet charge — we surface a clear
+  // no id, so it must never reach a real wallet charge 鈥?we surface a clear
   // "not available" state instead of a checkout that would fail or mischarge.
   const purchasable = !!product.id;
 
@@ -1363,7 +1568,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
   const total = subtotal + deliveryFee;
   const fmtAmt = (n) => n.toLocaleString('en-RW') + ' RWF';
 
-  // Sample item — no live listing behind it. Show an honest preview state with
+  // Sample item 鈥?no live listing behind it. Show an honest preview state with
   // a single way out, never a fake order or a silent charge attempt.
   if (!purchasable) {
     return (
@@ -1375,9 +1580,9 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E5A100" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
             </div>
             <div style={{ fontSize: web ? 34 : 27, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.08, color: ink }}>Sample item.</div>
-            <div style={{ fontSize: 14.5, color: ink55, marginTop: 12, fontWeight: 500, lineHeight: 1.5 }}>{product.name} is part of {shop.name}'s preview catalogue. The shop hasn't listed it for online purchase yet, so it can't be bought right now.</div>
-            <div style={{ fontSize: 13.5, color: ink40, marginTop: 14, fontWeight: 500, lineHeight: 1.5 }}>When the shop publishes its live catalogue, items become available to buy with your Everyday Wallet.</div>
-            <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Shop</button>
+            <div style={{ fontSize: 14.5, color: ink55, marginTop: 12, fontWeight: 500, lineHeight: 1.5 }}>{product.name} is part of {shop.name}'s preview catalogue. The provider has not listed it for online purchase yet, so it cannot be bought right now.</div>
+            <div style={{ fontSize: 13.5, color: ink40, marginTop: 14, fontWeight: 500, lineHeight: 1.5 }}>When the provider publishes its live catalogue, items become available to buy with your Everyday Wallet.</div>
+            <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Marketplace</button>
           </div>
         </div>
       </div>
@@ -1389,7 +1594,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
     setBusy(true); setError('');
     try {
       const ucp = window.EverydayAPI && window.EverydayAPI.ucp;
-      if (!ucp) throw new Error('Not signed in — please sign in to buy.');
+      if (!ucp) throw new Error('Not signed in - please sign in to buy.');
       const lineItems = [{ product_id: product.id, quantity: 1 }];
       const ful = { type: fulfillment };
       if (fulfillment === 'delivery' && address) ful.address = address;
@@ -1415,9 +1620,9 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2FAE9B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div style={{ fontSize: web ? 36 : 28, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Order placed.</div>
-            <div style={{ fontSize: 14, color: ink55, marginTop: 10, fontWeight: 500 }}>Your Everyday Wallet was charged {fmtAmt(total)}. The shop will confirm your {fulfillment}.</div>
-            {orderId && <div style={{ marginTop: 16, fontFamily: CC_MONO, fontSize: 11, color: ink40, letterSpacing: '0.06em' }}>Order ID · {orderId}</div>}
-            <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Shop</button>
+            <div style={{ fontSize: 14, color: ink55, marginTop: 10, fontWeight: 500 }}>Your Everyday Wallet was charged {fmtAmt(total)}. The provider will confirm your {fulfillment}.</div>
+            {orderId && <div style={{ marginTop: 16, fontFamily: CC_MONO, fontSize: 11, color: ink40, letterSpacing: '0.06em' }}>Order ID 路 {orderId}</div>}
+            <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Marketplace</button>
           </div>
         </div>
       </div>
@@ -1432,7 +1637,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
 
           {step === 0 && (
             <React.Fragment>
-              <div style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: ink40, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Step 01 · Delivery</div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: ink40, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Step 01 路 Delivery</div>
               <div style={{ fontSize: web ? 32 : 26, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.1, color: ink, marginBottom: 24 }}>{product.name}</div>
 
               {['delivery', 'pickup'].map((t) => {
@@ -1440,8 +1645,8 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
                 return (
                   <button key={t} onClick={() => { pkHaptic('select'); setFulfillment(t); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', borderRadius: 14, border: `1px ${on ? 'solid' : 'dashed'} ${on ? ink : DASH}`, background: on ? ink : 'transparent', marginBottom: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                     <span style={{ flex: 1 }}>
-                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: on ? paper : ink, letterSpacing: '-0.01em' }}>{t === 'delivery' ? 'Deliver to me' : 'Pick up in-store'}</span>
-                      <span style={{ display: 'block', fontSize: 12, color: on ? paper + 'cc' : ink40, marginTop: 2 }}>{t === 'delivery' ? '+1,000 RWF · flat delivery fee' : 'Free · collect at the shop'}</span>
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: on ? paper : ink, letterSpacing: '-0.01em' }}>{t === 'delivery' ? 'Deliver to me' : 'Pick up from provider'}</span>
+                      <span style={{ display: 'block', fontSize: 12, color: on ? paper + 'cc' : ink40, marginTop: 2 }}>{t === 'delivery' ? '+1,000 RWF 路 flat delivery fee' : 'Free 路 collect from the provider'}</span>
                     </span>
                     <span style={{ width: 18, height: 18, borderRadius: 999, border: `2px solid ${on ? paper : ink25}`, background: on ? paper : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {on && <span style={{ width: 8, height: 8, borderRadius: 999, background: ink }}/>}
@@ -1460,7 +1665,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
 
           {step === 1 && (
             <React.Fragment>
-              <div style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: ink40, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Step 02 · Review</div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, color: ink40, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Step 02 路 Review</div>
               <div style={{ fontSize: web ? 32 : 26, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.1, color: ink, marginBottom: 24 }}>Confirm order.</div>
 
               {[
@@ -1479,7 +1684,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
 
               <div style={{ marginTop: 4, padding: '14px 16px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg>
-                <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>Everyday Wallet · charged {fmtAmt(total)}</span>
+                <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>Everyday Wallet 路 charged {fmtAmt(total)}</span>
               </div>
 
               {error && <div style={{ marginTop: 12, fontSize: 13, color: '#C8102E', fontWeight: 600 }}>{error}</div>}
@@ -1494,7 +1699,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
             <button onClick={() => { pkHaptic('select'); setStep(1); }} style={{ width: '100%', height: 50, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Review order</button>
           )}
           {step === 1 && (
-            <button onClick={pay} disabled={busy} style={{ width: '100%', height: 50, borderRadius: 999, border: 0, background: busy ? ink40 : ink, color: paper, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>{busy ? 'Paying…' : `Pay ${fmtAmt(total)}`}</button>
+            <button onClick={pay} disabled={busy} style={{ width: '100%', height: 50, borderRadius: 999, border: 0, background: busy ? ink40 : ink, color: paper, cursor: busy ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>{busy ? 'Paying...' : `Pay ${fmtAmt(total)}`}</button>
           )}
         </div>
       </div>
@@ -1502,7 +1707,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
   );
 }
 
-// Unsplash photo IDs by category — used for shop covers + product thumbnails.
+// Unsplash photo IDs by category 鈥?used for shop covers + product thumbnails.
 // Each ID maps to a known, stable Unsplash photo.
 const _UB = 'https://images.unsplash.com/photo-';
 const IMG = {
@@ -1586,6 +1791,73 @@ const SHOP_DEMO_CATALOG = {
 };
 const SHOP_DEMO_PRODUCTS = SHOP_DEMO_CATALOG['House of Tayo'];
 
+function MarketplaceServiceDetail({ service, web, onBack, isOperator = false, onOperatorChange, onOpenRoute }) {
+  const [demand, setDemand] = React.useState(service.command || '');
+  const [role, setRole] = React.useState(isOperator ? 'operator' : 'user');
+  const continueService = () => {
+    pkHaptic('select');
+    if (role === 'operator') {
+      onOperatorChange && onOperatorChange(true);
+      onBack && onBack();
+      return;
+    }
+    if (service.route && onOpenRoute) {
+      onOpenRoute(service.route);
+      return;
+    }
+    if (service.url) window.open(service.url, '_blank', 'noopener,noreferrer');
+  };
+  const canContinue = role === 'operator' || service.route || service.url;
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>Marketplace</span>} />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '28px 44px 96px' : '20px 24px 96px' }}>
+        <div style={{ width: '100%', maxWidth: web ? 620 : 420, margin: '0 auto' }}>
+          <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: ink40, fontWeight: 700 }}>{service.cat || 'Service'}</div>
+          <div style={{ marginTop: 12, fontSize: web ? 38 : 31, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>{service.name}</div>
+          <div style={{ marginTop: 12, fontSize: 14.5, color: ink55, lineHeight: 1.55, fontWeight: 560 }}>{service.desc}</div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
+            {[
+              ['user', 'Continue as user'],
+              ['operator', 'Continue as operator'],
+            ].map(([id, label]) => {
+              const on = role === id;
+              return (
+                <button key={id} onClick={() => { pkHaptic('select'); setRole(id); }} style={{ flex: 1, height: 38, borderRadius: 999, border: on ? 0 : `1px dashed ${DASH}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760 }}>{label}</button>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: 28, borderTop: `1px dashed ${DASH}` }}>
+            {[
+              ['Access', service.route ? 'Continue inside Everyday.' : service.url ? 'Open the official service in a new tab.' : 'Handled inside Everyday when this provider goes live.'],
+              ['Command', service.command || 'Tell Marketplace what you need and Bounty will shape the request.'],
+              ['Operator', 'Providers can manage requests, listings and fulfilment from the same marketplace surface.'],
+            ].map(([label, value], i) => (
+              <div key={label} style={{ padding: '15px 0', borderBottom: `1px dashed ${DASH}`, display: 'flex', gap: 18, alignItems: 'baseline' }}>
+                <span style={{ width: 84, flexShrink: 0, fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.11em', textTransform: 'uppercase', color: ink40 }}>{label}</span>
+                <span style={{ fontSize: 14, color: ink70, lineHeight: 1.45, fontWeight: 560 }}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="pk-field" style={{ marginTop: 30 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: `2px dashed ${ink25}` }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M4 11.5L20 4l-7.5 16-2.2-6.3L4 11.5z"/><path d="M10.3 13.7L20 4"/></svg>
+              <input value={demand} onChange={(e) => setDemand(e.target.value)} placeholder="Describe what you need" style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15, fontWeight: 600, padding: 0 }} />
+            </div>
+          </div>
+
+          <button onClick={continueService} disabled={!canContinue} style={{ marginTop: 26, width: '100%', height: 52, borderRadius: 999, border: 0, background: canContinue ? ink : ink12, color: canContinue ? paper : ink40, cursor: canContinue ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 15, fontWeight: 740 }}>
+            {role === 'operator' ? 'Open operator console' : service.route ? 'Open in Everyday' : 'Open service'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ShopProductList({ shop, products, web, onBack, onBuy }) {
   const shopProducts = shop.id ? products.filter((p) => p.shop_id === shop.id) : [];
   const demoProducts = SHOP_DEMO_CATALOG[shop.name] || SHOP_DEMO_PRODUCTS;
@@ -1593,18 +1865,18 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
-      <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>Shop</span>} />
+      <ScreenHeader left={<IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13L5 8l5-5"/></svg></IconBtn>} right={<span style={{ fontFamily: CC_MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: ink40, textTransform: 'uppercase' }}>Marketplace</span>} />
       <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '20px 24px 96px' }}>
         <div style={{ width: '100%', maxWidth: web ? 680 : 420, margin: '0 auto' }}>
           <div style={{ fontSize: web ? 32 : 26, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.1, color: ink }}>{shop.name}</div>
-          <div style={{ fontSize: 12.5, color: ink40, marginTop: 5, fontWeight: 600 }}>{shop.cat || 'Local · verified'}</div>
+          <div style={{ fontSize: 12.5, color: ink40, marginTop: 5, fontWeight: 600 }}>{shop.cat || 'Local 路 verified'}</div>
 
           <div style={{ marginTop: 28 }}>
-            {displayed.length === 0 && <div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No products available.</div>}
+            {displayed.length === 0 && <div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No listings available.</div>}
             {displayed.map((p, i) => {
               const outOfStock = (p.stock != null && p.stock <= 0);
               const lowStock = !outOfStock && p.stock != null && p.stock <= 5;
-              // Sample items (preview catalogue) have no live id — they open an
+              // Sample items (preview catalogue) have no live id 鈥?they open an
               // explainer rather than a real checkout, so flag them up front.
               const sample = !p.id;
               return (
@@ -1619,7 +1891,7 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
                   <span style={{ minWidth: 0, flex: 1 }}>
                     <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                      <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '—')}</span>
+                      <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>{p.price_rwf ? p.price_rwf.toLocaleString('en-RW') + ' RWF' : (p.price || '-')}</span>
                       {outOfStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#C8102E', background: '#C8102E12', padding: '2px 7px', borderRadius: 999 }}>Out of stock</span>}
                       {lowStock && <span style={{ fontSize: 10, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 7px', borderRadius: 999 }}>Only {p.stock} left</span>}
                       {!outOfStock && sample && <span style={{ fontSize: 10, fontWeight: 700, color: ink55, background: ink06, padding: '2px 7px', borderRadius: 999 }}>Sample</span>}
@@ -1636,67 +1908,186 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
   );
 }
 
-function ShopScreen({ web, onBack, isOperator = false }) {
+function ShopScreen({ web, onBack, isOperator = false, onOperatorChange, onOpenRoute }) {
   const [query, setQuery] = React.useState('');
   const [category, setCategory] = React.useState('All');
-  const [catOpen, setCatOpen] = React.useState(false);
   const [shopCount, setShopCount] = React.useState(6);
   const [focus, setFocus] = React.useState(false);
-  const [opTab, setOpTab] = React.useState('orders');
+  const [serviceMenuOpen, setServiceMenuOpen] = React.useState(false);
+  const [opTab, setOpTab] = React.useState('requests');
   const [selectedShop, setSelectedShop] = React.useState(null);
   const [checkoutProduct, setCheckoutProduct] = React.useState(null);
   const [checkoutShop, setCheckoutShop] = React.useState(null);
   const isOp = isOperator;
 
-  // Live catalog from /api/shop (Go microservice). Falls back to the
-  // hardcoded list so the screen still renders before the store hydrates.
+  // Live catalog from /api/shop. Falls back to the curated local list so the
+  // screen still renders before Supabase hydrates or when local env is absent.
   const everyday = window.useEveryday ? window.useEveryday() : null;
-  const liveShops = (everyday && everyday.shop && everyday.shop.shops) || [];
-  const liveProducts = (everyday && everyday.shop && everyday.shop.products) || [];
+  const shopSlice = (everyday && everyday.shop) || { loaded: false, loading: false, error: null, shops: [], products: [] };
+  const liveShops = shopSlice.shops || [];
+  const liveProducts = shopSlice.products || [];
+  React.useEffect(() => {
+    if (!shopSlice.loaded && !shopSlice.loading && window.EverydayStore && window.EverydayStore.hydrate) {
+      window.EverydayStore.hydrate.shop();
+    }
+  }, [shopSlice.loaded, shopSlice.loading]);
+  const retryShop = () => { try { window.EverydayStore && window.EverydayStore.hydrate.shop(); } catch (e) {} };
 
   // Sub-view routing: null = brand list, shop obj = product list, + product = checkout
   if (checkoutProduct && checkoutShop) {
     return <ShopCheckoutFlow product={checkoutProduct} shop={checkoutShop} web={web} onBack={() => { setCheckoutProduct(null); setCheckoutShop(null); }} />;
   }
   if (selectedShop) {
+    if (selectedShop.kind === 'service') {
+      return <MarketplaceServiceDetail service={selectedShop} web={web} onBack={() => setSelectedShop(null)} isOperator={isOperator} onOperatorChange={onOperatorChange} onOpenRoute={onOpenRoute} />;
+    }
     return <ShopProductList shop={selectedShop} products={liveProducts} web={web} onBack={() => setSelectedShop(null)} onBuy={(p, s) => { pkHaptic('select'); setCheckoutProduct(p); setCheckoutShop(s); }} />;
   }
-  const categories = ['All', 'Men', 'Women', 'Unisex', 'Kids', 'Home decor', 'Cosmetics'];
-  const fallbackBrands = [
-    { name: 'House of Tayo', cat: 'Women' },
-    { name: 'Moshions', cat: 'Men' },
-    { name: 'Haute Baso', cat: 'Women' },
-    { name: 'Uzi Collections', cat: 'Women' },
-    { name: 'Rwanda Clothing', cat: 'Unisex' },
-    { name: 'Inzuki Designs', cat: 'Cosmetics' },
-    { name: 'Kwanda Goods', cat: 'Home decor' },
-    { name: 'Nyamirambo Studio', cat: 'Women' },
-    { name: 'Azizi Life', cat: 'Home decor' },
-    { name: 'Question Coffee', cat: 'Home decor' },
-    { name: 'Kivu Noir', cat: 'Cosmetics' },
-    { name: 'Kigali Home', cat: 'Home decor' },
-    { name: 'Murukali', cat: 'Unisex' },
-    { name: 'Ikirezi Bookshop', cat: 'Kids' },
-    { name: 'Bourbon Coffee', cat: 'Home decor' },
-    { name: 'Kigali Farmers Market', cat: 'Home decor' },
-    { name: 'Simba Supermarket', cat: 'Home decor' },
-    { name: 'Amahoro Market', cat: 'Unisex' },
+  const categories = ['All', 'Mobility', 'Services', 'Government', 'Forms', 'Listen', 'Food', 'Fashion', 'Home', 'Books', 'Beauty'];
+  const normalizeMarketplaceCategory = (raw) => {
+    const v = String(raw || '').toLowerCase();
+    if (/women|men|unisex|fashion|apparel|tailor|clothing|designer/.test(v)) return 'Fashion';
+    if (/home|decor|basket|craft|furniture|goods/.test(v)) return 'Home';
+    if (/coffee|food|grocery|market|restaurant|meal/.test(v)) return 'Food';
+    if (/book|read|stationery/.test(v)) return 'Books';
+    if (/beauty|cosmetic|skin|hair|spa/.test(v)) return 'Beauty';
+    if (/government|public|permit|tax|certificate/.test(v)) return 'Government';
+    if (/form|survey|registration/.test(v)) return 'Forms';
+    if (/ride|mobility|transport|travel|flight/.test(v)) return 'Mobility';
+    return raw || 'Services';
+  };
+  const curatedServices = [
+    { name: 'Irembo.gov.rw', cat: 'Government', kind: 'service', url: 'https://irembo.gov.rw', desc: 'Access Rwanda public services: certificates, permits, registrations and appointments.', command: 'Help me get a birth certificate through Irembo' },
+    { name: 'Typless.rw', cat: 'Forms', kind: 'service', url: 'https://typless.rw', desc: 'Create and share forms for registrations, surveys, intake flows and lightweight data collection.', command: 'Create a registration form for my event' },
+    { name: 'RRA eTax', cat: 'Government', kind: 'service', url: 'https://etax.rra.gov.rw', desc: 'Find tax declarations, TIN-related services and Rwanda Revenue Authority payments.', command: 'Help me find where to pay RRA taxes' },
+    { name: 'RwandaAir', cat: 'Services', kind: 'service', url: 'https://www.rwandair.com', desc: 'Search routes, manage flights and access travel services from RwandaAir.', command: 'Find a flight from Kigali to Nairobi next week' },
+    { name: 'Everyday Mobility', cat: 'Mobility', kind: 'service', route: 'commute', desc: 'Book vetted motos, cars and shared rides from the same trusted marketplace.', command: 'Find me a safe ride across Kigali' },
+    { name: 'Everyday Listen', cat: 'Listen', kind: 'service', route: 'listen', desc: 'Discover trusted podcasts, briefings and audio channels without leaving Everyday.', command: 'Find something useful to listen to' },
   ];
-  // Prefer live shops from Supabase. Fall back to the curated list so the
-  // grid never goes empty in dev / cold-load / offline.
-  const brands = liveShops.length
-    ? liveShops.map((s) => ({ id: s.id, name: s.name, cat: s.category }))
-    : fallbackBrands;
+  const fallbackShops = [
+    { name: 'House of Tayo', cat: 'Fashion', kind: 'shop' },
+    { name: 'Moshions', cat: 'Fashion', kind: 'shop' },
+    { name: 'Haute Baso', cat: 'Fashion', kind: 'shop' },
+    { name: 'Uzi Collections', cat: 'Fashion', kind: 'shop' },
+    { name: 'Rwanda Clothing', cat: 'Fashion', kind: 'shop' },
+    { name: 'Inzuki Designs', cat: 'Beauty', kind: 'shop' },
+    { name: 'Kwanda Goods', cat: 'Home', kind: 'shop' },
+    { name: 'Nyamirambo Studio', cat: 'Fashion', kind: 'shop' },
+    { name: 'Azizi Life', cat: 'Home', kind: 'shop' },
+    { name: 'Question Coffee', cat: 'Food', kind: 'shop' },
+    { name: 'Kivu Noir', cat: 'Food', kind: 'shop' },
+    { name: 'Kigali Home', cat: 'Home', kind: 'shop' },
+    { name: 'Murukali', cat: 'Services', kind: 'shop' },
+    { name: 'Ikirezi Bookshop', cat: 'Books', kind: 'shop' },
+    { name: 'Bourbon Coffee', cat: 'Food', kind: 'shop' },
+    { name: 'Kigali Farmers Market', cat: 'Food', kind: 'shop' },
+    { name: 'Simba Supermarket', cat: 'Food', kind: 'shop' },
+    { name: 'Amahoro Market', cat: 'Food', kind: 'shop' },
+  ];
+  const productsForShop = (shopId) => liveProducts.filter((p) => p.shop_id === shopId);
+  const liveBrands = liveShops.map((s) => {
+    const ps = productsForShop(s.id);
+    const minPrice = ps.reduce((min, p) => {
+      const n = Number(p.price_rwf || 0);
+      return n > 0 && (!min || n < min) ? n : min;
+    }, 0);
+    const sold = ps.reduce((sum, p) => sum + Number(p.sold || 0), 0);
+    return {
+      ...s,
+      name: s.name,
+      cat: normalizeMarketplaceCategory(s.category || (ps[0] && ps[0].category) || s.meta),
+      rawCat: s.category,
+      kind: 'shop',
+      desc: s.meta || '',
+      city: s.city || 'Kigali',
+      trust: s.trust_label || 'verified',
+      product_count: ps.length,
+      min_price_rwf: minPrice,
+      sold,
+      source: 'backend',
+    };
+  });
+  const backendHasCatalog = liveBrands.length > 0;
+  const brands = curatedServices.concat(backendHasCatalog ? liveBrands : fallbackShops);
   const q = query.trim().toLowerCase();
   const visible = brands.filter((b) =>
     (category === 'All' || b.cat === category) &&
-    (!q || b.name.toLowerCase().includes(q)));
-  const shown = visible.slice(0, shopCount);
-  const catShown = catOpen ? categories : categories.slice(0, 4);
-  const selectCat = (c) => { pkHaptic('select'); setCategory(c); setShopCount(5); };
+    (!q || [b.name, b.cat, b.rawCat, b.kind, b.desc, b.command, b.city, b.trust].filter(Boolean).join(' ').toLowerCase().includes(q)));
+  const openMarketplaceItem = (item) => {
+    pkHaptic('select');
+    if (item && item.route && onOpenRoute) {
+      onOpenRoute(item.route);
+      return;
+    }
+    setSelectedShop(item);
+  };
+  const selectCat = (c) => {
+    pkHaptic('select');
+    setServiceMenuOpen(false);
+    if (c === 'Mobility' && onOpenRoute) {
+      onOpenRoute('commute');
+      return;
+    }
+    setCategory(c);
+    setShopCount(5);
+  };
   const onSearch = (v) => { setQuery(v); setShopCount(5); };
+  const commandExamples = [
+    'Birth certificate',
+    'Safe ride',
+    'Coffee',
+  ];
+  const categoryCounts = categories.map((cat) => ({
+    cat,
+    count: cat === 'All' ? brands.length : brands.filter((b) => b.cat === cat).length,
+  }));
+  const serviceOptions = categoryCounts.filter((item) => item.cat === 'All' || item.count > 0);
+  const servicePrices = {
+    Government: 'From 2,000 RWF',
+    Forms: 'From 0 RWF',
+    Mobility: 'From 1,500 RWF',
+    Listen: 'Included',
+    Food: 'From 3,500 RWF',
+    Fashion: 'From 8,500 RWF',
+    Home: 'From 9,000 RWF',
+    Books: 'From 5,000 RWF',
+    Beauty: 'From 6,800 RWF',
+    Services: 'From 10,000 RWF',
+  };
+  const serviceImage = (item) => {
+    if (item.image_url || item.cover_url || item.logo_url) return item.image_url || item.cover_url || item.logo_url;
+    if (SHOP_COVERS[item.name]) return SHOP_COVERS[item.name];
+    if (item.cat === 'Government') return IMG.books;
+    if (item.cat === 'Forms') return IMG.homeDecor;
+    if (item.cat === 'Mobility') return IMG.market;
+    if (item.cat === 'Listen') return IMG.books;
+    if (item.cat === 'Services') return IMG.accessories;
+    return shopInitialImg(item.name);
+  };
+  const decorateService = (item, index) => {
+    const itemCount = item.product_count != null ? item.product_count : (SHOP_DEMO_CATALOG[item.name] || []).length;
+    const rating = item.kind === 'service' ? (4.96 - ((index % 3) * 0.03)).toFixed(2) : (4.88 + ((index % 5) * 0.02)).toFixed(2);
+    return {
+      ...item,
+      image: serviceImage(item),
+      fallback: shopInitialImg(item.name),
+      meta: item.kind === 'service' ? item.cat : `${item.city || 'Kigali'}${item.trust ? `, ${item.trust}` : ''}`,
+      rating,
+      price: item.min_price_rwf ? `From ${fmtRWF(item.min_price_rwf)}` : (servicePrices[item.cat] || 'On request'),
+    };
+  };
+  const featured = visible.slice(0, Math.max(shopCount, 8)).map(decorateService);
+  const government = brands.filter((b) => ['Government', 'Forms'].includes(b.cat)).filter((b) => visible.includes(b)).slice(0, 8).map(decorateService);
+  const mobility = brands.filter((b) => ['Mobility', 'Listen', 'Services'].includes(b.cat)).filter((b) => visible.includes(b)).slice(0, 8).map(decorateService);
+  const localGoods = brands.filter((b) => b.kind !== 'service').filter((b) => visible.includes(b)).slice(0, 10).map(decorateService);
+  const rails = [
+    { id: 'featured', title: category === 'All' && !q ? 'Nearby' : 'Results', items: featured },
+    { id: 'public', title: 'Public', items: government },
+    { id: 'mobility', title: 'Mobility', items: mobility },
+    { id: 'goods', title: 'Goods', items: localGoods },
+  ].filter((r) => r.items.length);
 
-  // Operator orders feed is not in the schema yet — kept as a placeholder so
+  // Operator orders feed is not in the schema yet 鈥?kept as a placeholder so
   // the operator UI still renders. Wire to /api/shop/orders when that endpoint lands.
   const opOrders = [
     { id: 'ORD-1042', customer: 'Alice M.', items: 2, total: '18,500 RWF', status: 'New', time: '12 min ago' },
@@ -1728,16 +2119,16 @@ function ShopScreen({ web, onBack, isOperator = false }) {
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
         <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
-          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Shop</span>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Marketplace</span>
         </div>} />
 
         <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '14px 18px 96px' }}>
           <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
-            <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Your shop.</div>
-            <div style={{ fontSize: 14, color: ink55, marginTop: 8, fontWeight: 600 }}>House of Tayo · Kigali, Rwanda</div>
+            <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Your marketplace.</div>
+            <div style={{ fontSize: 14, color: ink55, marginTop: 8, fontWeight: 600 }}>Provider console 路 Kigali, Rwanda</div>
             <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink55, fontWeight: 700, flexShrink: 0 }}>Preview</span>
-              <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>The operator dashboard is a sample of the merchant experience — these orders and totals are demo data.</span>
+              <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>The operator dashboard is a sample of the provider experience 鈥?these orders, requests and totals are demo data.</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 24 }}>
@@ -1754,13 +2145,30 @@ function ShopScreen({ web, onBack, isOperator = false }) {
             </div>
 
             <div style={{ display: 'flex', gap: 6, marginTop: 28, marginBottom: 16 }}>
-              {['orders', 'products'].map((t) => {
+              {['requests', 'orders', 'listings'].map((t) => {
                 const on = opTab === t;
                 return (
                   <button key={t} onClick={() => { pkHaptic('select'); setOpTab(t); }} style={{ height: 34, padding: '0 16px', borderRadius: 999, border: on ? 0 : `1px solid ${ink12}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, textTransform: 'capitalize' }}>{t}</button>
                 );
               })}
             </div>
+
+            {opTab === 'requests' && [
+              { id: 'REQ-2208', title: 'Birth certificate support', customer: 'Aline N.', channel: 'Irembo.gov.rw', status: 'New', time: '8 min ago' },
+              { id: 'REQ-2207', title: 'Airport ride tomorrow', customer: 'Cedric M.', channel: 'Mobility', status: 'Preparing', time: '19 min ago' },
+              { id: 'REQ-2206', title: 'Registration form setup', customer: 'Mutesi Studio', channel: 'Typless.rw', status: 'Ready', time: '42 min ago' },
+            ].map((r, i) => (
+              <button key={r.id} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{r.title}</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: statusColor(r.status), background: statusColor(r.status) + '18', padding: '2px 8px', borderRadius: 999 }}>{r.status}</span>
+                  </span>
+                  <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{r.id} 路 {r.customer} 路 {r.channel} 路 {r.time}</span>
+                </span>
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+              </button>
+            ))}
 
             {opTab === 'orders' && opOrders.map((o, i) => (
               <button key={o.id} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
@@ -1769,13 +2177,13 @@ function ShopScreen({ web, onBack, isOperator = false }) {
                     <span style={{ fontSize: 15.5, fontWeight: 700, color: ink, letterSpacing: '-0.01em' }}>{o.customer}</span>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: statusColor(o.status), background: statusColor(o.status) + '18', padding: '2px 8px', borderRadius: 999 }}>{o.status}</span>
                   </span>
-                  <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{o.id} · {o.items} item{o.items > 1 ? 's' : ''} · {o.total} · {o.time}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{o.id} 路 {o.items} item{o.items > 1 ? 's' : ''} 路 {o.total} 路 {o.time}</span>
                 </span>
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
               </button>
             ))}
 
-            {opTab === 'products' && (
+            {opTab === 'listings' && (
               <React.Fragment>
                 {opProducts.map((p, i) => (
                   <button key={p.name} style={{ width: '100%', border: 0, borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
@@ -1785,7 +2193,7 @@ function ShopScreen({ web, onBack, isOperator = false }) {
                         {p.stock === 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#C8102E80', background: '#C8102E12', padding: '2px 8px', borderRadius: 999 }}>Out of stock</span>}
                         {p.stock > 0 && p.stock <= 5 && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#E5A100', background: '#E5A10012', padding: '2px 8px', borderRadius: 999 }}>Low</span>}
                       </span>
-                      <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{p.price} · {p.stock} in stock · {p.sold} sold</span>
+                      <span style={{ display: 'block', fontSize: 12, color: ink40, marginTop: 3 }}>{p.price} 路 {p.stock} in stock 路 {p.sold} sold</span>
                     </span>
                     <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
                   </button>
@@ -1794,7 +2202,7 @@ function ShopScreen({ web, onBack, isOperator = false }) {
                   <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                   </span>
-                  Add product
+                  Add listing
                 </button>
               </React.Fragment>
             )}
@@ -1808,84 +2216,155 @@ function ShopScreen({ web, onBack, isOperator = false }) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
       <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
-        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Shop</span>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Marketplace</span>
       </div>} />
 
-      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 44px 96px' : '14px 18px 96px' }}>
-        <div style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
-          <div style={{ fontSize: web ? 40 : 32, fontWeight: 840, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Find trusted shops.</div>
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '18px 0 96px' : '12px 0 88px' }}>
+        <div style={{ width: '100%', maxWidth: web ? 1040 : 420, margin: '0 auto', padding: web ? '0 44px' : '0 14px' }}>
+          <div style={{ fontSize: web ? 42 : 31, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1, color: ink }}>Marketplace</div>
 
-          {/* Categories — expandable with a + */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
-            {catShown.map((cat) => {
+          <div className="pk-field" style={{ position: 'relative', marginTop: 18, border: `1px solid ${focus || serviceMenuOpen ? ink : ink12}`, borderRadius: web ? 999 : 24, background: paper, boxShadow: focus || serviceMenuOpen ? '0 14px 36px rgba(10,10,10,0.10)' : '0 8px 22px rgba(10,10,10,0.05)', transition: 'border-color 180ms ease, box-shadow 180ms ease' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: web ? '1.35fr 0.82fr 0.78fr auto' : '1fr auto', alignItems: 'center', gap: web ? 0 : 8, padding: web ? '8px 10px 8px 20px' : '7px 8px 7px 16px' }}>
+              <label style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, paddingRight: web ? 16 : 0 }}>
+                <span style={{ fontFamily: CC_MONO, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, fontWeight: 800 }}>Demand</span>
+                <input value={query} onChange={(e) => onSearch(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} placeholder="What do you need?" style={{ width: '100%', border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, padding: 0 }} />
+              </label>
+              {web && (
+                <React.Fragment>
+                  <button onClick={() => selectCat('All')} style={{ height: 42, border: 0, borderLeft: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '0 18px' }}>
+                    <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, fontWeight: 800 }}>Location</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, fontWeight: 740, color: ink }}>Kigali nearby</span>
+                  </button>
+                  <button onClick={() => { pkHaptic('select'); setServiceMenuOpen((v) => !v); }} aria-haspopup="listbox" aria-expanded={serviceMenuOpen} style={{ height: 42, border: 0, borderLeft: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '0 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, fontWeight: 800 }}>Type</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, fontWeight: 740, color: ink }}>{category === 'All' ? 'Any service' : category}</span>
+                    </span>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: serviceMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}><path d="M4 6l4 4 4-4"/></svg>
+                  </button>
+                </React.Fragment>
+              )}
+              <button onClick={() => { pkHaptic('select'); if (query.trim()) setShopCount((c) => Math.min(c + 6, visible.length || c)); }} aria-label="Search marketplace" style={{ width: 44, height: 44, borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+              </button>
+              {!web && (
+                <button onClick={() => { pkHaptic('select'); setServiceMenuOpen((v) => !v); }} aria-haspopup="listbox" aria-expanded={serviceMenuOpen} style={{ gridColumn: '1 / -1', minHeight: 42, border: 0, borderTop: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '10px 8px 2px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, fontWeight: 800 }}>Type of service</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13.5, fontWeight: 760, color: ink }}>{category === 'All' ? 'Any service' : category}</span>
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: serviceMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}><path d="M4 6l4 4 4-4"/></svg>
+                </button>
+              )}
+            </div>
+            {serviceMenuOpen && (
+              <React.Fragment>
+                <div onClick={() => setServiceMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
+                <div className="pk-rise" role="listbox" aria-label="Type of service" style={{ position: 'absolute', zIndex: 31, top: web ? 64 : 104, right: web ? 54 : 8, left: web ? 'auto' : 8, width: web ? 290 : 'auto', maxHeight: web ? 360 : 390, overflow: 'auto', scrollbarWidth: 'none', border: `1px solid ${ink12}`, borderRadius: 18, background: paper, boxShadow: '0 22px 60px rgba(10,10,10,0.16)', padding: 8 }}>
+                  {serviceOptions.map((item) => {
+                    const on = item.cat === category;
+                    return (
+                      <button key={item.cat} role="option" aria-selected={on} onClick={() => selectCat(item.cat)} style={{ width: '100%', minHeight: 48, border: 0, borderRadius: 12, background: on ? ink : 'transparent', color: on ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '9px 11px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 14, fontWeight: 800, letterSpacing: '-0.01em' }}>{item.cat === 'All' ? 'Any service' : item.cat}</span>
+                          <span style={{ display: 'block', marginTop: 3, fontSize: 11.5, color: on ? 'rgba(255,250,239,0.66)' : ink40, fontWeight: 650 }}>{item.count}</span>
+                        </span>
+                        {on ? (
+                          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8.3l3 3L13 4.7"/></svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 3l5 5-5 5"/></svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </React.Fragment>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
+            {commandExamples.map((cmd) => (
+              <button key={cmd} onClick={() => { pkHaptic('select'); setCategory('All'); onSearch(cmd); }} style={{ height: 34, padding: '0 13px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink70, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>{cmd}</button>
+            ))}
+          </div>
+
+          {(shopSlice.loading || shopSlice.error) && (
+            <div className={shopSlice.loading ? 'pk-shimmer' : ''} style={{ marginTop: 16, minHeight: 38, borderTop: `1px dashed ${DASH}`, borderBottom: `1px dashed ${DASH}`, padding: '10px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: shopSlice.error ? '#C8102E' : ink40, fontWeight: 800 }}>
+                  {shopSlice.loading ? 'Loading' : 'Offline'}
+                </span>
+                <span style={{ display: 'block', marginTop: 3, fontSize: 12.5, color: ink55, fontWeight: 620, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {shopSlice.loading ? 'Getting providers.' : shopSlice.error}
+                </span>
+              </span>
+              {shopSlice.error && (
+                <button onClick={retryShop} style={{ height: 32, padding: '0 12px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 760, flexShrink: 0 }}>Retry</button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={{ position: 'sticky', top: 0, zIndex: 12, marginTop: 18, background: 'rgba(250,246,241,0.92)', backdropFilter: 'blur(12px)', borderTop: `1px dashed ${DASH}`, borderBottom: `1px dashed ${DASH}` }}>
+          <div style={{ width: '100%', maxWidth: web ? 1040 : 420, margin: '0 auto', padding: web ? '10px 44px' : '9px 14px', display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {categoryCounts.map(({ cat, count }) => {
               const on = cat === category;
               return (
-                <button key={cat} onClick={() => selectCat(cat)} style={{ height: 36, padding: '0 14px', borderRadius: 999, border: on ? '0' : `1px solid ${ink12}`, background: on ? ink : 'transparent', color: on ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{cat}</button>
+                <button key={cat} onClick={() => selectCat(cat)} style={{ minWidth: web ? 96 : 78, height: 48, borderRadius: 999, border: on ? 0 : `1px solid ${ink12}`, background: on ? ink : 'transparent', color: on ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', padding: '0 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 180ms ease, color 180ms ease, transform 180ms ease' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1 }}>{cat}</span>
+                  <span style={{ marginTop: 4, fontFamily: CC_MONO, fontSize: 9, color: on ? 'rgba(255,250,239,0.62)' : ink40 }}>{count}</span>
+                </button>
               );
             })}
-            {categories.length > 4 && (
-              <button onClick={() => setCatOpen((o) => !o)} aria-label={catOpen ? 'Fewer categories' : 'More categories'} style={{ height: 36, width: 36, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: catOpen ? 'rotate(45deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M12 5v14M5 12h14"/></svg>
-              </button>
-            )}
-          </div>
-
-          {/* Stores — square card grid */}
-          <div style={{ marginTop: 22 }}>
-            {visible.length === 0 && (<div style={{ padding: '20px 0', fontSize: 13, color: ink55 }}>No shops match your search.</div>)}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-              {shown.map((brand) => {
-                const itemCount = (SHOP_DEMO_CATALOG[brand.name] || []).length;
-                const cover = SHOP_COVERS[brand.name] || shopInitialImg(brand.name);
-                const fallback = shopInitialImg(brand.name);
-                return (
-                  <button key={brand.name} onClick={() => { pkHaptic('select'); setSelectedShop(brand); }}
-                    style={{ aspectRatio: '1', border: `1px solid ${ink12}`, borderRadius: 16, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    <span style={{ flex: 1, display: 'block', overflow: 'hidden', borderRadius: '16px 16px 0 0' }}>
-                      <img src={cover} alt={brand.name} onError={(e) => { e.target.src = fallback; }}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    </span>
-                    <span style={{ flexShrink: 0, padding: '10px 14px 12px', display: 'block' }}>
-                      <span style={{ display: 'block', fontSize: 13, fontWeight: 800, color: ink, letterSpacing: '-0.02em', lineHeight: 1.25 }}>{brand.name}</span>
-                      <span style={{ display: 'block', fontSize: 10.5, color: ink40, marginTop: 2, fontWeight: 600 }}>{brand.cat}{itemCount > 0 ? ` · ${itemCount} items` : ''}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            {shopCount < visible.length && (
-              <button onClick={() => { pkHaptic('select'); setShopCount((c) => c + 6); }} style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                </span>
-                See more
-              </button>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Search — pinned to the bottom */}
-      <div style={{ flexShrink: 0, padding: web ? '12px 44px 16px' : '10px 18px max(12px, env(safe-area-inset-bottom, 12px))', borderTop: `1px dashed ${DASH}`, background: canvas }}>
-        <div className="pk-field" style={{ width: '100%', maxWidth: web ? 760 : 420, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 8, borderBottom: `2px ${focus ? 'solid' : 'dashed'} ${focus ? ink : ink25}`, transition: 'border-color 200ms ease' }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-            <input value={query} onChange={(e) => onSearch(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} placeholder="Search shops or products" style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 15, fontWeight: 600, padding: 0 }} />
-            <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-              {['Image', 'Voice', 'Link'].map((mode) => (
-                <span key={mode} title={mode} aria-label={mode} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ink40 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">{SEARCH_MODE_ICONS[mode]}</svg>
-                </span>
-              ))}
-            </span>
-          </div>
+        <div style={{ width: '100%', maxWidth: web ? 1040 : 420, margin: '0 auto', padding: web ? '8px 44px 0' : '6px 14px 0' }}>
+          {visible.length === 0 && (<div style={{ padding: '24px 0', fontSize: 13, color: ink55 }}>No marketplace providers match your search.</div>)}
+          {rails.map((rail) => (
+            <section key={rail.id} style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                <div style={{ fontSize: web ? 22 : 19, fontWeight: 820, letterSpacing: '-0.025em', color: ink }}>{rail.title}</div>
+              </div>
+              <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: web ? 'minmax(178px, 1fr)' : 'minmax(156px, 72%)', gap: 14, overflowX: 'auto', scrollbarWidth: 'none', scrollSnapType: 'x proximity', paddingBottom: 4 }}>
+                {rail.items.map((item) => (
+                  <button key={rail.id + item.name} onClick={() => openMarketplaceItem(item)}
+                    style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0, minWidth: 0, scrollSnapAlign: 'start' }}>
+                    <span style={{ display: 'block', aspectRatio: '1 / 0.92', borderRadius: 14, overflow: 'hidden', background: ink06 }}>
+                      <img src={item.image} alt={item.name} onError={(e) => { e.target.src = item.fallback; }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 260ms ease' }} />
+                    </span>
+                    <span style={{ display: 'block', marginTop: 9 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 14, fontWeight: 820, letterSpacing: '-0.01em', color: ink }}>{item.name}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 11.5, fontWeight: 760, color: ink }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.8l2.55 5.16 5.7.83-4.13 4.02.98 5.68L12 16.82 6.9 19.49l.98-5.68-4.13-4.02 5.7-.83L12 3.8z"/></svg>{item.rating}
+                        </span>
+                      </span>
+                      <span style={{ display: 'block', marginTop: 4, fontSize: 12, color: ink55, fontWeight: 620, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.meta}</span>
+                      <span style={{ display: 'block', marginTop: 7, fontSize: 13, color: ink, fontWeight: 780 }}>{item.price}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {shopCount < visible.length && (
+            <button onClick={() => { pkHaptic('select'); setShopCount((c) => c + 6); }} style={{ width: '100%', marginTop: 22, height: 46, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span style={{ width: 20, height: 20, borderRadius: 999, background: ink, color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              </span>
+              See more
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-// Turn a free-text brain-dump into a simple time-blocked plan. No backend —
+// Turn a free-text brain-dump into a simple time-blocked plan. No backend 鈥?
 // a deterministic transform that splits the input into tasks and lays them
 // out across the day.
 function generateDayPlan(text) {
@@ -1899,7 +2378,7 @@ function generateDayPlan(text) {
   });
 }
 
-// ─────────────────────────────── PLAN ───────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ PLAN 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Plan is the brain of Everyday: a calm, private place to keep thoughts,
 // plans, goals, notes, voice memos and documents. Kept as the existing
 // two-pane workspace (collapsible rail + canvas, de-carded dashed style);
@@ -1913,7 +2392,7 @@ const PLAN_FOLDERS_0 = [
   { id: 'ideas', name: 'Ideas', icon: 'bulb' },
 ];
 const PLAN_FILES_0 = [
-  { id: 'pf1', folderId: 'finance', title: 'Savings goal — RWF 1.5M by December', body: 'Put aside RWF 120,000 each month. Cut back on eating out. Keep the emergency fund untouched. This covers school fees and a laptop.', updated: 1781000000000, attachments: [], voice: [] },
+  { id: 'pf1', folderId: 'finance', title: 'Savings goal 鈥?RWF 1.5M by December', body: 'Put aside RWF 120,000 each month. Cut back on eating out. Keep the emergency fund untouched. This covers school fees and a laptop.', updated: 1781000000000, attachments: [], voice: [] },
   { id: 'pf2', folderId: 'work', title: 'Q3 priorities', body: 'Ship the retail report. Weekly founder calls. Prep the markets brief. Meeting Tuesday 9am at Kigali Heights.', updated: 1781050000000, attachments: [], voice: [] },
   { id: 'pf3', folderId: 'personal', title: 'This weekend', body: 'Groceries at Kimironko market. Visit family in Nyamirambo. Try that podcast about building a loyal audience.', updated: 1781090000000, attachments: [], voice: [] },
   { id: 'pf4', folderId: 'ideas', title: 'App ideas', body: 'A calm place to keep everything in one spot. Voice notes that turn into searchable text. Let the app suggest a ride before a meeting.', updated: 1781120000000, attachments: [], voice: [] },
@@ -1921,10 +2400,231 @@ const PLAN_FILES_0 = [
 
 const PLAN_NEW_FOLDER_ICONS = ['user', 'work', 'wallet', 'bulb', 'plane', 'family', 'health', 'folder'];
 function planId(p) { return p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+function planISO(d) {
+  const x = new Date(d);
+  x.setHours(12, 0, 0, 0);
+  return x.toISOString().slice(0, 10);
+}
+function planAddDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function planStartOfWeek(d) {
+  const x = new Date(d);
+  const day = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - day);
+  x.setHours(12, 0, 0, 0);
+  return x;
+}
+function planMonthStart(d) {
+  const x = new Date(d);
+  x.setDate(1);
+  x.setHours(12, 0, 0, 0);
+  return x;
+}
+function planMonthGrid(d) {
+  const first = planMonthStart(d);
+  const start = planStartOfWeek(first);
+  return Array.from({ length: 42 }, (_, i) => planAddDays(start, i));
+}
+function planMonthLabel(d, opts) {
+  return new Date(d).toLocaleDateString('en-US', opts || { month: 'long', year: 'numeric' });
+}
+function planFileDate(file) {
+  if (file && file.calendarDate) return file.calendarDate;
+  const meta = (file && file.metadata) || {};
+  const task = (meta.tasks || []).find((t) => t.deadline);
+  if (task && task.deadline) return task.deadline.slice(0, 10);
+  const fin = (meta.financial_entries || []).find((r) => r.date);
+  if (fin && fin.date) return fin.date.slice(0, 10);
+  const body = String((file && file.body) || '');
+  const explicit = body.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+  if (explicit) return explicit[1];
+  return planISO(file && file.updated ? new Date(file.updated) : new Date());
+}
+function planFilesForDay(files, iso) {
+  return (files || []).filter((f) => !f.trashed && planFileDate(f) === iso);
+}
+function planStageCount(files, start, end) {
+  const s = planISO(start);
+  const e = planISO(end);
+  return (files || []).filter((f) => {
+    if (f.trashed) return false;
+    const d = planFileDate(f);
+    return d >= s && d <= e;
+  }).length;
+}
+
+const PLAN_MODES = ['Journal', 'Financial', 'Planning', 'Meeting', 'Research', 'Project', 'Business', 'Personal'];
+const PLAN_HIGHLIGHTS = [
+  { key: 'important', label: 'Important', color: '#F4C542' },
+  { key: 'reference', label: 'Reference', color: '#5B8DEF' },
+  { key: 'completed', label: 'Completed', color: '#2FAE9B' },
+  { key: 'attention', label: 'Needs attention', color: '#E2941F' },
+  { key: 'risk', label: 'Risk', color: '#C8102E' },
+  { key: 'idea', label: 'Idea', color: '#A37BF2' },
+  { key: 'reflection', label: 'Personal reflection', color: '#E87BAE' },
+];
+const PLAN_TEMPLATES = [
+  { key: 'blank', label: 'Blank page', mode: 'Personal', body: '' },
+  { key: 'daily', label: 'Daily Journal', mode: 'Journal', body: '# Daily journal\n\nMood:\n\nWhat happened:\n\nWhat mattered:\n\nNext action:' },
+  { key: 'weekly', label: 'Weekly Review', mode: 'Planning', body: '# Weekly review\n\n## Wins\n\n## Lessons\n\n## Priorities\n\n- [ ] ' },
+  { key: 'finance', label: 'Financial Review', mode: 'Financial', body: '# Financial review\n\n## Income\n\n## Expenses\n\n[financial type=\"Expense\" amount=\"\" currency=\"RWF\" category=\"\" description=\"\"]\n\n## Risks\n\n## Next money move' },
+  { key: 'investment', label: 'Investment Journal', mode: 'Financial', body: '# Investment journal\n\nThesis:\n\nAmount:\n\nRisk:\n\nDecision:' },
+  { key: 'meeting', label: 'Meeting Notes', mode: 'Meeting', body: '# Meeting notes\n\nDate:\nPeople:\n\n## Decisions\n\n## Action items\n\n- [ ] ' },
+  { key: 'business', label: 'Business Plan', mode: 'Business', body: '# Business plan\n\n## Problem\n\n## Customer\n\n## Offer\n\n## Costs\n\n## Next steps' },
+  { key: 'project', label: 'Project Plan', mode: 'Project', body: '# Project plan\n\n## Goal\n\n[task status=\"Not started\" priority=\"Medium\" deadline=\"\" owner=\"\" title=\"\"]\n\n## Milestones\n\n## Risks' },
+  { key: 'research', label: 'Research Notes', mode: 'Research', body: '# Research notes\n\nQuestion:\n\n## Sources\n\n## Findings\n\n## Recommendation' },
+];
+
+function planDefaultPrivacy() { return { level: 'private', bount_access: true }; }
+function planModeValue(mode) {
+  const found = PLAN_MODES.find((m) => m.toLowerCase() === String(mode || '').toLowerCase());
+  return found || 'Personal';
+}
+
+function planExtractHighlights(body) {
+  const text = String(body || '');
+  const out = [];
+  const re = /\[\[highlight:([a-z-]+)\]\]([\s\S]*?)\[\[\/highlight\]\]/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const meta = PLAN_HIGHLIGHTS.find((h) => h.key === m[1]);
+    out.push({ type: m[1], label: meta ? meta.label : m[1], text: (m[2] || '').trim(), created_at: Date.now() });
+  }
+  return out;
+}
+
+function planExtractOutline(body) {
+  const levels = [];
+  return String(body || '').split('\n').reduce((acc, line, idx) => {
+    const m = line.match(/^(#{1,4})\s+(.+)/);
+    if (!m) return acc;
+    const level = m[1].length;
+    levels.push(level);
+    acc.push({ level, text: m[2].trim(), line: idx + 1 });
+    return acc;
+  }, []);
+}
+
+function planHierarchySuggestions(outline) {
+  const suggestions = [];
+  let last = 0;
+  let h1 = 0;
+  (outline || []).forEach((h) => {
+    if (h.level === 1) h1 += 1;
+    if (last && h.level > last + 1) suggestions.push('Consider using Heading ' + (last + 1) + ' before Heading ' + h.level + '.');
+    last = h.level;
+  });
+  if (h1 > 1) suggestions.push('Consider keeping one Heading 1 and using Heading 2 for major sections.');
+  return suggestions.slice(0, 2);
+}
+
+function planExtractFinancialEntries(body) {
+  const rows = [];
+  const re = /\[financial\s+([^\]]+)\]/g;
+  let m;
+  const parse = (raw, key) => {
+    const hit = raw.match(new RegExp(key + '="([^"]*)"', 'i'));
+    return hit ? hit[1] : '';
+  };
+  while ((m = re.exec(String(body || '')))) {
+    const raw = m[1] || '';
+    rows.push({
+      date: parse(raw, 'date') || new Date().toISOString().slice(0, 10),
+      type: parse(raw, 'type') || 'Expense',
+      amount: parse(raw, 'amount'),
+      currency: parse(raw, 'currency') || 'RWF',
+      category: parse(raw, 'category'),
+      description: parse(raw, 'description'),
+      notes: parse(raw, 'notes'),
+    });
+  }
+  return rows;
+}
+
+function planExtractTasks(body) {
+  const tasks = [];
+  String(body || '').split('\n').forEach((line, idx) => {
+    const check = line.match(/^\s*[-*]\s+\[( |x)\]\s+(.+)/i);
+    if (check) tasks.push({ title: check[2].trim(), status: check[1].toLowerCase() === 'x' ? 'Done' : 'Not started', line: idx + 1 });
+    const block = line.match(/\[task\s+([^\]]+)\]/);
+    if (block) {
+      const raw = block[1] || '';
+      const read = (key) => { const hit = raw.match(new RegExp(key + '="([^"]*)"', 'i')); return hit ? hit[1] : ''; };
+      tasks.push({ title: read('title') || 'Task', status: read('status') || 'Not started', priority: read('priority') || 'Medium', deadline: read('deadline'), owner: read('owner'), line: idx + 1 });
+    }
+  });
+  return tasks;
+}
+
+function planExtractTags(body) {
+  const found = String(body || '').match(/#[A-Za-z0-9_-]+/g) || [];
+  return Array.from(new Set(found.map((t) => t.slice(1).toLowerCase())));
+}
+
+function planExtractLinks(body) {
+  const mentions = String(body || '').match(/@[A-Za-z0-9_-]+/g) || [];
+  const docs = String(body || '').match(/\[\[([^\]]+)\]\]/g) || [];
+  return [
+    ...mentions.map((m) => ({ type: 'mention', value: m.slice(1) })),
+    ...docs.map((d) => ({ type: 'document', value: d.replace(/^\[\[|\]\]$/g, '') })),
+  ];
+}
+
+function planMetadata(file) {
+  const body = String((file && file.body) || '');
+  const outline = planExtractOutline(body);
+  return {
+    mode: planModeValue(file && file.mode),
+    outline,
+    hierarchy_suggestions: planHierarchySuggestions(outline),
+    highlights: planExtractHighlights(body),
+    tags: planExtractTags(body),
+    financial_entries: planExtractFinancialEntries(body),
+    tasks: planExtractTasks(body),
+    links: planExtractLinks(body),
+    updated_at: Date.now(),
+  };
+}
+
+function normalizePlanFile(file) {
+  const f = Object.assign({
+    id: planId('pf'),
+    folderId: 'personal',
+    title: '',
+    body: '',
+    updated: Date.now(),
+    attachments: [],
+    voice: [],
+    mode: 'Personal',
+    metadata: {},
+    versions: [],
+    aiHistory: [],
+    privacy: planDefaultPrivacy(),
+    links: [],
+  }, file || {});
+  f.mode = planModeValue(f.mode);
+  f.metadata = Object.assign({}, f.metadata || {}, planMetadata(f));
+  f.privacy = Object.assign(planDefaultPrivacy(), f.privacy || {});
+  f.links = Array.isArray(f.links) ? f.links : [];
+  f.versions = Array.isArray(f.versions) ? f.versions : [];
+  f.aiHistory = Array.isArray(f.aiHistory) ? f.aiHistory : (Array.isArray(f.ai_history) ? f.ai_history : []);
+  return f;
+}
+
+function planExportText(file, format) {
+  const title = (file.title || 'Untitled note').trim();
+  const body = file.body || '';
+  if (format === 'markdown') return '# ' + title + '\n\n' + body;
+  if (format === 'json') return JSON.stringify({ title, mode: file.mode, metadata: file.metadata, body }, null, 2);
+  return title + '\n\n' + body;
+}
 
 // Turn a Bounty plan (goal + ordered steps + savings note) into the plain-text
 // body of a Plan file, so an ephemeral chat plan becomes a durable, editable
-// note the user can return to. The savings note leads — savings is the base
+// note the user can return to. The savings note leads 鈥?savings is the base
 // every plan centers on.
 function planToNoteBody(plan) {
   if (!plan) return '';
@@ -1956,16 +2656,16 @@ function planMatch(f, q) {
   return hay.includes(q.toLowerCase());
 }
 
-// Quietly derive context from everything captured — this is what makes the rest
+// Quietly derive context from everything captured 鈥?this is what makes the rest
 // of the app smarter. Honest, lightweight keyword signals.
 function planInsights(files) {
   const text = files.map((f) => `${f.title} ${f.body} ${(f.voice || []).map((v) => v.transcript).join(' ')}`).join(' \n ').toLowerCase();
   const out = [];
   const has = (re) => re.test(text);
-  if (has(/sav(e|ings|ing)|emergency fund|goal|rwf|budget/)) out.push({ section: 'Save', hue: '#2FAE9B', text: 'Tracking a savings goal — Save can suggest opportunities and surface progress.' });
-  if (has(/meeting|\d\s?am|\d\s?pm|kigali heights|nyamirambo|route|airport|commute/)) out.push({ section: 'Commute', hue: '#3B82F6', text: 'You have places to be — Commute can suggest a departure time and a ride before each one.' });
-  if (has(/groceries|kimironko|market|buy|laptop|shop|brand/)) out.push({ section: 'Shop', hue: '#A37BF2', text: 'Noticed shopping plans — Shop can surface trusted stores within your budget.' });
-  if (has(/podcast|listen|audience|episode|channel/)) out.push({ section: 'Listen', hue: '#5B7CFA', text: 'You write about audio topics — Listen can recommend matching episodes.' });
+  if (has(/sav(e|ings|ing)|emergency fund|goal|rwf|budget/)) out.push({ section: 'Save', hue: '#2FAE9B', text: 'Tracking a savings goal 鈥?Save can suggest opportunities and surface progress.' });
+  if (has(/meeting|\d\s?am|\d\s?pm|kigali heights|nyamirambo|route|airport|commute/)) out.push({ section: 'Commute', hue: '#3B82F6', text: 'You have places to be 鈥?Commute can suggest a departure time and a ride before each one.' });
+  if (has(/groceries|kimironko|market|buy|laptop|shop|brand|service|irembo|form/)) out.push({ section: 'Marketplace', hue: '#A37BF2', text: 'Noticed a market need - Marketplace can surface trusted providers, goods and services within your budget.' });
+  if (has(/podcast|listen|audience|episode|channel/)) out.push({ section: 'Listen', hue: '#5B7CFA', text: 'You write about audio topics 鈥?Listen can recommend matching episodes.' });
   return out;
 }
 
@@ -1994,7 +2694,7 @@ function ccVoiceBase() {
   return 'http://127.0.0.1:8787';
 }
 
-// One-shot reachability probe — used to gate UI like the mic button and show
+// One-shot reachability probe 鈥?used to gate UI like the mic button and show
 // a clear "Local voice offline" banner instead of a silent 'Failed to fetch'.
 let _voiceReachableCache = null;
 async function ccVoiceReachable(force) {
@@ -2038,7 +2738,7 @@ async function ccTranscribeVoice(blob) {
 async function ccSendBountyMessage(message, history) {
   // Pass live user context so Phi-3 can reason over real wallet/plan/shop data
   // instead of speaking in generalities. We pull from the store's already-cached
-  // slices — cheap, fresh, scoped by the same session JWT the services used.
+  // slices 鈥?cheap, fresh, scoped by the same session JWT the services used.
   let context = null;
   try {
     if (window.EverydayStore) {
@@ -2061,10 +2761,18 @@ async function ccSendBountyMessage(message, history) {
   } catch (e) { /* context is optional */ }
   let res;
   try {
-    res = await fetch(ccVoiceBase() + '/api/agent/chat', {
+    let headers = { 'Content-Type': 'application/json' };
+    try {
+      if (window.EverydayAPI && window.EverydayAPI.auth && window.EverydayAPI.auth.headers) {
+        headers = await window.EverydayAPI.auth.headers();
+      }
+      headers['Content-Type'] = 'application/json';
+    } catch (e) {}
+    res = await fetch('/api/bounty', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
+        ask: message,
         message,
         language: ccProfileLanguage(),
         history: (history || []).slice(-8).map((m) => ({ role: m.role, text: m.text })),
@@ -2072,8 +2780,7 @@ async function ccSendBountyMessage(message, history) {
       }),
     });
   } catch (e) {
-    _voiceReachableCache = false;
-    throw new Error('Bounty runs on a local service that is not reachable right now. Start it on your machine to chat.');
+    throw new Error('Bounty is not reachable right now. Try again in a moment.');
   }
   let data = null;
   try { data = await res.json(); } catch (e) {}
@@ -2084,11 +2791,11 @@ async function ccSendBountyMessage(message, history) {
   if (!data || !data.text) throw new Error('Bounty returned no response.');
   // Speak the reply via Kokoro TTS when enabled. Fire-and-forget so a slow
   // synthesis never blocks the chat UI from rendering the text first.
-  ccSpeakBountyReply(data.text, data.language); // eslint-disable-line
+  if (data.voice !== false) ccSpeakBountyReply(data.text, data.language); // eslint-disable-line
   return data;
 }
 
-// ccSpeakBountyReply — best-effort Kokoro TTS playback of the assistant's
+// ccSpeakBountyReply 鈥?best-effort Kokoro TTS playback of the assistant's
 // reply. The user can disable this by setting
 // window.__EVERYDAY_BOUNTY_SPEAK__ = false (e.g. via a future Profile toggle).
 async function ccSpeakBountyReply(text, language) {
@@ -2105,18 +2812,162 @@ async function ccSpeakBountyReply(text, language) {
     if (!blob || blob.size === 0) return;
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
+    audio.playbackRate = window.__EVERYDAY_BOUNTY_VOICE_RATE__ || 1.08;
     audio.onended = () => URL.revokeObjectURL(url);
     audio.onerror = () => URL.revokeObjectURL(url);
     audio.play().catch(() => {});
   } catch (e) { /* TTS is best-effort */ }
 }
 
+function PlanCalendarView({ web, files, selectedDate, scale, setScale, onSelectDay, onBack }) {
+  const [cursor, setCursor] = React.useState(() => new Date((selectedDate || planISO(new Date())) + 'T12:00:00'));
+  React.useEffect(() => {
+    setCursor(new Date((selectedDate || planISO(new Date())) + 'T12:00:00'));
+  }, [selectedDate]);
+  const today = planISO(new Date());
+  const cursorISO = planISO(cursor);
+  const dayFiles = planFilesForDay(files, cursorISO).sort((a, b) => b.updated - a.updated);
+  const year = cursor.getFullYear();
+  const move = (dir) => {
+    const next = new Date(cursor);
+    if (scale === 'day') next.setDate(next.getDate() + dir);
+    else if (scale === 'week') next.setDate(next.getDate() + (dir * 7));
+    else if (scale === 'month') next.setMonth(next.getMonth() + dir);
+    else next.setFullYear(next.getFullYear() + dir);
+    setCursor(next);
+  };
+  const openDay = (date) => {
+    const iso = planISO(date);
+    setCursor(new Date(iso + 'T12:00:00'));
+    onSelectDay(iso);
+  };
+  const goToday = () => setCursor(new Date(today + 'T12:00:00'));
+  const dayCell = (date, compact) => {
+    const iso = planISO(date);
+    const list = planFilesForDay(files, iso).slice(0, compact ? 1 : 2);
+    const muted = date.getMonth() !== cursor.getMonth() && scale === 'month';
+    return (
+      <button key={iso} onClick={() => openDay(date)} style={{ minHeight: compact ? (web ? 64 : 58) : 96, border: `1px dashed ${iso === today ? ink : DASH}`, borderRadius: 10, background: iso === selectedDate ? ink : 'transparent', color: iso === selectedDate ? paper : ink, padding: compact ? (web ? 8 : 6) : 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', gap: 5, opacity: muted ? 0.42 : 1 }}>
+        <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
+          <span style={{ fontFamily: CC_MONO, fontSize: 10, color: iso === selectedDate ? paper : ink55 }}>{date.getDate()}</span>
+          {list.length > 0 && <span style={{ fontFamily: CC_MONO, fontSize: 9.5, color: iso === selectedDate ? paper : ink40 }}>{planFilesForDay(files, iso).length}</span>}
+        </span>
+        <span style={{ minHeight: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {list.map((f) => (
+            <span key={f.id} style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.25, color: iso === selectedDate ? paper : ink70, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.title || 'Untitled note'}</span>
+          ))}
+          {list.length === 0 && !compact && <span style={{ fontSize: 11.5, color: iso === selectedDate ? 'rgba(255,250,239,0.65)' : ink25 }}>Open day</span>}
+        </span>
+      </button>
+    );
+  };
+  const weekStart = planStartOfWeek(cursor);
+  const weekDays = Array.from({ length: 7 }, (_, i) => planAddDays(weekStart, i));
+  const weekEnd = planAddDays(weekStart, 6);
+  const monthDays = planMonthGrid(cursor);
+  const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1, 12));
+  const title = scale === 'day'
+    ? cursor.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    : scale === 'week'
+      ? 'Week of ' + weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : scale === 'month'
+        ? planMonthLabel(cursor)
+        : String(year);
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative' }}>
+      <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+        <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Plan</span>
+      </div>} />
+      <div className="cc-scroll" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: web ? '18px 28px 28px' : '12px 12px 24px' }}>
+        <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: web ? 'end' : 'stretch', justifyContent: 'space-between', gap: 14, flexDirection: web ? 'row' : 'column' }}>
+            <div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>Calendar</div>
+              <div style={{ marginTop: 5, fontSize: web ? 34 : 27, fontWeight: 840, letterSpacing: '-0.02em', color: ink }}>{title}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: web ? 'flex-end' : 'flex-start' }}>
+              {['day', 'week', 'month', 'year'].map((item) => (
+                <button key={item} onClick={() => setScale(item)} style={{ height: 34, padding: '0 12px', borderRadius: 999, border: scale === item ? 0 : `1px dashed ${DASH}`, background: scale === item ? ink : 'transparent', color: scale === item ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 760, textTransform: 'capitalize' }}>{item}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTop: `1px dashed ${DASH}`, borderBottom: `1px dashed ${DASH}`, padding: '10px 0' }}>
+            <button onClick={() => move(-1)} aria-label="Previous" style={{ width: 38, height: 38, borderRadius: '50%', border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L5 8l5 5"/></svg></button>
+            <button onClick={goToday} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760 }}>Today</button>
+            <button onClick={() => move(1)} aria-label="Next" style={{ width: 38, height: 38, borderRadius: '50%', border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
+          </div>
+
+          {scale === 'day' && (
+            <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: web ? '0.82fr 1.18fr' : '1fr', gap: 18 }}>
+              <button onClick={() => openDay(cursor)} style={{ minHeight: web ? 330 : 220, border: 0, borderRadius: 12, background: ink, color: paper, padding: web ? 28 : 22, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <span>
+                  <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.7 }}>{planMonthLabel(cursor, { month: 'long', year: 'numeric' })}</span>
+                  <span style={{ display: 'block', marginTop: 18, fontSize: web ? 92 : 70, fontWeight: 820, lineHeight: 0.88, letterSpacing: '-0.04em' }}>{cursor.getDate()}</span>
+                </span>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 760 }}>Open this day</span>
+              </button>
+              <div style={{ borderTop: `1px dashed ${DASH}`, paddingTop: 2 }}>
+                {dayFiles.length ? dayFiles.map((f, i) => <PlanFileRow key={f.id} file={f} onOpen={() => openDay(cursor)} first={i === 0} />) : (
+                  <div style={{ padding: '34px 0', fontSize: 13.5, color: ink40 }}>No plans here yet. Open the day to create the first one.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {scale === 'week' && (
+            <div style={{ marginTop: 22 }}>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, color: ink40, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{planStageCount(files, weekStart, weekEnd)} plan{planStageCount(files, weekStart, weekEnd) === 1 ? '' : 's'} this week</div>
+              <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: web ? 'repeat(7, minmax(0, 1fr))' : '1fr', gap: 9 }}>
+                {weekDays.map((d) => dayCell(d, false))}
+              </div>
+            </div>
+          )}
+
+          {scale === 'month' && (
+            <div style={{ marginTop: 22 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: web ? 8 : 4, marginBottom: 8 }}>
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} style={{ fontFamily: CC_MONO, fontSize: 10, color: ink40, textAlign: 'center' }}>{d}</div>)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: web ? 8 : 4 }}>
+                {monthDays.map((d) => dayCell(d, true))}
+              </div>
+            </div>
+          )}
+
+          {scale === 'year' && (
+            <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: web ? 'repeat(4, minmax(0, 1fr))' : 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+              {months.map((m) => {
+                const end = new Date(m.getFullYear(), m.getMonth() + 1, 0, 12);
+                const count = planStageCount(files, m, end);
+                const pct = Math.min(100, count * 12);
+                return (
+                  <button key={m.getMonth()} onClick={() => { setCursor(m); setScale('month'); }} style={{ minHeight: 118, border: `1px dashed ${DASH}`, borderRadius: 12, background: 'transparent', color: ink, cursor: 'pointer', textAlign: 'left', padding: 14, fontFamily: 'inherit', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <span>
+                      <span style={{ display: 'block', fontSize: 16, fontWeight: 800 }}>{m.toLocaleDateString('en-US', { month: 'long' })}</span>
+                      <span style={{ display: 'block', marginTop: 4, fontFamily: CC_MONO, fontSize: 10.5, color: ink40 }}>{count} plan{count === 1 ? '' : 's'}</span>
+                    </span>
+                    <span style={{ display: 'block', height: 3, background: ink06, borderRadius: 999, overflow: 'hidden' }}><span style={{ display: 'block', width: pct + '%', height: '100%', background: ink }} /></span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   const [folders, setFolders] = usePersisted('plan_folders', PLAN_FOLDERS_0);
   const [files, setFiles] = usePersisted('plan_files', PLAN_FILES_0);
   const [activeFolder, setActiveFolder] = React.useState(() => (PLAN_FOLDERS_0[0] && PLAN_FOLDERS_0[0].id));
-  const [view, setView] = React.useState('files'); // files · editor · insights · trash
+  const [view, setView] = React.useState('calendar'); // calendar 路 files 路 editor 路 insights 路 trash
   const [openId, setOpenId] = React.useState(null);
+  const [selectedDate, setSelectedDate] = React.useState(() => planISO(new Date()));
+  const [calendarScale, setCalendarScale] = React.useState('month');
   const [query, setQuery] = React.useState('');
   const [railOpen, setRailOpen] = React.useState(true);
   const [fabOpen, setFabOpen] = React.useState(false);
@@ -2126,6 +2977,12 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   const [undo, setUndo] = React.useState(null);    // { file }
   const [err, setErr] = React.useState('');
   const [loading, setLoading] = React.useState(true);
+  const [templateOpen, setTemplateOpen] = React.useState(false);
+  const [blockMenu, setBlockMenu] = React.useState(false);
+  const [outlineOpen, setOutlineOpen] = React.useState(false);
+  const [versionOpen, setVersionOpen] = React.useState(false);
+  const [selection, setSelection] = React.useState(null);
+  const bodyRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
   const planRemoteReadyRef = React.useRef(false);
   const planHydratingRef = React.useRef(true);
@@ -2152,7 +3009,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
           setFolders(data.folders);
           setActiveFolder((cur) => data.folders.find((f) => f.id === cur) ? cur : data.folders[0].id);
         }
-        if (Array.isArray(data.files)) setFiles(data.files);
+        if (Array.isArray(data.files)) setFiles(data.files.map(normalizePlanFile));
         planRemoteReadyRef.current = true;
       } catch (e) {
         if (!cancelled) {
@@ -2189,7 +3046,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     }, 700);
   }, [folders, files]);
 
-  // When the rail is collapsed, the folder icons float in, then fade after 7s —
+  // When the rail is collapsed, the folder icons float in, then fade after 7s 鈥?
   // the open/close toggle always stays.
   const [railIcons, setRailIcons] = React.useState(false);
   React.useEffect(() => {
@@ -2200,8 +3057,8 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   }, [railOpen]);
 
   // One-shot capture intent handed in from the Home "Ask anything" bar or from a
-  // Bounty plan. Wait until hydration finishes — otherwise the async remote load
-  // (loadPlan → setFiles) lands after this and clobbers the file we just created.
+  // Bounty plan. Wait until hydration finishes 鈥?otherwise the async remote load
+  // (loadPlan 鈫?setFiles) lands after this and clobbers the file we just created.
   React.useEffect(() => {
     if (!intent || loading) return;
     if (intent.mode === 'open' && intent.openId) {
@@ -2212,12 +3069,12 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
       // the user renamed or removed Finance.
       const id = planId('pf');
       const fid = (folders.find((f) => f.id === 'finance') || {}).id || activeFolder;
-      const file = { id, folderId: fid, title: (intent.plan.goal || 'Plan').slice(0, 80), body: planToNoteBody(intent.plan), updated: Date.now(), attachments: [], voice: [] };
+      const file = normalizePlanFile({ id, folderId: fid, title: (intent.plan.goal || 'Plan').slice(0, 80), body: planToNoteBody(intent.plan), mode: 'Planning', calendarDate: selectedDate, updated: Date.now(), attachments: [], voice: [], aiHistory: [{ id: planId('ai'), action: 'Created from Bount plan', at: Date.now() }] });
       setFiles((listv) => [file, ...listv]);
       setActiveFolder(fid); setOpenId(id); setView('editor'); setMovePicker(false);
     } else {
       const id = planId('pf');
-      const file = { id, folderId: activeFolder, title: '', body: intent.text || '', updated: Date.now(), attachments: [], voice: [] };
+      const file = normalizePlanFile({ id, folderId: activeFolder, title: '', body: intent.text || '', calendarDate: selectedDate, updated: Date.now(), attachments: [], voice: [] });
       setFiles((listv) => [file, ...listv]);
       setOpenId(id); setView('editor'); setMovePicker(false);
       if (intent.mode === 'voice') setTimeout(() => setRecording(true), 80);
@@ -2226,24 +3083,42 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     onIntentHandled && onIntentHandled();
   }, [intent, loading]);
 
-  const live = files.filter((f) => !f.trashed);
-  const trashed = files.filter((f) => f.trashed);
-  const folderFiles = live.filter((f) => f.folderId === activeFolder).sort((a, b) => b.updated - a.updated);
+  const allFiles = files.map(normalizePlanFile);
+  const live = allFiles.filter((f) => !f.trashed);
+  const trashed = allFiles.filter((f) => f.trashed);
+  const selectedDayFiles = live.filter((f) => planFileDate(f) === selectedDate);
+  const folderFiles = selectedDayFiles.filter((f) => f.folderId === activeFolder).sort((a, b) => b.updated - a.updated);
   const searchHits = query.trim() ? live.filter((f) => planMatch(f, query.trim())) : [];
-  const openFile = files.find((f) => f.id === openId) || null;
-  const fileCount = (fid) => live.filter((f) => f.folderId === fid).length;
-  const folderName = (fid) => { const f = folders.find((x) => x.id === fid); return f ? f.name : '—'; };
+  const openFile = allFiles.find((f) => f.id === openId) || null;
+  const fileCount = (fid) => selectedDayFiles.filter((f) => f.folderId === fid).length;
+  const folderName = (fid) => { const f = folders.find((x) => x.id === fid); return f ? f.name : '-'; };
   const insights = planInsights(live);
 
-  const touch = (id, patch) => setFiles((list) => list.map((f) => (f.id === id ? { ...f, ...patch, updated: Date.now() } : f)));
+  const touch = (id, patch, aiAction) => setFiles((list) => list.map((raw) => {
+    if (raw.id !== id) return raw;
+    const prev = normalizePlanFile(raw);
+    const nextBase = Object.assign({}, prev, patch || {}, { updated: Date.now() });
+    const contentChanged = Object.prototype.hasOwnProperty.call(patch || {}, 'body') || Object.prototype.hasOwnProperty.call(patch || {}, 'title');
+    let versions = prev.versions || [];
+    if (contentChanged) {
+      const last = versions[0];
+      if (!last || Date.now() - (last.at || 0) > 45000) {
+        versions = [{ id: planId('ver'), at: Date.now(), title: prev.title, body: prev.body, mode: prev.mode }].concat(versions).slice(0, 12);
+      }
+    }
+    const aiHistory = aiAction ? [{ id: planId('ai'), action: aiAction, at: Date.now() }].concat(prev.aiHistory || []).slice(0, 20) : (prev.aiHistory || []);
+    return normalizePlanFile(Object.assign({}, nextBase, { versions, aiHistory }));
+  }));
 
   const selectFolder = (id) => { pkHaptic('select'); setActiveFolder(id); setView('files'); setQuery(''); };
   const openEditor = (f) => { pkHaptic('select'); setOpenId(f.id); setView('editor'); setMovePicker(false); };
-  const createNote = (folderId) => {
+  const enterDay = (iso) => { pkHaptic('select'); setSelectedDate(iso); setView('files'); setQuery(''); setOpenId(null); };
+  const createNote = (folderId, templateKey) => {
     const id = planId('pf');
-    const file = { id, folderId: folderId || activeFolder, title: '', body: '', updated: Date.now(), attachments: [], voice: [] };
+    const tpl = PLAN_TEMPLATES.find((t) => t.key === templateKey) || PLAN_TEMPLATES[0];
+    const file = normalizePlanFile({ id, folderId: folderId || activeFolder, title: tpl.key === 'blank' ? '' : tpl.label, body: tpl.body, mode: tpl.mode, calendarDate: selectedDate, updated: Date.now(), attachments: [], voice: [] });
     setFiles((list) => [file, ...list]);
-    setOpenId(id); setView('editor'); setFabOpen(false); pkHaptic('select');
+    setOpenId(id); setView('editor'); setFabOpen(false); setTemplateOpen(false); pkHaptic('select');
   };
   const addFolder = () => {
     const id = planId('fl');
@@ -2277,7 +3152,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     e.target.value = '';
     if (!file || !openFile) return;
     if (file.size > ATTACHMENT_MAX_BYTES) {
-      setErr('That file is over 10 MB — attach a smaller one.');
+      setErr('That file is over 10 MB 鈥?attach a smaller one.');
       setTimeout(() => setErr(''), 3500);
       return;
     }
@@ -2297,7 +3172,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
           contentType: uploaded.contentType,
         });
       } catch (uploadErr) {
-        setErr('Could not upload — saved locally for now.');
+        setErr('Could not upload 鈥?saved locally for now.');
         setTimeout(() => setErr(''), 3500);
       }
     }
@@ -2313,7 +3188,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     if (!openFile) return;
     const target = (openFile.attachments || []).find((a) => a.id === aid);
     touch(openFile.id, { attachments: (openFile.attachments || []).filter((a) => a.id !== aid) });
-    // Fire-and-forget the storage cleanup. UI doesn't wait — the row is gone.
+    // Fire-and-forget the storage cleanup. UI doesn't wait 鈥?the row is gone.
     if (target && target.path && window.EverydayAPI && window.EverydayAPI.storage) {
       window.EverydayAPI.storage.deletePlanAttachment(target.path).catch(() => {});
     }
@@ -2325,14 +3200,14 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     let target = openFile;
     if (!target) {
       const id = planId('pf');
-      target = { id, folderId: activeFolder, title: 'Voice note', body: '', updated: Date.now(), attachments: [], voice: [] };
+      target = { id, folderId: activeFolder, title: 'Voice note', body: '', calendarDate: selectedDate, updated: Date.now(), attachments: [], voice: [] };
       setFiles((list) => [target, ...list]); setOpenId(id); setView('editor');
     }
     const nextBody = (target.body || '').trim() ? target.body : transcript;
 
     // Persist the audio blob to Supabase Storage so playback survives reloads.
     // The transcript is the search/display surface; the path lets the row offer
-    // re-listen. Fall back silently when storage isn't reachable — the note
+    // re-listen. Fall back silently when storage isn't reachable 鈥?the note
     // (and its transcript) still saves.
     const baseVoice = { id: planId('vn'), dur: sec, transcript, language: result.language, model: result.model };
     let voiceNote = baseVoice;
@@ -2362,19 +3237,122 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
     }
   };
 
+  const updateSelection = () => {
+    const el = bodyRef.current;
+    if (!el || !openFile) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    setSelection(end > start ? { start, end, text: openFile.body.slice(start, end) } : null);
+  };
+
+  const replaceSelection = (before, after, fallback, aiAction) => {
+    if (!openFile) return;
+    const el = bodyRef.current;
+    const start = el ? el.selectionStart : 0;
+    const end = el ? el.selectionEnd : 0;
+    const selected = start !== end ? openFile.body.slice(start, end) : (fallback || '');
+    const body = openFile.body.slice(0, start) + before + selected + after + openFile.body.slice(end);
+    touch(openFile.id, { body }, aiAction);
+    setSelection(null);
+    setTimeout(() => {
+      try {
+        if (bodyRef.current) {
+          bodyRef.current.focus();
+          bodyRef.current.selectionStart = start + before.length;
+          bodyRef.current.selectionEnd = start + before.length + selected.length;
+        }
+      } catch (e) {}
+    }, 20);
+  };
+
+  const insertBlock = (kind) => {
+    if (!openFile) return;
+    const blocks = {
+      paragraph: '\n\n',
+      heading: '\n\n## New section\n\n',
+      checklist: '\n\n- [ ] New task\n',
+      table: '\n\n| Item | Detail |\n| --- | --- |\n|  |  |\n',
+      divider: '\n\n---\n',
+      financial: '\n\n[financial type="Expense" amount="" currency="RWF" category="" description=""]\n',
+      planning: '\n\n[task status="Not started" priority="Medium" deadline="" owner="" title=""]\n',
+      journal: '\n\n## Journal\n\nMood:\n\nReflection:\n\n',
+      meeting: '\n\n## Meeting notes\n\nPeople:\nDecisions:\nAction items:\n- [ ] \n',
+      project: '\n\n## Project\n\nGoal:\nMilestones:\nRisks:\n',
+      callout: '\n\n> Callout: \n',
+    };
+    const el = bodyRef.current;
+    const pos = el ? el.selectionStart : (openFile.body || '').length;
+    const add = blocks[kind] || blocks.paragraph;
+    const body = openFile.body.slice(0, pos) + add + openFile.body.slice(pos);
+    touch(openFile.id, { body }, 'Inserted ' + kind + ' block');
+    setBlockMenu(false);
+  };
+
+  const runBountCommand = (cmd) => {
+    if (!openFile) return;
+    const meta = planMetadata(openFile);
+    let body = openFile.body || '';
+    let action = cmd;
+    if (cmd === 'Create action items') {
+      const tasks = meta.tasks.length ? meta.tasks : [{ title: 'Review this document', status: 'Not started' }];
+      body += '\n\n## Action items\n' + tasks.map((t) => '- [ ] ' + t.title).join('\n');
+    } else if (cmd === 'Find risks') {
+      const risks = meta.highlights.filter((h) => h.type === 'risk').map((h) => h.text);
+      body += '\n\n## Risks\n' + (risks.length ? risks.map((r) => '- ' + r).join('\n') : '- Review assumptions, costs, deadlines, and dependencies.');
+    } else if (cmd === 'Improve hierarchy') {
+      if (!/^#\s+/m.test(body)) body = '# ' + (openFile.title || 'Untitled note') + '\n\n' + body;
+      body += '\n\n## Structure notes\n' + (meta.hierarchy_suggestions.length ? meta.hierarchy_suggestions.map((s) => '- ' + s).join('\n') : '- Structure looks clear.');
+    } else if (cmd === 'Financial summary') {
+      body += '\n\n## Financial summary\n' + (meta.financial_entries.length ? meta.financial_entries.map((r) => '- ' + [r.type, r.amount, r.currency, r.category, r.description].filter(Boolean).join(' 路 ')).join('\n') : '- Add financial entries to generate a detailed review.');
+    }
+    touch(openFile.id, { body }, 'Bount: ' + action);
+  };
+
+  const restoreVersion = (version) => {
+    if (!openFile || !version) return;
+    touch(openFile.id, { title: version.title || openFile.title, body: version.body || '', mode: version.mode || openFile.mode }, 'Restored version');
+    setVersionOpen(false);
+  };
+
+  const exportNote = (format) => {
+    if (!openFile) return;
+    const ext = format === 'markdown' ? 'md' : format === 'json' ? 'json' : 'txt';
+    const blob = new Blob([planExportText(openFile, format)], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (openFile.title || 'everyday-note').replace(/[^a-z0-9-_]+/gi, '-').toLowerCase() + '.' + ext;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 800);
+  };
+
   const header = (
     <ScreenHeader left={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <IconBtn onClick={onBack}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
+      <IconBtn onClick={() => { pkHaptic('select'); setView('calendar'); setOpenId(null); }}><svg width="16" height="16" viewBox="0 0 16 16"><path d="M5.2 5.6H10.8V8.75Q10.8 11.25 8 11.25Q5.2 11.25 5.2 8.75Z" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M5.2 6.9H10.8" stroke={ink} strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg></IconBtn>
       <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Plan</span>
     </div>} />
   );
+
+  if (view === 'calendar') {
+    return (
+      <PlanCalendarView
+        web={web}
+        files={live}
+        selectedDate={selectedDate}
+        scale={calendarScale}
+        setScale={setCalendarScale}
+        onSelectDay={enterDay}
+        onBack={onBack}
+      />
+    );
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative' }}>
       {header}
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: railOpen ? (web ? 22 : 14) : 12, padding: web ? '14px 28px 0' : '8px 16px 0' }}>
-        {/* Left rail — folders only. When closed it keeps a slim gutter for the
+        {/* Left rail 鈥?folders only. When closed it keeps a slim gutter for the
            toggle and briefly-floating icons, but drops its divider so no visible
            sidebar remains and the canvas reads as one open surface. */}
         <div style={{ width: railOpen ? (web ? 200 : 128) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: railOpen ? `1px dashed ${DASH}` : 'none', paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
@@ -2387,7 +3365,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                 </button>
               </div>
 
-              {/* Insights — the intelligence layer, pinned above folders */}
+              {/* Insights 鈥?the intelligence layer, pinned above folders */}
               <button onClick={() => { pkHaptic('select'); setView('insights'); }} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', border: 0, background: view === 'insights' ? ink : 'transparent', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', padding: '9px 8px', marginBottom: 8 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={view === 'insights' ? paper : ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.2-1 2H9c0-.8-.4-1.4-1-2A6 6 0 0 1 12 3zM9 18h6M10 21h4"/></svg>
                 <span style={{ fontSize: 12.5, fontWeight: 760, color: view === 'insights' ? paper : ink }}>Insights</span>
@@ -2447,11 +3425,11 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
             </React.Fragment>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {/* Open/close toggle — always stays */}
+              {/* Open/close toggle 鈥?always stays */}
               <button onClick={() => setRailOpen(true)} aria-label="Show folders" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
               </button>
-              {/* Floating function icons — fade out after 7s; tap to jump */}
+              {/* Floating function icons 鈥?fade out after 7s; tap to jump */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginTop: 12, opacity: railIcons ? 1 : 0, transform: railIcons ? 'none' : 'translateY(-6px)', transition: 'opacity 400ms ease, transform 400ms ease', pointerEvents: railIcons ? 'auto' : 'none' }}>
                 <button onClick={() => { pkHaptic('select'); setView('insights'); }} aria-label="Insights" title="Insights" style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: 3, display: 'flex', color: view === 'insights' ? ink : ink55 }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 1 4 10.5c-.6.6-1 1.2-1 2H9c0-.8-.4-1.4-1-2A6 6 0 0 1 12 3zM9 18h6M10 21h4"/></svg>
@@ -2471,14 +3449,14 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
 
         {/* Main canvas */}
         <div className="cc-scroll" style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', paddingBottom: (view === 'files' ? 150 : 96) + bottomInset }}>
-          {/* ── INSIGHTS ── */}
+          {/* 鈹€鈹€ INSIGHTS 鈹€鈹€ */}
           {view === 'insights' ? (
             <div className="pk-stagger">
               <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>What Everyday understands</div>
               <div style={{ marginTop: 6, fontSize: 13, color: ink55, lineHeight: 1.5 }}>The more you keep here, the more the rest of the app can quietly help. Nothing leaves your space.</div>
               <div style={{ marginTop: 20 }}>
                 {insights.length === 0 ? (
-                  <div style={{ padding: '30px 0', fontSize: 13.5, color: ink40 }}>Write a few notes and goals — helpful context will appear here.</div>
+                  <div style={{ padding: '30px 0', fontSize: 13.5, color: ink40 }}>Write a few notes and goals 鈥?helpful context will appear here.</div>
                 ) : insights.map((it, i) => (
                   <div key={i} style={{ display: 'flex', gap: 12, padding: '15px 0', borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, alignItems: 'flex-start' }}>
                     <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: it.hue + '1F', color: it.hue, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: CC_MONO, fontSize: 10, fontWeight: 800 }}>{it.section[0]}</span>
@@ -2491,14 +3469,14 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               </div>
             </div>
           ) : view === 'trash' ? (
-            /* ── RECENTLY DELETED ── */
+            /* 鈹€鈹€ RECENTLY DELETED 鈹€鈹€ */
             <div>
               <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>Recently deleted</div>
               <div style={{ marginTop: 6, fontSize: 13, color: ink55 }}>Restore a note, or remove it for good.</div>
               <div style={{ marginTop: 16 }}>
                 {trashed.map((f, i) => (
                   <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i === 0 ? 'none' : `1px dashed ${DASH}` }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 650, color: ink70, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.title || 'Untitled note'} <span style={{ color: ink40, fontWeight: 500 }}>· {folderName(f.folderId)}</span></span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 650, color: ink70, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.title || 'Untitled note'} <span style={{ color: ink40, fontWeight: 500 }}>路 {folderName(f.folderId)}</span></span>
                     <button onClick={() => restoreFile(f.id)} style={{ flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700 }}>Restore</button>
                     <button onClick={() => purgeFile(f.id)} aria-label="Delete forever" style={{ flexShrink: 0, border: 0, background: 'transparent', color: ink40, cursor: 'pointer', padding: 4, display: 'flex' }}>
                       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
@@ -2509,7 +3487,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               </div>
             </div>
           ) : view === 'editor' && openFile ? (
-            /* ── FILE EDITOR ── */
+            /* 鈹€鈹€ FILE EDITOR 鈹€鈹€ */
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button onClick={() => { setView('files'); setOpenId(null); }} aria-label="Back to files" style={{ border: 0, background: 'transparent', color: ink, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>
@@ -2540,12 +3518,79 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                 </div>
               )}
 
+              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <select value={openFile.mode || 'Personal'} onChange={(e) => touch(openFile.id, { mode: e.target.value })} aria-label="Document mode" style={{ height: 34, borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, fontFamily: 'inherit', fontSize: 12, fontWeight: 720, padding: '0 10px' }}>
+                  {PLAN_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <button onClick={() => touch(openFile.id, { privacy: Object.assign({}, openFile.privacy, { bount_access: !openFile.privacy.bount_access }) })} style={{ height: 34, padding: '0 11px', borderRadius: 999, border: `1px dashed ${DASH}`, background: openFile.privacy.bount_access ? ink : 'transparent', color: openFile.privacy.bount_access ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 720 }}>Bount {openFile.privacy.bount_access ? 'allowed' : 'blocked'}</button>
+                <button onClick={() => setOutlineOpen((v) => !v)} style={{ height: 34, padding: '0 11px', borderRadius: 999, border: `1px dashed ${DASH}`, background: outlineOpen ? ink : 'transparent', color: outlineOpen ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 720 }}>Outline</button>
+                <button onClick={() => setVersionOpen((v) => !v)} style={{ height: 34, padding: '0 11px', borderRadius: 999, border: `1px dashed ${DASH}`, background: versionOpen ? ink : 'transparent', color: versionOpen ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 720 }}>Versions</button>
+                <button onClick={() => exportNote('markdown')} style={{ height: 34, padding: '0 11px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 720 }}>Export</button>
+              </div>
+
+              {(outlineOpen || versionOpen) && (
+                <div className="pk-rise" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: web && outlineOpen && versionOpen ? '1fr 1fr' : '1fr', gap: 10 }}>
+                  {outlineOpen && (
+                    <div style={{ border: `1px dashed ${DASH}`, borderRadius: 14, padding: 12 }}>
+                      <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, marginBottom: 8 }}>Outline</div>
+                      {(openFile.metadata.outline || []).length ? openFile.metadata.outline.map((h, i) => (
+                        <div key={i} style={{ marginLeft: (h.level - 1) * 12, fontSize: 12.5, color: ink70, padding: '3px 0', fontWeight: h.level === 1 ? 760 : 600 }}>{h.text}</div>
+                      )) : <div style={{ fontSize: 12.5, color: ink40 }}>Use headings to build an outline.</div>}
+                      {(openFile.metadata.hierarchy_suggestions || []).map((s, i) => <div key={i} style={{ marginTop: 8, fontSize: 12, color: '#E2941F', lineHeight: 1.35 }}>{s}</div>)}
+                    </div>
+                  )}
+                  {versionOpen && (
+                    <div style={{ border: `1px dashed ${DASH}`, borderRadius: 14, padding: 12 }}>
+                      <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, marginBottom: 8 }}>Version history</div>
+                      {(openFile.versions || []).length ? openFile.versions.slice(0, 5).map((v) => (
+                        <button key={v.id} onClick={() => restoreVersion(v)} style={{ width: '100%', border: 0, borderTop: `1px dashed ${DASH}`, background: 'transparent', padding: '8px 0', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: ink }}>{v.title || 'Untitled note'}</div>
+                          <div style={{ fontSize: 11.5, color: ink40, marginTop: 2 }}>{new Date(v.at).toLocaleString()}</div>
+                        </button>
+                      )) : <div style={{ fontSize: 12.5, color: ink40 }}>Versions appear as you write.</div>}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <input value={openFile.title} onChange={(e) => touch(openFile.id, { title: e.target.value })} placeholder="Title"
                 style={{ marginTop: 16, border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: web ? 26 : 22, fontWeight: 820, letterSpacing: '-0.02em', padding: 0, width: '100%' }} />
 
-              <textarea value={openFile.body} onChange={(e) => touch(openFile.id, { body: e.target.value })} placeholder="Write freely — thoughts, plans, goals, anything worth remembering…"
+              {selection && (
+                <div className="pk-rise" style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', border: `1px solid ${ink12}`, borderRadius: 14, background: paper, padding: 8 }}>
+                  {[
+                    ['B', '**', '**'], ['I', '*', '*'], ['U', '<u>', '</u>'], ['S', '~~', '~~'],
+                    ['H1', '# ', ''], ['H2', '## ', ''], ['H3', '### ', ''], ['H4', '#### ', ''],
+                    ['List', '- ', ''], ['Check', '- [ ] ', ''], ['Quote', '> ', ''], ['Code', '```\n', '\n```'],
+                  ].map(([label, before, after]) => (
+                    <button key={label} onMouseDown={(e) => e.preventDefault()} onClick={() => replaceSelection(before, after, selection.text, 'Formatted text')} style={{ minWidth: 30, height: 28, borderRadius: 8, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 760 }}>{label}</button>
+                  ))}
+                  <button onMouseDown={(e) => e.preventDefault()} onClick={() => runBountCommand('Create action items')} style={{ height: 28, padding: '0 9px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 760 }}>Ask Bount</button>
+                  {PLAN_HIGHLIGHTS.map((h) => (
+                    <button key={h.key} title={h.label} onMouseDown={(e) => e.preventDefault()} onClick={() => replaceSelection('[[highlight:' + h.key + ']]', '[[/highlight]]', selection.text, 'Highlighted ' + h.label)} style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${ink12}`, background: h.color, cursor: 'pointer' }} />
+                  ))}
+                </div>
+              )}
+
+              <textarea ref={bodyRef} value={openFile.body} onSelect={updateSelection} onKeyUp={updateSelection} onBlur={() => setTimeout(() => setSelection(null), 160)} onChange={(e) => touch(openFile.id, { body: e.target.value })} placeholder="Write freely - thoughts, plans, goals, anything worth remembering"
                 style={{ marginTop: 12, flex: 1, minHeight: web ? 180 : 130, resize: 'none', border: 0, background: 'transparent', outline: 0, color: ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 500, lineHeight: 1.6, padding: 0, width: '100%' }} />
 
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTop: `1px dashed ${DASH}` }}>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setBlockMenu((v) => !v)} style={{ height: 36, padding: '0 12px', borderRadius: 999, border: `1px dashed ${DASH}`, background: blockMenu ? ink : 'transparent', color: blockMenu ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 720 }}>Add block</button>
+                  {blockMenu && (
+                    <div className="pk-rise" style={{ position: 'absolute', left: 0, top: 44, zIndex: 8, width: 240, background: paper, border: `1px solid ${ink12}`, borderRadius: 14, boxShadow: '0 16px 42px rgba(10,10,10,0.14)', padding: 8 }}>
+                      {[
+                        ['paragraph', 'Paragraph'], ['heading', 'Heading'], ['checklist', 'Checklist'], ['table', 'Table'], ['divider', 'Divider'],
+                        ['financial', 'Financial entry'], ['planning', 'Planning block'], ['journal', 'Journal section'], ['meeting', 'Meeting notes'], ['project', 'Project section'], ['callout', 'Callout'],
+                      ].map(([key, label]) => <button key={key} onClick={() => insertBlock(key)} style={{ width: '100%', border: 0, background: 'transparent', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 650, color: ink, padding: '8px 9px', borderRadius: 9 }}>{label}</button>)}
+                    </div>
+                  )}
+                </div>
+                {['Create action items', 'Find risks', 'Improve hierarchy', 'Financial summary'].map((cmd) => (
+                  <button key={cmd} onClick={() => runBountCommand(cmd)} style={{ height: 36, padding: '0 12px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', color: ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 720 }}>{cmd}</button>
+                ))}
+              </div>
               {/* Voice notes */}
               {(openFile.voice || []).length > 0 && (
                 <div style={{ marginTop: 12 }}>
@@ -2554,7 +3599,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                     <div key={v.id} style={{ display: 'flex', gap: 11, padding: '11px 0', borderTop: `1px dashed ${DASH}`, alignItems: 'flex-start' }}>
                       <span style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: ink06, color: ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PlanAttachmentIcon kind="voice" size={15} /></span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontFamily: CC_MONO, fontSize: 11, color: ink55 }}>Voice · {ccFmtTime(v.dur)}</div>
+                        <div style={{ fontFamily: CC_MONO, fontSize: 11, color: ink55 }}>Voice 路 {ccFmtTime(v.dur)}</div>
                         <div style={{ fontSize: 13, color: ink70, marginTop: 3, lineHeight: 1.45 }}>{v.transcript}</div>
                         {v.url && (
                           <audio controls preload="none" src={v.url} style={{ marginTop: 6, width: '100%', maxWidth: 280, height: 30 }} />
@@ -2604,7 +3649,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               {err && <div style={{ marginTop: 10, fontSize: 12, color: '#C8102E', fontWeight: 600 }}>{err}</div>}
             </div>
           ) : (
-            /* ── FILE LIST (default) — search lives in the pinned bottom bar ── */
+            /* 鈹€鈹€ FILE LIST (default) 鈥?search lives in the pinned bottom bar 鈹€鈹€ */
             <div>
               {query.trim() ? (
                 <div style={{ marginTop: 18 }}>
@@ -2616,9 +3661,22 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
               ) : (
                 <React.Fragment>
                   <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>{folderName(activeFolder)}</div>
-                    <span style={{ fontFamily: CC_MONO, fontSize: 11, color: ink40 }}>{folderFiles.length} file{folderFiles.length === 1 ? '' : 's'}</span>
+                    <div>
+                      <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                      <div style={{ marginTop: 3, fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>{folderName(activeFolder)}</div>
+                    </div>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button onClick={() => setTemplateOpen((v) => !v)} style={{ height: 30, padding: '0 10px', borderRadius: 999, border: `1px dashed ${DASH}`, background: templateOpen ? ink : 'transparent', color: templateOpen ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 720 }}>Templates</button>
+                      <span style={{ fontFamily: CC_MONO, fontSize: 11, color: ink40 }}>{folderFiles.length} file{folderFiles.length === 1 ? '' : 's'}</span>
+                    </span>
                   </div>
+                  {templateOpen && (
+                    <div className="pk-rise" style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, border: `1px dashed ${DASH}`, borderRadius: 14, padding: 10 }}>
+                      {PLAN_TEMPLATES.map((tpl) => (
+                        <button key={tpl.key} onClick={() => createNote(activeFolder, tpl.key)} style={{ height: 34, padding: '0 12px', borderRadius: 999, border: tpl.key === 'blank' ? 0 : `1px dashed ${DASH}`, background: tpl.key === 'blank' ? ink : 'transparent', color: tpl.key === 'blank' ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 720 }}>{tpl.label}</button>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ marginTop: 12 }}>
                     {loading ? (
                       [0, 1, 2].map((i) => (
@@ -2641,7 +3699,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
                 </React.Fragment>
               )}
 
-              {/* Undo banner — restore a just-deleted note */}
+              {/* Undo banner 鈥?restore a just-deleted note */}
               {undo && (
                 <div className="pk-rise" style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: ink, color: paper }}>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Note moved to trash.</span>
@@ -2653,7 +3711,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
         </div>
       </div>
 
-      {/* Search — pinned to the bottom, above the + buttons */}
+      {/* Search 鈥?pinned to the bottom, above the + buttons */}
       {view === 'files' && (
         <div style={{ position: 'absolute', left: web ? 28 : 16, right: web ? 28 : 16, bottom: `calc(${(web ? 24 : 20) + bottomInset + 64}px + env(safe-area-inset-bottom, 0px))`, zIndex: 30, maxWidth: web ? 760 : 'none', margin: web ? '0 auto' : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: paper, border: `1px solid ${ink12}`, borderRadius: 14, padding: '8px 12px', boxShadow: '0 10px 30px rgba(10,10,10,0.10)' }}>
@@ -2664,7 +3722,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
         </div>
       )}
 
-      {/* Quick capture FAB (bottom-right) — hidden in the editor, where Record
+      {/* Quick capture FAB (bottom-right) 鈥?hidden in the editor, where Record
          and Attach already cover capture; shown in the files/insights views so
          you can still create a note. */}
       {view !== 'editor' && (
@@ -2694,7 +3752,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
   );
 }
 
-// A note row in the list — title, preview, meta, content markers.
+// A note row in the list 鈥?title, preview, meta, content markers.
 function PlanFileRow({ file, folder, onOpen, first }) {
   const preview = (file.body || '').replace(/\n+/g, ' ').trim();
   const nVoice = (file.voice || []).length;
@@ -2826,13 +3884,13 @@ function PlanRecorder({ onCancel, onSave, language }) {
   );
 }
 
-// ────────────────────────────── LISTEN ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ LISTEN 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Two-pane listening: a lightweight source rail and a content canvas, with a
 // dedicated full player + transcript, a persistent mini player, and resume.
 // Playback state is lifted to App so audio keeps going across the app.
 
 const CC_LISTEN = [
-  { id: 'briefing', name: 'Everyday Briefing', author: 'EBC Studio', desc: 'Your daily brief on Kigali — in ten minutes.', hue: '#5B7CFA',
+  { id: 'briefing', name: 'Everyday Briefing', author: 'EBC Studio', desc: 'Your daily brief on Kigali 鈥?in ten minutes.', hue: '#5B7CFA',
     episodes: [
       { id: 'b1', title: 'Morning in Kigali', min: 12, date: 'Jun 11', type: 'long',  tag: 'new' },
       { id: 'b2', title: 'What to know before noon', min: 9, date: 'Jun 10', type: 'short', tag: 'popular' },
@@ -2884,7 +3942,7 @@ function ccBuildItem(chId, epIdx) {
 function ccTranscript(item) {
   if (!item) return [];
   const lines = [
-    'Welcome back — you\'re listening to ' + item.channel + '.',
+    'Welcome back 鈥?you\'re listening to ' + item.channel + '.',
     'Today we\'re getting into "' + item.title + '".',
     'Let\'s set the scene before we dig in.',
     'Here\'s the one thing worth remembering.',
@@ -2894,7 +3952,7 @@ function ccTranscript(item) {
     'That brings us to the practical part.',
     'Try this the next time it comes up.',
     'We\'ll keep it short and useful.',
-    'Thanks for listening — see you in the next one.',
+    'Thanks for listening 鈥?see you in the next one.',
   ];
   return lines.map((text, i) => ({ t: i / lines.length, text }));
 }
@@ -2919,7 +3977,7 @@ function EpisodeThumb({ hue, playing, size = 44 }) {
 function ListenScreen({ web, onBack, player }) {
   // Live channels from /api/listen. We join episodes under their source by
   // source_id and rename columns to the shape the rest of the screen expects
-  // (minutes→min, published_label→date, episode_type→type, description→desc).
+  // (minutes鈫抦in, published_label鈫抎ate, episode_type鈫抰ype, description鈫抎esc).
   // Falls back to CC_LISTEN until the store hydrates.
   const everyday = window.useEveryday ? window.useEveryday() : null;
   const liveSources = (everyday && everyday.listen && everyday.listen.sources) || [];
@@ -2946,8 +4004,8 @@ function ListenScreen({ web, onBack, player }) {
   const [activeIdx, setActiveIdx] = React.useState(0);
   const [railOpen, setRailOpen] = React.useState(true);
   const [subscribed, setSubscribed] = React.useState({});
-  const [contentTab, setContentTab] = React.useState('long'); // long · short
-  const [disc, setDisc] = React.useState('');                  // '' · popular · new · highlighted
+  const [contentTab, setContentTab] = React.useState('long'); // long 路 short
+  const [disc, setDisc] = React.useState('');                  // '' 路 popular 路 new 路 highlighted
   const [loading, setLoading] = React.useState(false);
   const channel = channels[activeIdx];
   const pl = player && player.state;
@@ -2959,7 +4017,7 @@ function ListenScreen({ web, onBack, player }) {
     return () => clearTimeout(id);
   }, [activeIdx]);
 
-  // When the rail is collapsed, the channel icons float in, then fade after 3s —
+  // When the rail is collapsed, the channel icons float in, then fade after 3s 鈥?
   // the open/close toggle always stays.
   const [railIcons, setRailIcons] = React.useState(false);
   React.useEffect(() => {
@@ -2977,7 +4035,7 @@ function ListenScreen({ web, onBack, player }) {
     .filter((e) => e.type === contentTab)
     .filter((e) => !disc || e.tag === disc); // already authored newest-first
 
-  // Resume row — show the user's last episode if it's in progress.
+  // Resume row 鈥?show the user's last episode if it's in progress.
   const resume = pl && pl.progress > 0.02 && pl.progress < 0.99 ? pl : null;
 
   return (
@@ -2988,7 +4046,7 @@ function ListenScreen({ web, onBack, player }) {
       </div>} />
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: railOpen ? (web ? 22 : 14) : 12, padding: web ? '14px 28px 26px' : '8px 16px 18px' }}>
-        {/* Left rail — sources only: avatar + name */}
+        {/* Left rail 鈥?sources only: avatar + name */}
         <div style={{ width: railOpen ? (web ? 208 : 132) : 30, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px dashed ${DASH}`, paddingRight: railOpen ? (web ? 18 : 12) : 0, transition: 'width 220ms ease' }}>
           {railOpen ? (
             <React.Fragment>
@@ -3015,11 +4073,11 @@ function ListenScreen({ web, onBack, player }) {
             </React.Fragment>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {/* Open/close toggle — always stays */}
+              {/* Open/close toggle 鈥?always stays */}
               <button onClick={() => setRailOpen(true)} aria-label="Show channels" style={{ border: 0, background: 'transparent', color: ink55, cursor: 'pointer', padding: '4px 0', display: 'flex', justifyContent: 'center' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3l5 5-5 5"/></svg>
               </button>
-              {/* Floating channel icons — fade out after 3s; tap to jump */}
+              {/* Floating channel icons 鈥?fade out after 3s; tap to jump */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 12, opacity: railIcons ? 1 : 0, transform: railIcons ? 'none' : 'translateY(-6px)', transition: 'opacity 400ms ease, transform 400ms ease', pointerEvents: railIcons ? 'auto' : 'none' }}>
                 {channels.map((c, idx) => {
                   const on = idx === activeIdx;
@@ -3048,7 +4106,7 @@ function ListenScreen({ web, onBack, player }) {
           </div>
           <div style={{ marginTop: 8, fontSize: 13, color: ink55, lineHeight: 1.45 }}>{channel.desc}</div>
 
-          {/* Continue listening — resume the last episode */}
+          {/* Continue listening 鈥?resume the last episode */}
           {resume && (
             <button onClick={() => player.open()} className="pk-rise" style={{ marginTop: 16, width: '100%', border: `1px dashed ${DASH}`, borderRadius: 14, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: '11px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
               <EpisodeThumb hue={resume.hue} playing={resume.playing} size={40} />
@@ -3061,7 +4119,7 @@ function ListenScreen({ web, onBack, player }) {
             </button>
           )}
 
-          {/* Long Form / Shorts — content nav inside the canvas */}
+          {/* Long Form / Shorts 鈥?content nav inside the canvas */}
           <div style={{ marginTop: 18, display: 'flex', gap: 8 }}>
             {[['long', 'Long Form'], ['short', 'Shorts']].map(([k, l]) => {
               const on = contentTab === k;
@@ -3069,7 +4127,7 @@ function ListenScreen({ web, onBack, player }) {
             })}
           </div>
 
-          {/* Discovery — lightweight filters */}
+          {/* Discovery 鈥?lightweight filters */}
           <div style={{ marginTop: 10, display: 'flex', gap: 7 }}>
             {discs.map(([k, l]) => {
               const on = disc === k;
@@ -3077,9 +4135,9 @@ function ListenScreen({ web, onBack, player }) {
             })}
           </div>
 
-          {/* Episodes — newest first */}
+          {/* Episodes 鈥?newest first */}
           <div style={{ marginTop: 18 }}>
-            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Episodes{disc ? ` · ${disc}` : ''}</div>
+            <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40, paddingBottom: 4 }}>Episodes{disc ? ` 路 ${disc}` : ''}</div>
             {loading ? (
               [0, 1, 2].map((i) => (
                 <div key={i} style={{ borderTop: i === 0 ? 'none' : `1px dashed ${DASH}`, padding: '14px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -3105,7 +4163,7 @@ function ListenScreen({ web, onBack, player }) {
                     <EpisodeThumb hue={channel.hue} playing={isCur && pl.playing} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 14.5, fontWeight: isCur ? 780 : 650, color: ink, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ep.title}</span>
-                      <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 2, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>{isCur ? (pl.playing ? 'Now playing' : 'Paused') : `${ep.min} min · ${ep.date}`}</span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: ink40, marginTop: 2, fontFamily: CC_MONO, letterSpacing: '0.02em' }}>{isCur ? (pl.playing ? 'Now playing' : 'Paused') : `${ep.min} min 路 ${ep.date}`}</span>
                     </span>
                     {ep.tag && !isCur && <span style={{ flexShrink: 0, fontFamily: CC_MONO, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: channel.hue, padding: '3px 7px', borderRadius: 999, background: channel.hue + '18' }}>{ep.tag}</span>}
                   </button>
@@ -3227,7 +4285,7 @@ function ListenPlayer({ player }) {
   );
 }
 
-// Persistent mini player — title + play/pause; tap to reopen the full player.
+// Persistent mini player 鈥?title + play/pause; tap to reopen the full player.
 function MiniPlayer({ player }) {
   const pl = player.state; if (!pl) return null;
   const ch = ccChannel(pl.ch) || { hue: ink };
@@ -3278,7 +4336,7 @@ function PayScreen({ web, onBack }) {
   const [payError, setPayError] = React.useState('');
   const submitPayment = async () => {
     if (!canPay || payBusy) return;
-    // The transfer resolves the recipient by phone or email — pass an identifier,
+    // The transfer resolves the recipient by phone or email 鈥?pass an identifier,
     // not a display name. A picked contact carries its phone; otherwise use the
     // typed text (the user enters a phone or email).
     const recipientId = recipient ? (recipient.phone || recipient.name) : recipientText.trim();
@@ -3310,7 +4368,7 @@ function PayScreen({ web, onBack }) {
       }
       return;
     }
-    // No store (signed out / preview) — we can't move real money. Be honest
+    // No store (signed out / preview) 鈥?we can't move real money. Be honest
     // rather than showing a fake receipt.
     setPayError('Sign in to send money from your Everyday Wallet.');
   };
@@ -3325,7 +4383,7 @@ function PayScreen({ web, onBack }) {
     </div>} />
   );
 
-  // ── Receipt (success) — clean divided list, no tinted card ──
+  // 鈹€鈹€ Receipt (success) 鈥?clean divided list, no tinted card 鈹€鈹€
   if (paidReceipt) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
@@ -3348,7 +4406,7 @@ function PayScreen({ web, onBack }) {
     );
   }
 
-  // ── Compose payment — dashed tap-to-type lines, standout button ──
+  // 鈹€鈹€ Compose payment 鈥?dashed tap-to-type lines, standout button 鈹€鈹€
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
       {header}
@@ -3359,7 +4417,7 @@ function PayScreen({ web, onBack }) {
             <div style={{ fontSize: web ? 44 : 36, fontWeight: 820, letterSpacing: '-0.05em', lineHeight: 1, color: ink }}>Send money.</div>
           </div>
 
-          {/* Amount — big tap-to-type with a tappable currency */}
+          {/* Amount 鈥?big tap-to-type with a tappable currency */}
           <div style={{ marginTop: web ? 46 : 38 }}>
             <DashField
               label="Amount"
@@ -3381,7 +4439,7 @@ function PayScreen({ web, onBack }) {
             />
           </div>
 
-          {/* Recipient — dashed line + a standout "Add" button with breathing room */}
+          {/* Recipient 鈥?dashed line + a standout "Add" button with breathing room */}
           <div style={{ marginTop: 32 }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -3428,7 +4486,7 @@ function PayScreen({ web, onBack }) {
           </div>
 
           </div>
-          {/* Primary action — pinned low, clear of the bottom-centre + */}
+          {/* Primary action 鈥?pinned low, clear of the bottom-centre + */}
           <div style={{ flexShrink: 0, paddingTop: 28, paddingBottom: 96 }}>
             {payError && (
               <div style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 14, background: '#C8102E10', border: `1px solid #C8102E22`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -3446,7 +4504,7 @@ function PayScreen({ web, onBack }) {
               boxShadow: (canPay && !payBusy) ? '0 18px 40px rgba(10,10,10,0.22)' : 'none',
               transition: 'background 200ms ease, color 200ms ease, box-shadow 200ms ease',
             }}>
-              {payBusy ? 'Sending…' : canPay ? `Pay ${currency} ${Number(amount || 0).toLocaleString('en-US')}` : 'Enter amount to pay'}
+              {payBusy ? 'Sending...' : canPay ? `Pay ${currency} ${Number(amount || 0).toLocaleString('en-US')}` : 'Enter amount to pay'}
             </button>
           </div>
         </div>
@@ -3466,21 +4524,21 @@ function ReceiptRow({ label, value, green = false, last = false }) {
     </div>
   );
 }
-// ────────────────────────────── COMMUTE ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ COMMUTE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // A guided, progressively-disclosed journey that keeps the de-carded
 // Everyday language (dashed rules, ink/paper, mono labels):
-//   plan → results → detail → confirm → success, plus a focused
+//   plan 鈫?results 鈫?detail 鈫?confirm 鈫?success, plus a focused
 //   "ride with someone" sub-flow. The map is a design-native demo
 //   surface (route, pickup, destination, live nearby riders).
 
 // Realistic Kigali demo fleet. Prices in RWF.
 const CC_RIDES = [
-  { id: 'aline',  name: 'Aline N.',     type: 'moto',   vehicle: 'Bajaj · Helmet',        rating: 4.9, eta: 3,  duration: 8,  distance: 2.4, price: 1200, verified: true,  available: true,  x: '28%', y: '58%' },
-  { id: 'eric',   name: 'Eric K.',      type: 'moto',   vehicle: 'TVS · Helmet ready',    rating: 4.8, eta: 5,  duration: 9,  distance: 2.6, price: 1100, verified: true,  available: true,  x: '46%', y: '70%' },
-  { id: 'jp',     name: 'Jean-Paul U.', type: 'car',    vehicle: 'Toyota Vitz · AC',      rating: 4.9, eta: 7,  duration: 12, distance: 3.1, price: 3800, verified: true,  available: true,  x: '62%', y: '46%' },
-  { id: 'claud',  name: 'Claudine I.',  type: 'car',    vehicle: 'Toyota Yaris · 4 seats',rating: 4.7, eta: 9,  duration: 13, distance: 3.0, price: 3500, verified: false, available: true,  x: '38%', y: '40%' },
-  { id: 'pat',    name: 'Patrick + 2',  type: 'shared', vehicle: 'Toyota Noah · 2 seats', rating: 4.8, eta: 6,  duration: 15, distance: 3.2, price: 1800, seatsLeft: 2, verified: true, available: true,  x: '70%', y: '64%' },
-  { id: 'grace',  name: 'Grace & riders',type: 'shared',vehicle: 'Hiace · 3 seats left',  rating: 4.6, eta: 11, duration: 16, distance: 3.4, price: 1500, seatsLeft: 3, verified: true, available: false, x: '54%', y: '30%' },
+  { id: 'aline',  name: 'Aline N.',     type: 'moto',   vehicle: 'Bajaj 路 Helmet',        rating: 4.9, eta: 3,  duration: 8,  distance: 2.4, price: 1200, verified: true,  available: true,  x: '28%', y: '58%' },
+  { id: 'eric',   name: 'Eric K.',      type: 'moto',   vehicle: 'TVS 路 Helmet ready',    rating: 4.8, eta: 5,  duration: 9,  distance: 2.6, price: 1100, verified: true,  available: true,  x: '46%', y: '70%' },
+  { id: 'jp',     name: 'Jean-Paul U.', type: 'car',    vehicle: 'Toyota Vitz 路 AC',      rating: 4.9, eta: 7,  duration: 12, distance: 3.1, price: 3800, verified: true,  available: true,  x: '62%', y: '46%' },
+  { id: 'claud',  name: 'Claudine I.',  type: 'car',    vehicle: 'Toyota Yaris 路 4 seats',rating: 4.7, eta: 9,  duration: 13, distance: 3.0, price: 3500, verified: false, available: true,  x: '38%', y: '40%' },
+  { id: 'pat',    name: 'Patrick + 2',  type: 'shared', vehicle: 'Toyota Noah 路 2 seats', rating: 4.8, eta: 6,  duration: 15, distance: 3.2, price: 1800, seatsLeft: 2, verified: true, available: true,  x: '70%', y: '64%' },
+  { id: 'grace',  name: 'Grace & riders',type: 'shared',vehicle: 'Hiace 路 3 seats left',  rating: 4.6, eta: 11, duration: 16, distance: 3.4, price: 1500, seatsLeft: 3, verified: true, available: false, x: '54%', y: '30%' },
 ];
 
 const CC_PLACES = [
@@ -3490,13 +4548,13 @@ const CC_PLACES = [
 
 const CC_RECENT_DESTS = ['Kigali Heights', 'Kigali Convention Centre', 'Nyamirambo Stadium', 'Kimironko Market'];
 
-// People going your way — the ride-with-someone sub-flow.
+// People going your way 鈥?the ride-with-someone sub-flow.
 const CC_CONTACTS = [
   { id: 'diane',    name: 'Diane M.',    initials: 'DM', phone: '+250 788 123 456', pinned: true,  heading: 'Kigali Heights', eta: '5', when: 'Leaving in 8 min',  type: 'car' },
   { id: 'sandrine', name: 'Sandrine K.', initials: 'SK', phone: '+250 722 654 321', pinned: true,  heading: 'Nyamirambo',     eta: '3', when: 'Leaving now',        type: 'moto' },
-  { id: 'eric2',    name: 'Eric K.',     initials: 'EK', phone: '+250 788 987 654', pinned: false, heading: 'City centre',    eta: '—', when: 'Flexible',           type: 'car' },
-  { id: 'amina',    name: 'Amina T.',    initials: 'AT', phone: '+250 722 111 222', pinned: false, heading: 'Kimironko',      eta: '—', when: '',                   type: 'car' },
-  { id: 'jean',     name: 'Jean-Paul N.',initials: 'JP', phone: '+250 788 333 444', pinned: false, heading: '',               eta: '—', when: '',                   type: 'moto' },
+  { id: 'eric2',    name: 'Eric K.',     initials: 'EK', phone: '+250 788 987 654', pinned: false, heading: 'City centre',    eta: '-', when: 'Flexible',           type: 'car' },
+  { id: 'amina',    name: 'Amina T.',    initials: 'AT', phone: '+250 722 111 222', pinned: false, heading: 'Kimironko',      eta: '-', when: '',                   type: 'car' },
+  { id: 'jean',     name: 'Jean-Paul N.',initials: 'JP', phone: '+250 788 333 444', pinned: false, heading: '',               eta: '-', when: '',                   type: 'moto' },
 ];
 
 const CC_SORTS = [
@@ -3529,7 +4587,7 @@ function Stars({ value }) {
 // Design-native demo map -----------------------------------------------------
 // Keeps the cream grid + soft road art of the original, adds a highlighted
 // route, pickup/destination pins, and live nearby-rider markers.
-// Animated ETA display — no card, just animation + route.
+// Animated ETA display 鈥?no card, just animation + route.
 function EtaDisplay({ eta, duration, origin, destination, phase = 'route' }) {
   const arriving = phase === 'arriving';
   const accent = arriving ? '#2FAE9B' : ink;
@@ -3551,7 +4609,7 @@ function EtaDisplay({ eta, duration, origin, destination, phase = 'route' }) {
 
       {/* ring + number */}
       <div style={{ position: 'relative', width: S, height: S, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {/* live radar ripples — only while a ride is en route */}
+        {/* live radar ripples 鈥?only while a ride is en route */}
         {arriving && [0, 1].map((i) => (
           <span key={i} style={{ position: 'absolute', width: R * 1.7, height: R * 1.7, borderRadius: '50%', border: `1.5px solid ${accent}`, opacity: 0, animation: `${uid}-ripple 3.4s cubic-bezier(.2,.6,.3,1) ${i * 1.7}s infinite` }} />
         ))}
@@ -3567,7 +4625,7 @@ function EtaDisplay({ eta, duration, origin, destination, phase = 'route' }) {
           </defs>
           {/* track */}
           <circle cx={S/2} cy={S/2} r={R} fill="none" stroke={arriving ? 'rgba(47,174,155,0.14)' : 'rgba(10,10,10,0.07)'} strokeWidth="3" />
-          {/* sweeping comet arc — smooth, premium loader */}
+          {/* sweeping comet arc 鈥?smooth, premium loader */}
           <g style={{ transformOrigin: 'center', animation: `${uid}-spin ${arriving ? '2.4s' : '5s'} linear infinite` }}>
             <circle cx={S/2} cy={S/2} r={R} fill="none" stroke={`url(#${uid}-grad)`} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${ARC} ${CIRC}`} />
           </g>
@@ -3582,13 +4640,13 @@ function EtaDisplay({ eta, duration, origin, destination, phase = 'route' }) {
         </div>
       </div>
 
-      {/* route — subtle pill */}
+      {/* route 鈥?subtle pill */}
       {hasRoute && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, maxWidth: '100%', padding: '7px 14px', borderRadius: 999, background: arriving ? 'rgba(47,174,155,0.08)' : ink06 }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink40, flexShrink: 0 }} />
           <span style={{ fontSize: 11.5, fontWeight: 700, color: ink70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{origin || 'Current location'}</span>
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke={ink25} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M3 8h10M9 4l4 4-4 4"/></svg>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: ink70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{destination || '—'}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: ink70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{destination || '-'}</span>
           <span style={{ width: 6, height: 6, borderRadius: '1.5px 1.5px 1.5px 0', transform: 'rotate(45deg)', background: accent, flexShrink: 0 }} />
         </div>
       )}
@@ -3675,7 +4733,7 @@ function CommuteSegmented({ value, onChange }) {
   );
 }
 
-// A single ride result — de-carded dashed row.
+// A single ride result 鈥?de-carded dashed row.
 function RideRow({ ride, first, onOpen, onCall, onOffer }) {
   const dimmed = !ride.available;
   return (
@@ -3709,7 +4767,7 @@ function RideRow({ ride, first, onOpen, onCall, onOffer }) {
                 <span style={{ position: 'relative', display: 'block', width: 7, height: 7, borderRadius: '50%', background: '#2FAE9B' }} />
               </span>
               <span style={{ fontFamily: CC_MONO, fontSize: 10.5, fontWeight: 700, color: '#2FAE9B', letterSpacing: '0.04em' }}>{ride.eta} min</span>
-              <span style={{ fontFamily: CC_MONO, fontSize: 10.5, color: ink40, letterSpacing: '0.02em' }}>· {ride.duration} min trip · {ride.distance} km</span>
+              <span style={{ fontFamily: CC_MONO, fontSize: 10.5, color: ink40, letterSpacing: '0.02em' }}>路 {ride.duration} min trip 路 {ride.distance} km</span>
             </span>
           )}
         </span>
@@ -3763,7 +4821,7 @@ function DetailRow({ label, value, accent = false, last = false }) {
 }
 
 function CommuteScreen({ web, onBack }) {
-  // step: plan · results · detail · negotiate · success · share · share-confirm · share-success
+  // step: plan 路 results 路 detail 路 negotiate 路 success 路 share 路 share-confirm 路 share-success
   const [step, setStep] = React.useState('plan');
   const [origin, setOrigin] = React.useState('');
   const [destination, setDestination] = React.useState('');
@@ -3784,12 +4842,12 @@ function CommuteScreen({ web, onBack }) {
 
   // fare negotiation: offer your price, driver accepts or counters; the ride is
   // only booked once you agree and pay. (Quick path skips this and settles on
-  // arrival.) negoStatus: idle · thinking · countered · agreed
+  // arrival.) negoStatus: idle 路 thinking 路 countered 路 agreed
   const [offer, setOffer] = React.useState('');
   const [negoStatus, setNegoStatus] = React.useState('idle');
   const [counter, setCounter] = React.useState(0);
   const [agreedPrice, setAgreedPrice] = React.useState(0);
-  const [payMode, setPayMode] = React.useState('prepaid'); // prepaid · on-arrival
+  const [payMode, setPayMode] = React.useState('prepaid'); // prepaid 路 on-arrival
 
   // ride-with-someone sub-flow
   const [mateQuery, setMateQuery] = React.useState('');
@@ -3815,10 +4873,10 @@ function CommuteScreen({ web, onBack }) {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         () => done('Your live location'),
-        () => done('Kigali — current location'),
+        () => done('Kigali 鈥?current location'),
         { enableHighAccuracy: true, timeout: 6000 }
       );
-    } else { done('Kigali — current location'); }
+    } else { done('Kigali 鈥?current location'); }
   };
 
   const runSearch = () => {
@@ -3850,14 +4908,14 @@ function CommuteScreen({ web, onBack }) {
       verified: !!opt.verified,
       available: opt.available !== false,
       seatsLeft: opt.seats_left || undefined,
-      // Map pin positions are presentational only — distribute evenly so the
+      // Map pin positions are presentational only 鈥?distribute evenly so the
       // demo map stays populated until real geo is plumbed.
       x: `${20 + (i * 13) % 70}%`,
       y: `${30 + (i * 17) % 50}%`,
     }));
   }, [liveCommute]);
 
-  // results pipeline: filter → refine → sort
+  // results pipeline: filter 鈫?refine 鈫?sort
   const results = React.useMemo(() => {
     let rs = liveRides.slice();
     if (typeFilter !== 'all') rs = rs.filter((r) => r.type === typeFilter);
@@ -3878,7 +4936,7 @@ function CommuteScreen({ web, onBack }) {
   const firstNameOf = (full) => (full || '').split(/[\s+]/)[0] || 'the driver';
 
   // Persist the ride request to the backend, then show the live status. We only
-  // advance to the tracking screen once the request is really recorded — no fake
+  // advance to the tracking screen once the request is really recorded 鈥?no fake
   // success (PRODUCT_CONSTITUTION: honest states, never pretend money/actions).
   const submitRide = async (ride, mode) => {
     const r = ride || selected;
@@ -3903,7 +4961,7 @@ function CommuteScreen({ web, onBack }) {
     }
   };
 
-  // Quick path: pin the rider and call now — fare is negotiated and settled on
+  // Quick path: pin the rider and call now 鈥?fare is negotiated and settled on
   // arrival. Works from the detail screen or straight from a results row.
   const callOnArrival = (ride) => { submitRide(ride, 'on-arrival'); };
   // Offer path: open the negotiation screen for a given ride (from a results row).
@@ -3957,7 +5015,7 @@ function CommuteScreen({ web, onBack }) {
   const sheetPad = web ? '18px 60px 40px' : '10px 20px 30px';
   const ctaPad = web ? 0 : 96; // clear of the bottom-centre + launcher on mobile
 
-  // ───────────────────────────── PLAN ─────────────────────────────
+  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ PLAN 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (step === 'plan') {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
@@ -3972,7 +5030,7 @@ function CommuteScreen({ web, onBack }) {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
                   </button>
                 )} />
-              {tracking && <div style={{ marginTop: 8, fontSize: 12, color: ink40 }}>Finding your location…</div>}
+              {tracking && <div style={{ marginTop: 8, fontSize: 12, color: ink40 }}>Finding your location...</div>}
 
               <div style={{ marginTop: 22 }}>
                 <CommuteStepLabel>Where to?</CommuteStepLabel>
@@ -3981,7 +5039,7 @@ function CommuteScreen({ web, onBack }) {
                   suffix={query.trim() ? (<button onClick={() => { setQuery(''); }} aria-label="Clear" style={{ border: 0, background: 'transparent', color: ink25, cursor: 'pointer', display: 'flex', flexShrink: 0, padding: 4 }}><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>) : null} />
               </div>
 
-              {/* Saved places + recent destinations — contextual to destination selection */}
+              {/* Saved places + recent destinations 鈥?contextual to destination selection */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
                 {CC_PLACES.map((p) => (
                   <button key={p.id} onClick={() => setDest(p.addr)} style={{ height: 36, padding: '0 13px', borderRadius: 999, border: `1px dashed ${DASH}`, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: ink70, display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -4038,7 +5096,7 @@ function CommuteScreen({ web, onBack }) {
     );
   }
 
-  // ──────────────────────────── RESULTS ────────────────────────────
+  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ RESULTS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (step === 'results') {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
@@ -4047,7 +5105,7 @@ function CommuteScreen({ web, onBack }) {
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 620 : 'none', margin: '0 auto', paddingBottom: ctaPad }}>
             <button onClick={goPlan} style={{ width: '100%', border: `1px dashed ${DASH}`, borderRadius: 14, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 11, textAlign: 'left' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: ink, flexShrink: 0 }} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{origin || 'Current location'} → {destination}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{origin || 'Current location'} 鈫?{destination}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: ink40, flexShrink: 0 }}>Edit</span>
             </button>
 
@@ -4056,7 +5114,7 @@ function CommuteScreen({ web, onBack }) {
             </div>
 
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: ink40, fontWeight: 600 }}>{searching ? 'Finding rides…' : `${results.length} ride${results.length === 1 ? '' : 's'} nearby`}</span>
+              <span style={{ fontSize: 12, color: ink40, fontWeight: 600 }}>{searching ? 'Finding rides...' : `${results.length} ride${results.length === 1 ? '' : 's'} nearby`}</span>
               <button onClick={() => setRefineOpen((o) => !o)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 760, color: ink, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
                 Refine
@@ -4073,7 +5131,7 @@ function CommuteScreen({ web, onBack }) {
                   })}
                 </div>
                 <div style={{ display: 'flex', gap: 7, marginTop: 12 }}>
-                  <button onClick={() => setTopRated((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: topRated ? '0' : `1px dashed ${DASH}`, background: topRated ? ink : 'transparent', color: topRated ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>4.8★ and up</button>
+                  <button onClick={() => setTopRated((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: topRated ? '0' : `1px dashed ${DASH}`, background: topRated ? ink : 'transparent', color: topRated ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>4.8鈽?and up</button>
                   <button onClick={() => setVerifiedOnly((v) => !v)} style={{ height: 34, padding: '0 14px', borderRadius: 999, border: verifiedOnly ? '0' : `1px dashed ${DASH}`, background: verifiedOnly ? ink : 'transparent', color: verifiedOnly ? paper : ink55, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700 }}>Verified only</button>
                 </div>
               </div>
@@ -4101,7 +5159,7 @@ function CommuteScreen({ web, onBack }) {
     );
   }
 
-  // ──────────────────────────── DETAIL ────────────────────────────
+  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ DETAIL 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (step === 'detail' && selected) {
     const r = selected;
     const fee = Math.round(r.price * 0.1);
@@ -4153,19 +5211,19 @@ function CommuteScreen({ web, onBack }) {
                 Offer your price
               </button>
               <button onClick={() => callOnArrival()} disabled={requesting} style={{ width: '100%', minHeight: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: requesting ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: requesting ? 0.5 : 1 }}>
-                {requesting ? 'Requesting…' : (<React.Fragment><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>Call &amp; pay on arrival</React.Fragment>)}
+                {requesting ? 'Requesting...' : (<React.Fragment><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>Call &amp; pay on arrival</React.Fragment>)}
               </button>
             </div>
             {error && <div style={{ marginTop: 12, fontSize: 12.5, color: '#C8102E', lineHeight: 1.45, textAlign: 'center' }}>{error}</div>}
-            <div style={{ marginTop: 10, fontSize: 11.5, color: ink40, lineHeight: 1.45, textAlign: 'center' }}>Offer a fare and {firstNameOf(r.name)} comes once you agree and pay — or call now and settle the price when they reach you.</div>
+            <div style={{ marginTop: 10, fontSize: 11.5, color: ink40, lineHeight: 1.45, textAlign: 'center' }}>Offer a fare and {firstNameOf(r.name)} comes once you agree and pay 鈥?or call now and settle the price when they reach you.</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // ─────────────────────────── NEGOTIATE ───────────────────────────
-  // Offer your price → driver accepts or counters → pay → they head over.
+  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ NEGOTIATE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // Offer your price 鈫?driver accepts or counters 鈫?pay 鈫?they head over.
   if (step === 'negotiate' && selected) {
     const r = selected;
     const fn = firstNameOf(r.name);
@@ -4177,13 +5235,13 @@ function CommuteScreen({ web, onBack }) {
           <div className="pk-stagger" style={{ width: '100%', maxWidth: web ? 520 : 'none', margin: '0 auto', minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: ctaPad }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Name your fare.</div>
-              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Offer a price for {fn}. They'll accept or counter — and only head over once you both agree and you've paid.</div>
+              <div style={{ marginTop: 8, fontSize: 14, color: ink55 }}>Offer a price for {fn}. They'll accept or counter 鈥?and only head over once you both agree and you've paid.</div>
 
               <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 13 }}>
                 <span style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={18} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 15, fontWeight: 800, color: ink }}>{r.name}</span>{r.verified && <Verified />}</div>
-                  <div style={{ fontSize: 12, color: ink40, marginTop: 1 }}>{destination} · {r.duration} min</div>
+                  <div style={{ fontSize: 12, color: ink40, marginTop: 1 }}>{destination} 路 {r.duration} min</div>
                 </div>
                 <span style={{ textAlign: 'right', flexShrink: 0 }}>
                   <span style={{ display: 'block', fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>Listed</span>
@@ -4195,7 +5253,7 @@ function CommuteScreen({ web, onBack }) {
                 <DashField label="Your offer" big inputMode="numeric" value={offer}
                   onChange={(v) => { setOffer(v.replace(/[^\d]/g, '')); if (negoStatus !== 'idle') setNegoStatus('idle'); }}
                   prefix={(<span style={{ alignSelf: 'center', fontFamily: CC_MONO, fontSize: 14, fontWeight: 700, color: ink40, letterSpacing: '0.04em' }}>RWF</span>)} />
-                {/* quick offers — contextual nudges around the listed fare */}
+                {/* quick offers 鈥?contextual nudges around the listed fare */}
                 {(negoStatus === 'idle' || negoStatus === 'countered') && (
                   <div style={{ display: 'flex', gap: 7, marginTop: 14 }}>
                     {[0.8, 0.9, 1].map((m) => {
@@ -4210,7 +5268,7 @@ function CommuteScreen({ web, onBack }) {
               {negoStatus === 'thinking' && (
                 <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10, color: ink55 }}>
                   <svg className="pk-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={ink40} strokeWidth="2" strokeLinecap="round"><path d="M12 3a9 9 0 1 0 9 9" /></svg>
-                  <span style={{ fontSize: 13 }}>Sending your offer to {fn}…</span>
+                  <span style={{ fontSize: 13 }}>Sending your offer to {fn}...</span>
                 </div>
               )}
 
@@ -4248,10 +5306,10 @@ function CommuteScreen({ web, onBack }) {
 
             {error && negoStatus === 'agreed' && <div style={{ marginTop: 16, fontSize: 12.5, color: '#C8102E', lineHeight: 1.45, textAlign: 'center' }}>{error}</div>}
             {negoStatus === 'agreed' ? (
-              <button onClick={payPrepaid} disabled={requesting} style={{ marginTop: error ? 12 : 22, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: requesting ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)', opacity: requesting ? 0.6 : 1 }}>{requesting ? 'Requesting…' : `Pay ${ccPrice(agreedPrice)} & confirm`}</button>
+              <button onClick={payPrepaid} disabled={requesting} style={{ marginTop: error ? 12 : 22, width: '100%', height: 58, borderRadius: 18, border: 0, background: ink, color: paper, cursor: requesting ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: '0 18px 40px rgba(10,10,10,0.22)', opacity: requesting ? 0.6 : 1 }}>{requesting ? 'Requesting...' : `Pay ${ccPrice(agreedPrice)} & confirm`}</button>
             ) : (
               <button onClick={sendOffer} disabled={negoStatus === 'thinking' || !offerNum} style={{ marginTop: 22, width: '100%', height: 58, borderRadius: 18, border: negoStatus === 'thinking' || !offerNum ? `2px dashed ${ink12}` : 0, background: negoStatus === 'thinking' || !offerNum ? 'transparent' : ink, color: negoStatus === 'thinking' || !offerNum ? ink25 : paper, cursor: negoStatus === 'thinking' || !offerNum ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 16, fontWeight: 760, boxShadow: negoStatus === 'thinking' || !offerNum ? 'none' : '0 18px 40px rgba(10,10,10,0.22)', transition: 'background 180ms ease, color 180ms ease' }}>
-                {negoStatus === 'thinking' ? `Waiting for ${fn}…` : negoStatus === 'countered' ? 'Send new offer' : 'Send offer'}
+                {negoStatus === 'thinking' ? `Waiting for ${fn}...` : negoStatus === 'countered' ? 'Send new offer' : 'Send offer'}
               </button>
             )}
           </div>
@@ -4260,7 +5318,7 @@ function CommuteScreen({ web, onBack }) {
     );
   }
 
-  // ──────────────────────────── SUCCESS ────────────────────────────
+  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ SUCCESS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (step === 'success' && selected) {
     const r = selected;
     const price = agreedPrice || r.price;
@@ -4273,8 +5331,8 @@ function CommuteScreen({ web, onBack }) {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#2FAE9B', color: paper, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 16px 40px rgba(47,174,155,0.30)' }}>
               <svg width="30" height="30" viewBox="0 0 34 34" fill="none"><path className="pk-check-path" d="M8 17.5l6 6L26 10" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <div style={{ marginTop: 22, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>{prepaid ? `${r.name} is on the way.` : `${r.name} is coming to you.`}</div>
-            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>{prepaid ? `Paid · arriving in about ${r.eta} minutes.` : `Arriving in about ${r.eta} minutes — settle the fare when they reach you.`}</div>
+            <div style={{ marginTop: 22, fontSize: web ? 36 : 30, fontWeight: 850, letterSpacing: '-0.04em', color: ink }}>{prepaid ? (r.name + ' is on the way.') : (r.name + ' is coming to you.')}</div>
+            <div style={{ marginTop: 8, fontSize: 14.5, color: ink55 }}>{prepaid ? ('Paid - arriving in about ' + r.eta + ' minutes.') : ('Arriving in about ' + r.eta + ' minutes - settle the fare when they reach you.')}</div>
 
             <div style={{ marginTop: 22 }}>
               <EtaDisplay eta={r.eta} origin={origin} destination={destination} phase="arriving" height={160} radius={20} />
@@ -4284,13 +5342,13 @@ function CommuteScreen({ web, onBack }) {
               <span style={{ width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ink06, color: ink }}><RideTypeIcon type={r.type} size={20} /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 15.5, fontWeight: 800, color: ink }}>{r.name}</span>{r.verified && <Verified />}</div>
-                <div style={{ fontSize: 12.5, color: ink40, marginTop: 1 }}>{r.vehicle} · {ccPrice(price)}</div>
+                <div style={{ fontSize: 12.5, color: ink40, marginTop: 1 }}>{r.vehicle} 路 {ccPrice(price)}</div>
               </div>
               <span style={{ fontFamily: CC_MONO, fontSize: 11, fontWeight: 700, color: '#2FAE9B', padding: '5px 9px', borderRadius: 999, background: 'rgba(47,174,155,0.12)' }}>{prepaid ? 'EN ROUTE' : 'HEADING OVER'}</span>
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <DetailRow label={prepaid ? 'Paid' : 'Pay on arrival'} value={prepaid ? `${ccPrice(price)} · Wallet` : ccPrice(price)} accent={!prepaid} last />
+              <DetailRow label={prepaid ? 'Paid' : 'Pay on arrival'} value={prepaid ? (ccPrice(price) + ' - Wallet') : ccPrice(price)} accent={!prepaid} last />
             </div>
 
             <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
@@ -4298,7 +5356,7 @@ function CommuteScreen({ web, onBack }) {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={paper} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 5 6a2 2 0 0 1 0-2z"/></svg>
                 Call
               </button>
-              <button style={{ flex: 1, height: 52, borderRadius: 16, border: `1px dashed ${DASH}`, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <button style={{ flex: 1, height: 52, borderRadius: 16, border: '1px dashed ' + DASH, background: 'transparent', color: ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 760, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8 9 9 0 0 1-4-1L3 20l1.5-4a8.4 8.4 0 0 1-1-4 8.5 8.5 0 0 1 17 0z"/></svg>
                 Message
               </button>
@@ -4311,7 +5369,7 @@ function CommuteScreen({ web, onBack }) {
     );
   }
 
-  // ─────────────────────── CALL A CONTACT (sub-flow) ──────────────────────
+  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ CALL A CONTACT (sub-flow) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   if (step === 'share') {
     const pinned = mates.filter((m) => m.pinned);
     const rest   = mates.filter((m) => !m.pinned);
@@ -4321,7 +5379,7 @@ function CommuteScreen({ web, onBack }) {
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 14.5, fontWeight: 760, color: ink }}>{m.name}</span>
           <span style={{ display: 'block', fontSize: 11, color: ink40, marginTop: 1 }}>
-            {m.when ? `${m.heading} · ${m.when}` : m.phone}
+            {m.when ? `${m.heading} 路 ${m.when}` : m.phone}
           </span>
         </span>
         <button onClick={() => { pkHaptic('select'); window.location.href = `tel:${m.phone.replace(/\s/g,'')}`; }} aria-label={`Call ${m.name}`}
@@ -4356,7 +5414,7 @@ function CommuteScreen({ web, onBack }) {
 
             {rest.length > 0 && (
               <div style={{ marginTop: 20 }}>
-                <CommuteStepLabel>Contacts{mateQuery ? ` · ${rest.length}` : ''}</CommuteStepLabel>
+                <CommuteStepLabel>Contacts{mateQuery ? ` 路 ${rest.length}` : ''}</CommuteStepLabel>
                 {rest.length === 0 ? (
                   <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13, color: ink40 }}>No contacts found.</div>
                 ) : rest.map((m, i) => <ContactRow key={m.id} m={m} i={i} total={rest.length} />)}
@@ -4390,7 +5448,7 @@ function CommuteScreen({ web, onBack }) {
 
             {m.heading && (
               <div style={{ marginTop: 20 }}>
-                <EtaDisplay origin={origin || 'Current location'} destination={m.heading} eta={m.eta || '—'} height={150} radius={18} />
+                <EtaDisplay origin={origin || 'Current location'} destination={m.heading} eta={m.eta || '-'} height={150} radius={18} />
               </div>
             )}
 
@@ -4461,8 +5519,8 @@ function CommuteScreen({ web, onBack }) {
   return null;
 }
 
-// Collapsible recents section — header toggles a dashed-divided list open.
-// Ride-type glyphs for the commute filter: all · moto · car · profile.
+// Collapsible recents section 鈥?header toggles a dashed-divided list open.
+// Ride-type glyphs for the commute filter: all 路 moto 路 car 路 profile.
 function RideTypeIcon({ type, size = 17 }) {
   if (type === 'moto') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="16.5" r="3"/><circle cx="18.5" cy="16.5" r="3"/><path d="M8.5 16.5h4l3-6h3.5M14 8h3l1.5 5M7 10.5h5.5"/></svg>);
   if (type === 'car') return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 13l1.8-4.6A2 2 0 0 1 6.7 7h10.6a2 2 0 0 1 1.9 1.4L21 13v4h-2.2M3 17v-4m2.2 4H3m18 0h-2.2M5.2 17h13.6"/><circle cx="7.2" cy="17" r="1.6"/><circle cx="16.8" cy="17" r="1.6"/></svg>);
@@ -4475,7 +5533,7 @@ function RecentSection({ title, count, open, onToggle, children }) {
   return (
     <div style={{ borderTop: `1px dashed ${DASH}` }}>
       <button onClick={onToggle} aria-expanded={open} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>{title}{count != null ? ` · ${count}` : ''}</span>
+        <span style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink40 }}>{title}{count != null ? ` 路 ${count}` : ''}</span>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={ink40} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 200ms ease' }}><path d="M6 3l5 5-5 5"/></svg>
       </button>
       {open && <div className="pk-rise" style={{ paddingBottom: 8 }}>{children}</div>}
@@ -4507,7 +5565,7 @@ function CommuteOption({ title, meta, price, active = false, onClick }) {
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 14.5, fontWeight: 760 }}>{title}</span>
-        <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, color: active ? 'rgba(255,255,255,0.62)' : ink40 }}>{meta} · {price}</span>
+        <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, color: active ? 'rgba(255,255,255,0.62)' : ink40 }}>{meta} 路 {price}</span>
       </span>
       <span style={{ fontSize: 11.5, fontWeight: 700, color: active ? 'rgba(255,255,255,0.7)' : ink25, flexShrink: 0 }}>{active ? 'Chosen' : 'Choose'}</span>
     </button>
@@ -4557,7 +5615,7 @@ function SaveAction({ label, sub, onClick, selected = false, compact = false }) 
   );
 }
 
-// SaveGoalsCard — savings goals, recurring auto-save, the 8% interest line, and
+// SaveGoalsCard 鈥?savings goals, recurring auto-save, the 8% interest line, and
 // pending Big Brain proposals (confirm before any money moves). Reuses the
 // dashed-separator / ink-typography language of the Save screen; no new tokens.
 function SaveGoalsCard({ goals, schedules, proposals, savings, interestApr, compact }) {
@@ -4689,7 +5747,7 @@ function SaveGoalsCard({ goals, schedules, proposals, savings, interestApr, comp
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             {schedules.map((s) => (
               <div key={s.id} style={{ fontSize: 12, fontWeight: 700, color: ink55, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ textTransform: 'capitalize' }}>{fmtRWF(s.amount_rwf)} · {s.cadence}</span>
+                <span style={{ textTransform: 'capitalize' }}>{fmtRWF(s.amount_rwf)} 路 {s.cadence}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ color: ink40 }}>next {s.next_run_on}</span>
                   <button onClick={() => run(() => store.actions.cancelSchedule(s.id))} disabled={busy} style={{
@@ -4706,7 +5764,7 @@ function SaveGoalsCard({ goals, schedules, proposals, savings, interestApr, comp
   );
 }
 
-// SaveGoalRow — one goal: progress, an inline deposit toward it, and delete.
+// SaveGoalRow 鈥?one goal: progress, an inline deposit toward it, and delete.
 // Holds its own input state so each row's "add" field is independent.
 function SaveGoalRow({ goal, busy, run, store, fieldStyle, pillBtn }) {
   const [amt, setAmt] = React.useState('');
@@ -4728,7 +5786,7 @@ function SaveGoalRow({ goal, busy, run, store, fieldStyle, pillBtn }) {
           <button onClick={() => run(() => store.actions.deleteGoal(goal.id))} disabled={busy} aria-label="Delete goal" style={{
             border: 0, background: 'transparent', color: ink40, cursor: busy ? 'default' : 'pointer',
             fontFamily: 'inherit', fontSize: 15, fontWeight: 700, lineHeight: 1, padding: 0,
-          }}>×</button>
+          }}>脳</button>
         </span>
       </div>
       <div style={{ height: 6, borderRadius: 3, background: 'rgba(10,10,10,0.08)', overflow: 'hidden' }}>
@@ -4797,12 +5855,12 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
   const ringStroke = web ? 22 : (compactSave ? 15 : 17);
   const ringRadius = (ringSize - ringStroke) / 2;
   const ringCirc = 2 * Math.PI * ringRadius;
-  // Guard against limit === 0 (a new real account with no savings yet → no
+  // Guard against limit === 0 (a new real account with no savings yet 鈫?no
   // credit capacity), which would otherwise make leftPct NaN.
   const leftPct = limit > 0 ? Math.max(0, Math.min(100, Math.round((left / limit) * 100))) : 0;
   const leftDash = ringCirc * (leftPct / 100);
 
-  // Balance reliability — a real user's money must never be shown as demo data.
+  // Balance reliability 鈥?a real user's money must never be shown as demo data.
   // For a signed-in account (store carries a userId, so private slices hydrate)
   // we wait on the live save slice and surface loading/error explicitly. Only
   // the pure local-demo preview (no userId) legitimately renders CC_SAVINGS.
@@ -4844,7 +5902,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
           </div>
           <div style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Couldn't load your balance</div>
-          <div style={{ fontSize: 14, color: ink55, fontWeight: 500, maxWidth: 300, lineHeight: 1.5 }}>We couldn't reach your savings just now. Check your connection and try again — your money is safe.</div>
+          <div style={{ fontSize: 14, color: ink55, fontWeight: 500, maxWidth: 300, lineHeight: 1.5 }}>We couldn't reach your savings just now. Check your connection and try again 鈥?your money is safe.</div>
           <button onClick={retrySave} style={{ marginTop: 6, height: 46, padding: '0 28px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 740 }}>Try again</button>
         </div>
       </div>
@@ -4982,7 +6040,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
             <SaveAction label="Withdraw" sub="Take money out" selected={selectedSaveAction === 'withdraw'} onClick={() => { setSelectedSaveAction('withdraw'); onMoney('withdraw'); }} compact={compactSave} />
           </div>
 
-          {/* Credit line — tap into the full Credit screen (limit = 70% of savings). */}
+          {/* Credit line 鈥?tap into the full Credit screen (limit = 70% of savings). */}
           <button onClick={onCredit} className="pk-calm-action" style={{
             width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
             background: 'transparent', border: `1px dashed ${DASH}`, borderRadius: 16,
@@ -5011,7 +6069,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
       </div>
     </div>
   );
-  const mask = (v) => (hidden ? '••••••' : v);
+  const mask = (v) => (hidden ? '-----' : v);
 
   return (
     <div style={{
@@ -5050,7 +6108,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
           <EyeToggle hidden={hidden} onToggle={() => setHidden((h) => !h)} />
         </div>
 
-        {/* Stats — savings + earnings, like the reference's top-left figures */}
+        {/* Stats 鈥?savings + earnings, like the reference's top-left figures */}
         <SaveDashboard
           balance={mask(fmtRWF(s.balance))}
           earned={mask(fmtRWF(s.returnsEarned))}
@@ -5087,7 +6145,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
           <div style={{
             fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1,
             fontFeatureSettings: '"tnum"', color: ink, userSelect: 'none',
-          }}>{hidden ? 'RWF ••••••' : fmtRWF(s.balance)}</div>
+          }}>{hidden ? 'RWF -----' : fmtRWF(s.balance)}</div>
 
           <button onClick={onGrowth} style={{
             marginTop: 14, padding: 0, background: 'transparent', border: 0,
@@ -5112,7 +6170,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
             <div style={{
               fontSize: 20, fontWeight: 800, letterSpacing: '-0.015em', lineHeight: 1,
               fontFeatureSettings: '"tnum"', color: ink, whiteSpace: 'nowrap',
-            }}>{hidden ? 'RWF ••••••' : fmtRWF(s.returnsEarned)}</div>
+            }}>{hidden ? 'RWF -----' : fmtRWF(s.returnsEarned)}</div>
           </button>
         </div>
 
@@ -5136,7 +6194,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
           }}>
             <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.25, color: ink }}>
-              You saved <span style={{ color: teal }}>{hidden ? 'RWF •••' : fmtRWF(s.savedThisMonth)}</span><br/>in {s.thisMonthLabel}.
+              You saved <span style={{ color: teal }}>{hidden ? 'RWF -----' : fmtRWF(s.savedThisMonth)}</span><br/>in {s.thisMonthLabel}.
             </div>
             <svg width="34" height="29" viewBox="0 0 40 34" style={{ flexShrink: 0 }}>
               <rect x="2"  y="20" width="7" height="12" rx="2" fill={teal} opacity="0.30"/>
@@ -5159,7 +6217,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
           </div>
         </div>
 
-        {/* Credit available — tappable into the Credit tab */}
+        {/* Credit available 鈥?tappable into the Credit tab */}
         <div style={{ display: 'none', padding: '8px 16px 0' }}>
           <button onClick={onCredit} style={{
             width: '100%', textAlign: 'left', cursor: 'pointer',
@@ -5192,7 +6250,7 @@ function CapitalScreen({ accent, web, onMoney, onWallet, onProfile, onCredit, on
   );
 }
 
-// Small circular eye toggle — privacy for sensitive amounts.
+// Small circular eye toggle 鈥?privacy for sensitive amounts.
 function SaveDashboard({
   balance, earned, savedMonth, month, months = [], selectedMonth, onMonth,
   history, historyStart, onMoney, onGrowth,
@@ -5265,7 +6323,7 @@ function SaveDashboard({
                     border: 0, background: paperSoft, borderRadius: '50%',
                     width: 24, height: 24, color: ink55, cursor: 'pointer',
                     fontFamily: 'inherit', fontWeight: 800,
-                  }}>×</button>
+                  }}>脳</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
                   {months.map((m) => (
@@ -5466,12 +6524,12 @@ function EyeToggle({ hidden, onToggle }) {
   );
 }
 
-// ────────────────────────────── CREDIT LINE ──────────────────────────────
-// Makes the savings → credit relationship the centrepiece: the more you save,
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ CREDIT LINE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Makes the savings 鈫?credit relationship the centrepiece: the more you save,
 // the more you can borrow. Capacity = 70% of savings.
 
 function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
-  // The limit is real — it's a fixed 70% share of the user's actual savings
+  // The limit is real 鈥?it's a fixed 70% share of the user's actual savings
   // (same rule the Save screen uses). Borrowing itself isn't backed yet, so a
   // real account always shows zero outstanding and Borrow/Repay stay a preview.
   // The pure local/anon preview (no userId) still renders the CC_* demo numbers.
@@ -5504,7 +6562,7 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
         capacity: Math.round(realSavings * CC_CREDIT.ratio),
         outstanding: 0,
         status: 'Good standing',
-        nextPayment: { amount: fmtRWF(0), date: '—' },
+        nextPayment: { amount: fmtRWF(0), date: '-' },
         get available() { return this.capacity - this.outstanding; },
         get utilization() { return 0; },
       }
@@ -5517,7 +6575,7 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
     : c.utilization < 50
       ? 'Good'
       : 'Close to limit';
-  const mask = (v) => (hidden ? '••••••' : v);
+  const mask = (v) => (hidden ? '-----' : v);
 
   // A signed-in account must never show demo numbers as the user's money: wait
   // on the live save slice, surface loading/error explicitly, offer retry.
@@ -5575,8 +6633,8 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
         <div style={{ margin: '12px 20px 0', padding: '9px 12px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: ink55, fontWeight: 700, flexShrink: 0 }}>Preview</span>
           <span style={{ fontSize: 12, color: ink55, lineHeight: 1.35 }}>{realAcct
-            ? 'Your limit is 70% of your savings and rises as you save. Borrowing isn’t live yet, so Borrow and Repay are a preview.'
-            : 'Credit isn’t live yet — these figures preview how your savings-backed line will work.'}</span>
+            ? 'Your limit is 70% of your savings and rises as you save. Borrowing isn鈥檛 live yet, so Borrow and Repay are a preview.'
+            : 'Credit isn鈥檛 live yet 鈥?these figures preview how your savings-backed line will work.'}</span>
         </div>
         <div className="pk-page-pad pk-soft-card" style={{ padding: '14px 20px 0' }}>
           <div style={{
@@ -5592,10 +6650,10 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
                 {mask(fmtRWF(c.available))}
               </div>
               <div style={{ marginTop: 5, fontSize: 'min(12px, 3.2vw)', fontWeight: 650, color: ink55 }}>
-                Saved {mask(fmtRWF(s.balance))} · Limit {mask(fmtRWF(c.capacity))}
+                Saved {mask(fmtRWF(s.balance))} 路 Limit {mask(fmtRWF(c.capacity))}
               </div>
               <div style={{ display: 'none', marginTop: 5, fontSize: 12, fontWeight: 650, color: ink55 }}>
-                Saved {mask(fmtRWF(s.balance))} · limit {capacityPct}% ({mask(fmtRWF(c.capacity))})
+                Saved {mask(fmtRWF(s.balance))} 路 limit {capacityPct}% ({mask(fmtRWF(c.capacity))})
               </div>
             </div>
 
@@ -5661,13 +6719,13 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
 
         {/* Available credit hero */}
         <div style={{ display: 'none', padding: '28px 24px 24px' }}>
-          <Eyebrow style={{ marginBottom: 14 }}>Available to borrow · RWF</Eyebrow>
+          <Eyebrow style={{ marginBottom: 14 }}>Available to borrow 路 RWF</Eyebrow>
           <div style={{
             display: 'flex', alignItems: 'baseline', gap: 10,
             fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 0.95,
             fontFeatureSettings: '"tnum"', userSelect: 'none',
           }}>
-            <div style={{ fontSize: 50 }}>{hidden ? '••••••' : Number(c.available).toLocaleString('en-US')}</div>
+            <div style={{ fontSize: 50 }}>{hidden ? '-----' : Number(c.available).toLocaleString('en-US')}</div>
           </div>
           <div style={{
             marginTop: 16, display: 'flex', alignItems: 'center', gap: 10,
@@ -5736,7 +6794,7 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
 
         <Rule />
 
-        {/* Savings → Credit relationship */}
+        {/* Savings 鈫?Credit relationship */}
         <div style={{ display: 'none', padding: '24px 24px' }}>
           <Eyebrow style={{ marginBottom: 16 }}>How your limit is set</Eyebrow>
           <div style={{
@@ -5770,7 +6828,7 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
             </div>
           </div>
           <div style={{ fontSize: 12.5, color: ink55, lineHeight: 1.5, marginTop: 14 }}>
-            Your borrowing capacity is 70% of your savings. Save more and it rises automatically — no application.
+            Your borrowing capacity is 70% of your savings. Save more and it rises automatically 鈥?no application.
           </div>
           <button onClick={onGrowth} style={{
             marginTop: 14, padding: 0, background: 'transparent', border: 0, cursor: 'pointer',
@@ -5830,7 +6888,7 @@ function CreditScreen({ accent, onMoney, onGrowth, onBack }) {
   );
 }
 
-// ────────────────────────────── GROWTH ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ GROWTH 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 function CreditLimitCircle({ capacityPct, usedPct, outstanding, available }) {
   const [on, setOn] = React.useState(false);
   const size = 176;
@@ -6077,12 +7135,12 @@ function GrowthScreen({ accent, onBack }) {
 
       {/* Savings balance + sparkline */}
       <div style={{ padding: '28px 24px 8px' }}>
-        <Eyebrow style={{ marginBottom: 12 }}>Savings balance · RWF</Eyebrow>
+        <Eyebrow style={{ marginBottom: 12 }}>Savings balance 路 RWF</Eyebrow>
         <div style={{ fontSize: 'min(40px, 9vw)', fontWeight: 800, letterSpacing: '-0.025em', fontFeatureSettings: '"tnum"' }}>
           {Number(s.balance).toLocaleString('en-US')}
         </div>
         <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: ink70 }}>
-          <span style={{ color: teal }}>↑ {grownPct}%</span> over 12 months
+          <span style={{ color: teal }}>鈫?{grownPct}%</span> over 12 months
         </div>
       </div>
       <div style={{ padding: '12px 16px 20px' }}>
@@ -6119,7 +7177,7 @@ function GrowthScreen({ accent, onBack }) {
           }}>
             <div>
               <div style={{ fontSize: 14.5, fontWeight: 500 }}>{c.label}</div>
-              <div style={{ fontSize: 12, color: ink55, marginTop: 4 }}>{c.sub} · {c.date}</div>
+              <div style={{ fontSize: 12, color: ink55, marginTop: 4 }}>{c.sub} 路 {c.date}</div>
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, fontFeatureSettings: '"tnum"' }}>{c.amount}</div>
           </div>
@@ -6129,7 +7187,7 @@ function GrowthScreen({ accent, onBack }) {
   );
 }
 
-// ────────────────────────────── VENTURE FEED ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ VENTURE FEED 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
   const [filter, setFilter] = React.useState('funds');
@@ -6158,14 +7216,14 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
     foryou: 'For you',
   };
   const subByFilter = {
-    funds:  'Optional — once you\'re saving, put some to work in vetted funds. Preview — investing isn\'t live yet.',
-    foryou: 'Businesses Everyday is helping grow directly. Preview — investing isn\'t live yet.',
+    funds:  'Optional 鈥?once you\'re saving, put some to work in vetted funds. Preview 鈥?investing isn\'t live yet.',
+    foryou: 'Businesses Everyday is helping grow directly. Preview 鈥?investing isn\'t live yet.',
   };
 
   const sortOptions = [
     { id: 'recent', label: 'Most recent' },
     { id: 'yield',  label: 'Highest projected yield' },
-    { id: 'name',   label: 'Name · A–Z' },
+    { id: 'name',   label: 'Name 路 A鈥揨' },
   ];
 
   return (
@@ -6235,7 +7293,7 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
         </div>
       </div>
 
-      {/* Filter pills hidden when there's only one segment — declutter */}
+      {/* Filter pills hidden when there's only one segment 鈥?declutter */}
       {CC_FILTERS.length > 1 && (
         <div style={{
           display: 'flex', gap: 8, padding: '8px 20px 16px',
@@ -6260,7 +7318,7 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
         </div>
       )}
 
-      {/* List rows — each fund expands into its invest-paths panel inline */}
+      {/* List rows 鈥?each fund expands into its invest-paths panel inline */}
       <div style={{ padding: '12px 20px 0' }}>
         {list.map((v, i) => (
           <FundAccordion
@@ -6282,20 +7340,20 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
         )}
       </div>
 
-      {/* Appendix removed — all funds are now publicly investable. */}
+      {/* Appendix removed 鈥?all funds are now publicly investable. */}
     </div>
   );
 }
 
-// ── Fund accordion ──────────────────────────────────────────────
-// Tapping a fund row no longer navigates — it expands an inline panel that
+// 鈹€鈹€ Fund accordion 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Tapping a fund row no longer navigates 鈥?it expands an inline panel that
 // (1) educates the investor on how fund vs. direct allocation differ, then
 // (2) offers three clear paths: back the whole fund, let an in-house expert
 // allocate, or direct capital straight into a single company. The body height
-// animates with the CSS-grid 0fr→1fr trick (no JS measurement).
+// animates with the CSS-grid 0fr鈫?fr trick (no JS measurement).
 function FundAccordion({ v, mode, accent, expanded, onToggle, onInvest, onViewReport, isLast }) {
   const companies = ccCompaniesIn(v.id);
-  const sub = mode === 'funds' ? v.sector : `${v.sector} · ${v.location.split(',')[0]}`;
+  const sub = mode === 'funds' ? v.sector : `${v.sector} 路 ${v.location.split(',')[0]}`;
   // Drop a redundant trailing "Fund" in the row title (the sub-label already
   // marks it as a fund) so longer names fit on one line. Keep it when the
   // remainder would be a single word (e.g. "REIT Fund").
@@ -6331,7 +7389,7 @@ function FundAccordion({ v, mode, accent, expanded, onToggle, onInvest, onViewRe
             <div style={{
               fontSize: 16, fontWeight: 500, letterSpacing: '-0.01em',
               fontFeatureSettings: '"tnum"',
-            }}>{v.yieldHero || '—'}</div>
+            }}>{v.yieldHero || '-'}</div>
             <div style={{
               fontFamily: CC_MONO, fontSize: 8, letterSpacing: '0.1em',
               textTransform: 'uppercase', color: ink55, marginTop: 2,
@@ -6467,7 +7525,7 @@ function CompanyMiniRow({ c, onClick }) {
           fontFamily: CC_MONO, fontSize: 9, letterSpacing: '0.08em',
           textTransform: 'uppercase', color: ink55, marginTop: 2,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{c.sector.split(' · ')[0]} · {c.yieldHero || '—'}</div>
+        }}>{c.sector.split(' 路 ')[0]} 路 {c.yieldHero || '-'}</div>
       </div>
       <svg width="7" height="12" viewBox="0 0 8 14" style={{ color: ink40, flexShrink: 0 }}>
         <path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="1.6" fill="none"
@@ -6477,7 +7535,7 @@ function CompanyMiniRow({ c, onClick }) {
   );
 }
 
-// ────────────────────────────── VENTURE DETAIL ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ VENTURE DETAIL 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpenCompany }) {
   const v = ccLookup(ventureId) || CC_VENTURES[0];
@@ -6485,7 +7543,7 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
   const isLab  = v.type === 'lab';
   const statusLabel = {
     vetted: 'Vetted', pipeline: 'Pipeline', foryou: 'For You',
-    lab: 'Lab · View only',
+    lab: 'Lab 路 View only',
   }[v.status] || (isFund ? 'Fund' : isLab ? 'Lab' : 'Portfolio company');
 
   const companies = isFund ? ccCompaniesIn(v.id) : [];
@@ -6494,11 +7552,11 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
   return (
     <div style={{ paddingBottom: 0, display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <ScreenHeader
-        left={<Eyebrow>{isFund ? 'Fund' : isLab ? 'Lab' : 'Company'} · {v.sector.split(' · ')[0]}</Eyebrow>}
+        left={<Eyebrow>{isFund ? 'Fund' : isLab ? 'Lab' : 'Company'} 路 {v.sector.split(' 路 ')[0]}</Eyebrow>}
         right={null}
       />
 
-      {/* Title block (no hero image — detail fits on one screen) */}
+      {/* Title block (no hero image 鈥?detail fits on one screen) */}
       <div style={{ padding: '4px 24px 20px' }}>
         <div style={{ marginBottom: 14 }}>
           <StatusPill variant="outline">{statusLabel}</StatusPill>
@@ -6508,7 +7566,7 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
         }}>{v.name}</div>
         <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 'min(13px, 3.5vw)', color: ink70, flexWrap: 'wrap' }}>
           <span>{v.sector}</span>
-          <span style={{ color: ink25 }}>·</span>
+          <span style={{ color: ink25 }}>路</span>
           <span>{v.location}</span>
         </div>
         {v.website && (
@@ -6529,7 +7587,7 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
         )}
       </div>
 
-      {/* Key metrics — single rounded card with internal hairlines */}
+      {/* Key metrics 鈥?single rounded card with internal hairlines */}
       {v.metrics && (
         <div style={{ padding: '0 20px 24px' }}>
           <RoundedCard padding={0} radius={20}>
@@ -6558,8 +7616,8 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
 
       <Rule />
 
-      {/* Parent fund → "Companies in this fund" (open by default).
-          Company / lab → "Operational workflow". */}
+      {/* Parent fund 鈫?"Companies in this fund" (open by default).
+          Company / lab 鈫?"Operational workflow". */}
       {isFund && companies.length > 0 ? (
         <>
           <CollapsibleSection
@@ -6585,7 +7643,7 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
         </>
       ) : null}
 
-      {/* Collapsible: Reviewed for you — AI screen + analyst sign-off */}
+      {/* Collapsible: Reviewed for you 鈥?AI screen + analyst sign-off */}
       {(v.status === 'vetted' || v.status === 'foryou') && (
         <>
           <CollapsibleSection title="Reviewed for you" meta="AI + analyst">
@@ -6607,14 +7665,14 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
 
       <Rule />
 
-      {/* Collapsible: Risks · Financial reports */}
-      <CollapsibleSection title="Risks · Financial reports">
+      {/* Collapsible: Risks 路 Financial reports */}
+      <CollapsibleSection title="Risks 路 Financial reports">
         {isFund && companies.length > 0
           ? <FundFinancialsList companies={companies} />
           : <CompanyRisksBlock company={v} />}
       </CollapsibleSection>
 
-      {/* Sticky bottom action bar — [Back] [Are you confident? · Invest] */}
+      {/* Sticky bottom action bar 鈥?[Back] [Are you confident? 路 Invest] */}
       <div style={{
         position: 'sticky', bottom: 0, zIndex: 20,
         background: paper, borderTop: `1px solid ${ink12}`,
@@ -6669,7 +7727,7 @@ function DetailScreen({ ventureId, accent, onBack, onInvest, onOpsDetail, onOpen
 // Left: small Back pill (replaces the top-left chevron so thumb reach is easy).
 // Right: confidence-prompt + big Invest CTA. When `confidence` is true the
 // bar shows "Are you confident?" inline above the CTA on small viewports and
-// to the left of it on wider ones — never floats over content.
+// to the left of it on wider ones 鈥?never floats over content.
 function DetailFooter({ onBack, accent, onInvest, label, confidence }) {
   return (
     <div style={{
@@ -6718,11 +7776,11 @@ function DetailFooter({ onBack, accent, onInvest, label, confidence }) {
 // section. Mirrors the data behind CheckoutRecommendation but uses a tighter
 // layout so it sits comfortably alongside other report sections.
 function DetailReviewBlock({ venture }) {
-  const score = venture.yieldHero || venture.yieldRange || '—';
+  const score = venture.yieldHero || venture.yieldRange || '-';
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst · Everyday',
+    role: 'Senior Investment Analyst 路 Everyday',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -6756,7 +7814,7 @@ function DetailReviewBlock({ venture }) {
               textTransform: 'uppercase', color: ink70,
               padding: '3px 9px', borderRadius: 999,
               border: `1px solid ${ink12}`,
-            }}>Yield · {score}</div>
+            }}>Yield 路 {score}</div>
           </div>
           {aiBullets.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -6799,7 +7857,7 @@ function DetailReviewBlock({ venture }) {
       <div style={{
         marginTop: 14, fontSize: 11, color: ink55, lineHeight: 1.5,
       }}>
-        Guidance only — your final decision is yours. Projected yields are not guaranteed.
+        Guidance only 鈥?your final decision is yours. Projected yields are not guaranteed.
       </div>
     </div>
   );
@@ -6841,7 +7899,7 @@ function ConfidenceSend({ accent, onInvest }) {
 }
 
 // Floating action button that expands into a pill on tap.
-// Tap closed → opens. Tap open → triggers onInvest. The small × collapses it.
+// Tap closed 鈫?opens. Tap open 鈫?triggers onInvest. The small 脳 collapses it.
 function InvestFAB({ label, accent, onInvest }) {
   const [open, setOpen] = React.useState(false);
   return (
@@ -6989,7 +8047,7 @@ function CompanyList({ companies, onOpen }) {
               <div style={{
                 fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
                 textTransform: 'uppercase', color: ink55, marginTop: 4,
-              }}>{c.sector} · {c.location.split(',')[0]}</div>
+              }}>{c.sector} 路 {c.location.split(',')[0]}</div>
             </div>
             <svg width="8" height="14" viewBox="0 0 8 14" style={{ color: ink40, flexShrink: 0 }}>
               <path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="1.6" fill="none"
@@ -7008,7 +8066,7 @@ function CompanyList({ companies, onOpen }) {
   );
 }
 
-// Fund-level financial reports — one card per portfolio company.
+// Fund-level financial reports 鈥?one card per portfolio company.
 function FundFinancialsList({ companies }) {
   return (
     <RoundedCard padding={0} radius={20}>
@@ -7030,9 +8088,9 @@ function FundFinancialsList({ companies }) {
               }}>{f.period || 'FY 2025'}</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-              <FinKpi label="Revenue · TTM" value={f.revenue || '—'} />
-              <FinKpi label="Growth"        value={f.growth  || '—'} />
-              <FinKpi label="EBITDA margin" value={f.ebitda  || '—'} />
+              <FinKpi label="Revenue 路 TTM" value={f.revenue || '-'} />
+              <FinKpi label="Growth"        value={f.growth  || '-'} />
+              <FinKpi label="EBITDA margin" value={f.ebitda  || '-'} />
             </div>
           </div>
         );
@@ -7056,7 +8114,7 @@ function FinKpi({ label, value }) {
   );
 }
 
-// Company-level "Risks · Financial reports" — the company's own snapshot + risk bullets.
+// Company-level "Risks 路 Financial reports" 鈥?the company's own snapshot + risk bullets.
 function CompanyRisksBlock({ company }) {
   const f = company.financials || {};
   return (
@@ -7075,9 +8133,9 @@ function CompanyRisksBlock({ company }) {
             }}>{f.period || 'FY 2025'}</div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-            <FinKpi label="Revenue · TTM" value={f.revenue || '—'} />
-            <FinKpi label="Growth"        value={f.growth  || '—'} />
-            <FinKpi label="EBITDA margin" value={f.ebitda  || '—'} />
+            <FinKpi label="Revenue 路 TTM" value={f.revenue || '-'} />
+            <FinKpi label="Growth"        value={f.growth  || '-'} />
+            <FinKpi label="EBITDA margin" value={f.ebitda  || '-'} />
           </div>
         </div>
       </RoundedCard>
@@ -7089,7 +8147,7 @@ function CompanyRisksBlock({ company }) {
   );
 }
 
-// ────────────────────────────── INVESTMENT CHECKOUT ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ INVESTMENT CHECKOUT 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, onDone }) {
   const v = ccLookup(ventureId) || CC_VENTURES[0];
@@ -7097,10 +8155,10 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
   const mode = allocationMode;
 
   // Unified, wallet-first checkout. Same flow for funds and direct deals:
-  //   Amount → Source → Review → Done
+  //   Amount 鈫?Source 鈫?Review 鈫?Done
   // The Recommendation step moved onto the detail page so the user sees the
   // AI + analyst review there before tapping into checkout. The Mandate step
-  // was removed — the venture you tapped IS the mandate.
+  // was removed 鈥?the venture you tapped IS the mandate.
   const steps = ['Amount', 'Source', 'Review', 'Done'];
 
   const [step, setStep] = React.useState(0);
@@ -7108,17 +8166,17 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
   // Default source is the in-app wallet. If the user taps "Connect another
   // account" the picker reveals the linked external accounts.
   const [source, setSource] = React.useState('cash');
-  // Submitting state — between Confirm tap and the Done screen. Drives the
+  // Submitting state 鈥?between Confirm tap and the Done screen. Drives the
   // spinner on the CTA so the confirmation feels like real work happened.
   const [submitting, setSubmitting] = React.useState(false);
-  // Mandate was removed — keep the variable as the venture's id for the
+  // Mandate was removed 鈥?keep the variable as the venture's id for the
   // Review/Done copy that still wants to print "via {fund}".
   const [mandate] = React.useState(isFund ? v.id : null);
 
   const next = () => setStep((s) => Math.min(steps.length - 1, s + 1));
   const back = () => step === 0 ? onClose() : setStep((s) => s - 1);
 
-  // Confirm tap on the Review step — brief pending state, then advance to Done.
+  // Confirm tap on the Review step 鈥?brief pending state, then advance to Done.
   const confirm = () => {
     if (submitting) return;
     setSubmitting(true);
@@ -7144,9 +8202,9 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <ScreenHeader
         left={<Eyebrow>{
-          mode === 'expert'  ? 'Investing · Expert' :
-          mode === 'company' ? 'Investing · Direct' :
-                               'Investing · Fund'
+          mode === 'expert'  ? 'Investing 路 Expert' :
+          mode === 'company' ? 'Investing 路 Direct' :
+                               'Investing 路 Fund'
         }</Eyebrow>}
         right={<div style={{
           fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.12em',
@@ -7219,7 +8277,7 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
             <CCButton variant="solid" accent={accent} fullWidth
               onClick={blocked || submitting ? () => {} : (stepName === 'Review' ? confirm : next)}
               style={(blocked || submitting) ? { opacity: blocked ? 0.4 : 1, cursor: 'not-allowed' } : {}}>
-              {submitting ? <SubmitSpinner label="Processing…" /> : ctaLabel}
+              {submitting ? <SubmitSpinner label="Processing..." /> : ctaLabel}
             </CCButton>
           </div>
         )}
@@ -7236,7 +8294,7 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
   );
 }
 
-// Mandate step — choose Everyday (in-house picks) OR a specific fund.
+// Mandate step 鈥?choose Everyday (in-house picks) OR a specific fund.
 function CheckoutMandate({ mandate, setMandate, venture }) {
   const options = [
     { id: 'cc', label: 'Invest with Everyday',
@@ -7250,7 +8308,7 @@ function CheckoutMandate({ mandate, setMandate, venture }) {
 
   return (
     <div>
-      <Eyebrow style={{ marginBottom: 8 }}>Step 1 · Mandate</Eyebrow>
+      <Eyebrow style={{ marginBottom: 8 }}>Step 1 路 Mandate</Eyebrow>
       <div style={{
         fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', lineHeight: 1.12,
         marginBottom: 22, maxWidth: 300,
@@ -7310,11 +8368,11 @@ function CheckoutMandate({ mandate, setMandate, venture }) {
   );
 }
 
-// Slim, premium reminder atop the Amount step — a single quiet line stating
+// Slim, premium reminder atop the Amount step 鈥?a single quiet line stating
 // what the capital is doing. No paragraph copy; the label carries the meaning.
 function AllocationNote({ mode, venture }) {
   const label = {
-    fund:    'Investing in the fund · diversified',
+    fund:    'Investing in the fund 路 diversified',
     expert:  'Investing with an in-house expert',
     company: 'Direct to ' + venture.name,
   }[mode] || null;
@@ -7381,7 +8439,7 @@ function CheckoutAmount({ amount, setAmount, venture, mandate }) {
         <div style={{
           fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.1em',
           color: ink55, marginTop: 12, textTransform: 'uppercase',
-        }}>Minimum · {venture.minInvest || 'RWF 100,000'}</div>
+        }}>Minimum 路 {venture.minInvest || 'RWF 100,000'}</div>
       </div>
 
       <div style={{
@@ -7413,8 +8471,8 @@ function CheckoutAmount({ amount, setAmount, venture, mandate }) {
 }
 
 // Small inline spinner + label used on the primary CTA while a confirm tap
-// is "processing". Purely cosmetic on the wireframe — the timeout is fixed.
-function SubmitSpinner({ label = 'Processing…' }) {
+// is "processing". Purely cosmetic on the wireframe 鈥?the timeout is fixed.
+function SubmitSpinner({ label = 'Processing...' }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 10,
@@ -7431,11 +8489,11 @@ function SubmitSpinner({ label = 'Processing…' }) {
   );
 }
 
-// ─────── Receipt utilities ───────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€ Receipt utilities 鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Every Done screen offers a downloadable plain-text receipt AND auto-saves
 // the same record to the user's account-side receipts list (mocked here with
 // localStorage so a refresh keeps history). Same shape on both flows so a
-// future Account → Receipts list can read straight from this store.
+// future Account 鈫?Receipts list can read straight from this store.
 
 const PK_RECEIPTS_KEY = 'everyday.receipts';
 const PK_LEGACY_RECEIPTS_KEY = 'poke' + 'tee.receipts';
@@ -7446,14 +8504,14 @@ function buildReceiptText(title, rows, reference) {
     dateStyle: 'medium', timeStyle: 'short',
   });
   const lines = [];
-  lines.push('EVERYDAY JOE — ' + title.toUpperCase());
-  lines.push('────────────────────────────────────────');
+  lines.push('EVERYDAY JOE 鈥?' + title.toUpperCase());
+  lines.push('鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€');
   lines.push('Date:       ' + date);
   lines.push('Reference:  ' + reference);
   lines.push('');
   rows.forEach(([k, v]) => { lines.push((k + ':').padEnd(14, ' ') + v); });
   lines.push('');
-  lines.push('Saved to your Everyday account · everyday.app');
+  lines.push('Saved to your Everyday account 路 everyday.app');
   return lines.join('\n');
 }
 
@@ -7466,7 +8524,7 @@ function downloadReceiptFile(filename, body) {
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-  } catch (_e) { /* ignore — wireframe */ }
+  } catch (_e) { /* ignore 鈥?wireframe */ }
 }
 
 // Persist a record into the user's account-side receipts list. Keeps the
@@ -7520,12 +8578,12 @@ function ReceiptActions({ filename, title, rows, reference }) {
         marginTop: 12, textAlign: 'center',
         fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.1em',
         color: ink55, textTransform: 'uppercase',
-      }}>Saved to your account · Receipts</div>
+      }}>Saved to your account 路 Receipts</div>
     </div>
   );
 }
 
-// ─────── Recommendation step ───────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€ Recommendation step 鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // Shown at the very top of the checkout, before the user enters an amount.
 // Pairs an AI-generated read on the project with a human analyst sign-off so
 // the investor sees both layers of review before committing capital.
@@ -7533,11 +8591,11 @@ function CheckoutRecommendation({ venture }) {
   // For the wireframe we generate deterministic copy from the venture
   // metadata. In production each venture would carry its own AI-generated
   // sentiment and a signed analyst note.
-  const score = venture.yieldHero || venture.yieldRange || '—';
+  const score = venture.yieldHero || venture.yieldRange || '-';
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst · Everyday',
+    role: 'Senior Investment Analyst 路 Everyday',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -7582,7 +8640,7 @@ function CheckoutRecommendation({ venture }) {
               textTransform: 'uppercase', color: ink70,
               padding: '4px 10px', borderRadius: 999,
               border: `1px solid ${ink12}`,
-            }}>Yield · {score}</div>
+            }}>Yield 路 {score}</div>
           </div>
           {aiBullets.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -7639,7 +8697,7 @@ function CheckoutRecommendation({ venture }) {
 function CheckoutSource({ source, setSource, amount, venture }) {
   // Wallet-first: investments always pull from the Your wallet. Other
   // accounts (MoMo / bank / card) can be linked, but they top up the wallet
-  // first — the wallet is the single source of truth so the user only ever
+  // first 鈥?the wallet is the single source of truth so the user only ever
   // sees one balance to reason about.
   const wallet = CC_SOURCES.find((s) => s.id === 'cash') || { available: 0 };
   const others = CC_SOURCES.filter((s) => s.id !== 'cash');
@@ -7657,7 +8715,7 @@ function CheckoutSource({ source, setSource, amount, venture }) {
         Invested in {venture.name}{venture.type === 'fund' ? ' Fund' : ''}.
       </div>
 
-      {/* Wallet card — always primary */}
+      {/* Wallet card 鈥?always primary */}
       <button onClick={() => setSource('cash')}
         disabled={walletShort}
         style={{
@@ -7692,8 +8750,8 @@ function CheckoutSource({ source, setSource, amount, venture }) {
               color: walletShort ? ink : ink55, marginTop: 6, textTransform: 'uppercase',
             }}>
               {walletShort
-                ? `Short by RWF ${(amount - (wallet.available || 0)).toLocaleString('en-US')} · top up first`
-                : `Available · RWF ${(wallet.available || 0).toLocaleString('en-US')}`}
+                ? `Short by RWF ${(amount - (wallet.available || 0)).toLocaleString('en-US')} 路 top up first`
+                : `Available 路 RWF ${(wallet.available || 0).toLocaleString('en-US')}`}
             </div>
           </div>
         </div>
@@ -7709,7 +8767,7 @@ function CheckoutSource({ source, setSource, amount, venture }) {
         </div>
       </button>
 
-      {/* Connect another account — collapsed by default */}
+      {/* Connect another account 鈥?collapsed by default */}
       {!showLink && (
         <button onClick={() => setShowLink(true)}
           style={{
@@ -7739,7 +8797,7 @@ function CheckoutSource({ source, setSource, amount, venture }) {
         </button>
       )}
 
-      {/* External-account picker — funds the wallet, then pays from it */}
+      {/* External-account picker 鈥?funds the wallet, then pays from it */}
       {showLink && (
         <div style={{ marginTop: 18 }}>
           <Eyebrow style={{ marginBottom: 12 }}>Top up wallet from</Eyebrow>
@@ -7764,7 +8822,7 @@ function CheckoutSource({ source, setSource, amount, venture }) {
                       color: ink55, marginTop: 4, textTransform: 'uppercase',
                     }}>
                       {s.available != null
-                        ? `Available · RWF ${s.available.toLocaleString('en-US')}`
+                        ? `Available 路 RWF ${s.available.toLocaleString('en-US')}`
                         : 'Linked account'}
                     </div>
                   </div>
@@ -7792,7 +8850,7 @@ function CheckoutSource({ source, setSource, amount, venture }) {
   );
 }
 
-// Legacy CheckoutSource left for reference — unused.
+// Legacy CheckoutSource left for reference 鈥?unused.
 function CheckoutSourceLegacy({ source, setSource, amount, venture }) {
   return (
     <div>
@@ -7828,9 +8886,9 @@ function CheckoutSourceLegacy({ source, setSource, amount, venture }) {
                   color: ink55, marginTop: 6, textTransform: 'uppercase',
                 }}>
                   {s.available != null
-                    ? `Available · RWF ${s.available.toLocaleString('en-US')}`
+                    ? `Available 路 RWF ${s.available.toLocaleString('en-US')}`
                     : 'Linked account'}
-                  {insufficient ? ' · Insufficient' : ''}
+                  {insufficient ? ' 路 Insufficient' : ''}
                 </div>
               </div>
               <div style={{
@@ -7858,9 +8916,9 @@ function mandateLabel(mandateId) {
 }
 
 function CheckoutReview({ venture, amount, source, mandate, mode = 'fund' }) {
-  const sourceLabel = CC_SOURCES.find((s) => s.id === source)?.label || '—';
+  const sourceLabel = CC_SOURCES.find((s) => s.id === source)?.label || '-';
   const allocationLabel = {
-    fund:    'Whole fund · diversified',
+    fund:    'Whole fund 路 diversified',
     expert:  'In-house expert allocates',
     company: 'Direct to company',
   }[mode];
@@ -7912,7 +8970,7 @@ function CheckoutReview({ venture, amount, source, mandate, mode = 'fund' }) {
 }
 
 function CheckoutDone({ venture, amount, source, mandate, mode = 'fund' }) {
-  // Stable reference — generated once on mount so re-renders (e.g. anim ticks)
+  // Stable reference 鈥?generated once on mount so re-renders (e.g. anim ticks)
   // don't shuffle the number under the user's eyes.
   const [reference] = React.useState(
     () => 'PK-INV-2026-' + Math.floor(Math.random() * 9000 + 1000)
@@ -7920,7 +8978,7 @@ function CheckoutDone({ venture, amount, source, mandate, mode = 'fund' }) {
   React.useEffect(() => { pkHaptic('success'); }, []);
   const sourceLabel = CC_SOURCES.find((s) => s.id === source)?.label || 'Your wallet';
   const allocationLabel = {
-    fund:    'Whole fund · diversified',
+    fund:    'Whole fund 路 diversified',
     expert:  'In-house expert allocates',
     company: 'Direct to company',
   }[mode];
@@ -7995,7 +9053,7 @@ function CheckoutDone({ venture, amount, source, mandate, mode = 'fund' }) {
   );
 }
 
-// ────────────────────────────── OPS STEP DETAIL ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ OPS STEP DETAIL 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function OpsDetailScreen({ ventureId, stepIndex, accent, onBack }) {
   const v = ccLookup(ventureId) || CC_VENTURES[0];
@@ -8015,10 +9073,10 @@ function OpsDetailScreen({ ventureId, stepIndex, accent, onBack }) {
         right={<Eyebrow>{v.name}</Eyebrow>}
       />
 
-      {/* Title block — no hero image */}
+      {/* Title block 鈥?no hero image */}
       <div style={{ padding: '12px 24px 24px' }}>
         <Eyebrow style={{ marginBottom: 10 }}>
-          Step {String(stepIndex + 1).padStart(2, '0')} · Operations
+          Step {String(stepIndex + 1).padStart(2, '0')} 路 Operations
         </Eyebrow>
         <div style={{
           fontSize: 30, fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1.08,
@@ -8123,7 +9181,7 @@ function OpsDetailScreen({ ventureId, stepIndex, accent, onBack }) {
   );
 }
 
-// ────────────────────────────── MONEY FLOWS ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ MONEY FLOWS 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // One component, three modes: add / move / withdraw.
 
 const CC_FLOW_CONFIGS = {
@@ -8158,7 +9216,7 @@ const CC_FLOW_CONFIGS = {
     finalCta: 'Confirm withdrawal',
     doneTitle: 'Withdrawal initiated.',
     doneSub: (amt) =>
-      `RWF ${amt.toLocaleString('en-US')} is on its way. It will arrive in your selected account within 1–2 business days.`,
+      `RWF ${amt.toLocaleString('en-US')} is on its way. It will arrive in your selected account within 1鈥? business days.`,
   },
   borrow: {
     title: 'Borrow',
@@ -8167,7 +9225,7 @@ const CC_FLOW_CONFIGS = {
     finalCta: 'Confirm & receive',
     doneTitle: 'Funds received.',
     doneSub: (amt) =>
-      `RWF ${amt.toLocaleString('en-US')} has been added to your wallet. Repay any time — your available credit restores as you repay.`,
+      `RWF ${amt.toLocaleString('en-US')} has been added to your wallet. Repay any time 鈥?your available credit restores as you repay.`,
   },
   repay: {
     title: 'Repay',
@@ -8196,7 +9254,7 @@ function FlowWithdrawDestination({ amount, value, onPick }) {
 function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
   const cfg = CC_FLOW_CONFIGS[mode];
   const [step, setStep] = React.useState(0);
-  // Money flows start at 0 — user types via the in-app keypad.
+  // Money flows start at 0 鈥?user types via the in-app keypad.
   const [amount, setAmount] = React.useState(0);
   // selections keyed by step index
   const [picks, setPicks] = React.useState({});
@@ -8204,7 +9262,7 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
   const [submitting, setSubmitting] = React.useState(false);
   const [flowError, setFlowError] = React.useState('');
 
-  // Live wallet — real-money flows (add/withdraw) read the user's actual balance
+  // Live wallet 鈥?real-money flows (add/withdraw) read the user's actual balance
   // so we never show a demo figure or a fake success. The pure local-demo
   // preview (no userId) keeps the front-end-only walkthrough behaviour.
   const everyday = window.useEveryday ? window.useEveryday() : null;
@@ -8231,7 +9289,7 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
       setSubmitting(false);
       next();
     } catch (e) {
-      // A real-money flow failed — never advance to a fake success screen.
+      // A real-money flow failed 鈥?never advance to a fake success screen.
       setSubmitting(false);
       setFlowError((e && e.message) ? e.message : 'Something went wrong. Please try again.');
     }
@@ -8245,12 +9303,12 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
 
   const pickerLabelFor = (idx) => {
     const pick = picks[idx];
-    if (pick == null) return '—';
-    if (typeof pick === 'object') return pick.label || '—';
+    if (pick == null) return '-';
+    if (typeof pick === 'object') return pick.label || '-';
     const cfgP = cfg.pickers[idx];
-    if (!cfgP) return '—';
+    if (!cfgP) return '-';
     const opts = optionsFor(cfgP.kind);
-    return opts.find((o) => o.id === pick)?.label || '—';
+    return opts.find((o) => o.id === pick)?.label || '-';
   };
 
   const cta = () => {
@@ -8296,11 +9354,11 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
           <FlowAmount amount={amount} setAmount={setAmount} title={cfg.title}
             hintError={overWithdraw}
             hint={
-              overWithdraw      ? `Exceeds available · ${fmtRWF(available)}` :
-              mode === 'borrow' ? `Available · ${fmtRWF(CC_CREDIT.available)}` :
-              mode === 'repay'  ? `Outstanding · ${fmtRWF(CC_CREDIT.outstanding)}` :
-              (mode === 'withdraw' && available != null) ? `Available · ${fmtRWF(available)}` :
-              (mode === 'add' && available != null)      ? `Wallet · ${fmtRWF(available)}` :
+              overWithdraw      ? `Exceeds available 路 ${fmtRWF(available)}` :
+              mode === 'borrow' ? `Available 路 ${fmtRWF(CC_CREDIT.available)}` :
+              mode === 'repay'  ? `Outstanding 路 ${fmtRWF(CC_CREDIT.outstanding)}` :
+              (mode === 'withdraw' && available != null) ? `Available 路 ${fmtRWF(available)}` :
+              (mode === 'add' && available != null)      ? `Wallet 路 ${fmtRWF(available)}` :
               null
             } />
         )}
@@ -8342,7 +9400,7 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
         )}
       </div>
 
-      {/* Footer — de-carded: canvas, dashed top, rounded-rect buttons */}
+      {/* Footer 鈥?de-carded: canvas, dashed top, rounded-rect buttons */}
       <div style={{
         background: canvas, borderTop: `1px dashed ${DASH}`,
         padding: '14px 16px max(14px, env(safe-area-inset-bottom, 14px))',
@@ -8395,7 +9453,7 @@ function MoneyFlowScreen({ mode, accent, onClose, onDone }) {
               <CCButton variant="solid" accent={accent} fullWidth
                 onClick={blocked || submitting ? () => {} : onTap}
                 style={{ height: 54, borderRadius: 16, fontWeight: 760, ...((blocked || submitting) ? { opacity: blocked ? 0.4 : 1, cursor: 'not-allowed' } : {}) }}>
-                {submitting ? <SubmitSpinner label="Processing…" /> : cta()}
+                {submitting ? <SubmitSpinner label="Processing..." /> : cta()}
               </CCButton>
             </div>
           );
@@ -8433,7 +9491,7 @@ function FlowAmount({ amount, setAmount, title, hint, hintError }) {
         alignItems: 'center', justifyContent: 'center',
         textAlign: 'center', padding: '0 12px',
       }}>
-        <Eyebrow style={{ marginBottom: 16 }}>{title} · in RWF</Eyebrow>
+        <Eyebrow style={{ marginBottom: 16 }}>{title} 路 in RWF</Eyebrow>
         <div style={{
           display: 'flex', alignItems: 'baseline', gap: 10, justifyContent: 'center',
           fontWeight: 500, letterSpacing: '-0.03em', lineHeight: 0.95,
@@ -8448,7 +9506,7 @@ function FlowAmount({ amount, setAmount, title, hint, hintError }) {
         <div style={{
           fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.1em',
           color: hintError ? '#C8102E' : ink55, marginTop: 14, textTransform: 'uppercase',
-        }}>{hint || 'Minimum · RWF 10,000'}</div>
+        }}>{hint || 'Minimum 路 RWF 10,000'}</div>
       </div>
 
       {/* Quick-amount chips */}
@@ -8473,7 +9531,7 @@ function FlowAmount({ amount, setAmount, title, hint, hintError }) {
         })}
       </div>
 
-      {/* Keypad — slides in */}
+      {/* Keypad 鈥?slides in */}
       <SlideUp delay={100}>
         <NumericKeypad onPress={press} />
       </SlideUp>
@@ -8481,7 +9539,7 @@ function FlowAmount({ amount, setAmount, title, hint, hintError }) {
   );
 }
 
-// 3x4 numeric keypad — matches the rounded, monochrome language.
+// 3x4 numeric keypad 鈥?matches the rounded, monochrome language.
 function NumericKeypad({ onPress }) {
   const keys = [
     '1', '2', '3',
@@ -8585,10 +9643,10 @@ function FlowReview({ mode, cfg, amount, picks, pickerLabelFor }) {
     rows.push([cfg.pickers[idx].label, pickerLabelFor(Number(idx))]);
   });
   if (mode === 'add')      rows.push(['Arrival', 'Instant']);
-  if (mode === 'withdraw') rows.push(['Arrival', '1–2 business days']);
+  if (mode === 'withdraw') rows.push(['Arrival', '1鈥? business days']);
   if (mode === 'move')     rows.push(['Arrival', 'Instant']);
   if (mode === 'borrow') {
-    rows.push(['Service fee · 2%', 'RWF ' + fee.toLocaleString('en-US')]);
+    rows.push(['Service fee 路 2%', 'RWF ' + fee.toLocaleString('en-US')]);
     rows.push(['Total to repay', 'RWF ' + (amount + fee).toLocaleString('en-US')]);
     rows.push(['Deposited to', 'Your wallet']);
   } else if (mode === 'repay') {
@@ -8724,13 +9782,13 @@ Object.assign(window, {
   everydayProfileName, everydayFirstName, everydayProfileInitials,
 });
 
-// ────────────────────────────── WALLET ──────────────────────────────
-// Where money lives — invested capital, available, and pending in/out.
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ WALLET 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// Where checkout, payments, savings, and savings-backed credit live.
 
-function WalletScreen({ accent, onBack, onMoney, onActivity }) {
+function WalletScreen({ accent, onBack, onMoney, onPay, onCredit, onActivity }) {
   const [hidden, setHidden] = React.useState(false);
 
-  // Live wallet — for a signed-in account every figure comes from the user's own
+  // Live wallet 鈥?for a signed-in account every figure comes from the user's own
   // wallet, never demo data. Only the pure local-demo preview (no userId) shows
   // CC_WALLET. Loading/error are surfaced so a pending/failed fetch is never
   // shown as if it were real money.
@@ -8744,23 +9802,25 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
 
   const useReal = realAcct && liveWallet;
   const available = useReal ? (liveWallet.balance_rwf || 0) : CC_WALLET.available;
-  const invested = useReal ? (liveWallet.savings_rwf || 0) : CC_WALLET.invested;
-  const total = available + invested;
-  // Holdings/pending have no live breakdown source yet. For a real account we
-  // show the user's actual savings as the single holding (or an empty state),
-  // never the demo investment book; the demo preview keeps CC_WALLET.
-  const holdings = useReal
-    ? (invested > 0
-        ? [{ id: 'sav', label: 'Everyday Savings', amount: 'RWF ' + Number(invested).toLocaleString('en-US'), pct: 100, sub: 'Earning ' + Math.round((((saveSlice && saveSlice.interestApr) || 0.08)) * 100) + '% a year' }]
-        : [])
-    : CC_WALLET.holdings;
-  const pending = useReal ? [] : CC_WALLET.pending;
-
-  const w = { invested, available, holdings, pending };
+  const savings = useReal ? (liveWallet.savings_rwf || 0) : CC_WALLET.invested;
+  const total = available + savings;
+  const interestApr = (saveSlice && typeof saveSlice.interestApr === 'number') ? saveSlice.interestApr : 0.08;
+  const interestPct = Math.round(interestApr * 100);
+  const interestEarned = ((saveSlice && saveSlice.transactions) || [])
+    .filter((tx) => tx && tx.kind === 'interest')
+    .reduce((sum, tx) => sum + Math.abs(Number(tx.amount_rwf || 0)), 0);
+  const borrowRatio = (CC_CREDIT && CC_CREDIT.ratio) || 0.7;
+  const borrowPct = Math.round(borrowRatio * 100);
+  const borrowLimit = Math.round(savings * borrowRatio);
+  const borrowOutstanding = useReal ? 0 : ((CC_CREDIT && CC_CREDIT.outstanding) || 0);
+  const borrowable = Math.max(0, borrowLimit - borrowOutstanding);
+  const cartItems = [];
+  const cartCount = cartItems.length;
+  const cartTotal = 0;
 
   const shown = (n) =>
     hidden
-      ? '••••••'
+      ? '-----'
       : 'RWF ' + Number(n).toLocaleString('en-US');
 
   const walletHeader = (
@@ -8792,7 +9852,7 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
           </div>
           <div style={{ fontSize: 18, fontWeight: 820, letterSpacing: '-0.02em', color: ink }}>Couldn't load your wallet</div>
-          <div style={{ fontSize: 14, color: ink55, fontWeight: 500, maxWidth: 300, lineHeight: 1.5 }}>We couldn't reach your wallet just now. Check your connection and try again — your money is safe.</div>
+          <div style={{ fontSize: 14, color: ink55, fontWeight: 500, maxWidth: 300, lineHeight: 1.5 }}>We couldn't reach your wallet just now. Check your connection and try again 鈥?your money is safe.</div>
           <button onClick={retryWallet} style={{ marginTop: 6, height: 46, padding: '0 28px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 740 }}>Try again</button>
         </div>
       </div>
@@ -8803,13 +9863,13 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
     <div style={{ paddingBottom: 24 }}>
       {walletHeader}
 
-      {/* Hero — total balance with eye toggle */}
+      {/* Hero: total wallet position with eye toggle */}
       <div style={{ padding: '32px 24px 28px' }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 14,
         }}>
-          <Eyebrow>Total balance</Eyebrow>
+          <Eyebrow>Wallet</Eyebrow>
           <EyeToggle hidden={hidden} onToggle={() => setHidden((h) => !h)} />
         </div>
         <div style={{
@@ -8817,97 +9877,131 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
           fontFeatureSettings: '"tnum"', lineHeight: 1,
           userSelect: 'none',
         }}>
-          {hidden ? 'RWF ••••••••' : `RWF ${Number(total).toLocaleString('en-US')}`}
+          {hidden ? 'RWF -----' : `RWF ${Number(total).toLocaleString('en-US')}`}
         </div>
 
-        <div style={{ display: 'flex', gap: 32, marginTop: 22 }}>
-          <div>
-            <Eyebrow style={{ marginBottom: 6 }}>Invested</Eyebrow>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 28px', marginTop: 22 }}>
+          <div style={{ minWidth: 92, flex: '1 1 92px' }}>
+            <Eyebrow style={{ marginBottom: 6 }}>Spendable</Eyebrow>
             <div style={{
-              fontSize: 18, fontWeight: 500, fontFeatureSettings: '"tnum"',
-            }}>{shown(w.invested)}</div>
+              fontSize: 16, fontWeight: 500, fontFeatureSettings: '"tnum"',
+            }}>{shown(available)}</div>
           </div>
-          <div>
-            <Eyebrow style={{ marginBottom: 6 }}>Available</Eyebrow>
+          <div style={{ minWidth: 92, flex: '1 1 92px' }}>
+            <Eyebrow style={{ marginBottom: 6 }}>Savings</Eyebrow>
             <div style={{
-              fontSize: 18, fontWeight: 500, fontFeatureSettings: '"tnum"',
-            }}>{shown(w.available)}</div>
+              fontSize: 16, fontWeight: 500, fontFeatureSettings: '"tnum"',
+            }}>{shown(savings)}</div>
+          </div>
+          <div style={{ minWidth: 92, flex: '1 1 92px' }}>
+            <Eyebrow style={{ marginBottom: 6 }}>Borrow</Eyebrow>
+            <div style={{
+              fontSize: 16, fontWeight: 500, fontFeatureSettings: '"tnum"',
+            }}>{shown(borrowable)}</div>
           </div>
         </div>
       </div>
 
       <Rule />
 
-      {/* Collapsible: Holdings */}
-      <CollapsibleSection title="Holdings" meta={`${w.holdings.length}`}>
-        {w.holdings.length === 0 && (
-          <div style={{ padding: '18px 0', fontSize: 14, color: ink55, lineHeight: 1.5 }}>
-            No holdings yet. Start saving to grow your balance — your savings earn interest automatically.
+      <CollapsibleSection title="Cart" meta={cartCount ? `${cartCount}` : 'Empty'}>
+        {cartCount === 0 ? (
+          <div style={{ padding: '18px 0', display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 650 }}>No items ready to pay</div>
+              <div style={{ fontSize: 13, color: ink55, marginTop: 5 }}>Marketplace checkout appears here.</div>
+            </div>
+            <div style={{ fontFamily: CC_MONO, fontSize: 12, letterSpacing: '0.04em', color: ink55 }}>{shown(cartTotal)}</div>
           </div>
+        ) : (
+          cartItems.map((item, i) => (
+            <div key={item.id} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              padding: '14px 0',
+              borderTop: i === 0 ? `1px solid ${ink12}` : 'none',
+              borderBottom: `1px solid ${ink12}`,
+            }}>
+              <div style={{ fontSize: 14.5, fontWeight: 600 }}>{item.title}</div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 12 }}>{shown(item.amount)}</div>
+            </div>
+          ))
         )}
-        {w.holdings.map((h, i) => (
-          <div key={h.id} style={{
-            padding: '14px 0',
-            borderTop: i === 0 ? `1px solid ${ink12}` : 'none',
-            borderBottom: `1px solid ${ink12}`,
-          }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'baseline', marginBottom: 8,
-            }}>
-              <div style={{ fontSize: 15, fontWeight: 500 }}>{h.label}</div>
-              <div style={{
-                fontFamily: CC_MONO, fontSize: 12, letterSpacing: '0.04em',
-              }}>{hidden ? '••••••' : h.amount}</div>
-            </div>
-            <div style={{
-              height: 2, background: ink12, borderRadius: 999,
-              position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', inset: 0, width: `${h.pct}%`,
-                background: accent || ink, borderRadius: 999,
-              }} />
-            </div>
-          </div>
-        ))}
       </CollapsibleSection>
 
       <Rule />
 
-      {/* Collapsible: Pending */}
-      {w.pending && w.pending.length > 0 && (
-        <>
-          <CollapsibleSection title="Pending" meta={`${w.pending.length}`}>
-            {w.pending.map((p, i) => (
-              <div key={p.id} style={{
-                display: 'flex', alignItems: 'baseline',
-                justifyContent: 'space-between',
-                padding: '14px 0',
-                borderTop: i === 0 ? `1px solid ${ink12}` : 'none',
-                borderBottom: `1px solid ${ink12}`,
-              }}>
-                <div>
-                  <div style={{ fontSize: 14 }}>{p.title}</div>
-                  <div style={{
-                    fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
-                    color: ink55, marginTop: 4, textTransform: 'uppercase',
-                  }}>{p.sub}</div>
-                </div>
-                <div style={{
-                  fontFamily: CC_MONO, fontSize: 13, letterSpacing: '0.02em',
-                }}>{hidden ? '••••••' : p.amount}</div>
-              </div>
-            ))}
-          </CollapsibleSection>
-          <Rule />
-        </>
-      )}
+      <CollapsibleSection title="Pay" meta={shown(available)}>
+        <div style={{ padding: '18px 0', display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 650 }}>Ready for goods and services</div>
+            <div style={{ fontSize: 13, color: ink55, marginTop: 5 }}>Pay from your wallet balance.</div>
+          </div>
+          <button onClick={onPay} style={{ height: 38, padding: '0 18px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 760 }}>Pay</button>
+        </div>
+      </CollapsibleSection>
+
+      <Rule />
+
+      <CollapsibleSection title="Savings" meta={`${interestPct}% yearly`}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          padding: '16px 0', borderBottom: `1px solid ${ink12}`,
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 650 }}>Saved balance</div>
+            <div style={{ fontSize: 13, color: ink55, marginTop: 5 }}>Earns {interestPct}% a year.</div>
+          </div>
+          <div style={{ fontFamily: CC_MONO, fontSize: 12, letterSpacing: '0.04em' }}>{shown(savings)}</div>
+        </div>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          padding: '16px 0',
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 650 }}>Earned</div>
+            <div style={{ fontSize: 13, color: ink55, marginTop: 5 }}>Interest paid into savings.</div>
+          </div>
+          <div style={{ fontFamily: CC_MONO, fontSize: 12, letterSpacing: '0.04em' }}>{shown(interestEarned)}</div>
+        </div>
+      </CollapsibleSection>
+
+      <Rule />
+
+      <CollapsibleSection title="Borrow" meta={`${borrowPct}% of savings`}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          padding: '16px 0', borderBottom: `1px solid ${ink12}`,
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 650 }}>Available to borrow</div>
+            <div style={{ fontSize: 13, color: ink55, marginTop: 5 }}>Spend or withdraw from the platform.</div>
+          </div>
+          <div style={{ fontFamily: CC_MONO, fontSize: 12, letterSpacing: '0.04em' }}>{shown(borrowable)}</div>
+        </div>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          padding: '16px 0',
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 650 }}>Current loan</div>
+            <div style={{ fontSize: 13, color: ink55, marginTop: 5 }}>Backed by your savings.</div>
+          </div>
+          <div style={{ fontFamily: CC_MONO, fontSize: 12, letterSpacing: '0.04em' }}>{shown(borrowOutstanding)}</div>
+        </div>
+      </CollapsibleSection>
+
+      <Rule />
 
       {/* Quick actions */}
-      <div style={{ padding: '24px 20px 0', display: 'flex', gap: 10 }}>
-        <CCButton variant="ghost" size="md" fullWidth onClick={() => onMoney('add')}>Top Up</CCButton>
-        <CCButton variant="ghost" size="md" fullWidth onClick={() => onMoney('withdraw')}>Withdraw</CCButton>
+      <div style={{ padding: '24px 20px 0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+        {[
+          ['Save', 'add', () => onMoney && onMoney('add')],
+          ['Pay', 'pay', () => onPay && onPay()],
+          ['Borrow', 'borrow', () => onCredit ? onCredit() : onMoney && onMoney('borrow')],
+          ['Withdraw', 'withdraw', () => onMoney && onMoney('withdraw')],
+        ].map(([label, key, act], idx) => (
+          <button key={key} onClick={act} style={{ height: 46, borderRadius: 999, border: idx === 0 ? 0 : `1px dashed ${DASH}`, background: idx === 0 ? ink : 'transparent', color: idx === 0 ? paper : ink, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 760 }}>{label}</button>
+        ))}
       </div>
 
       {/* All activity */}
@@ -8931,7 +10025,7 @@ function WalletScreen({ accent, onBack, onMoney, onActivity }) {
   );
 }
 
-// ────────────────────────────── SETTINGS / PROFILE ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ SETTINGS / PROFILE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function SettingsScreen({ accent, profile, authConfigured = false, onBack, onSignOut, onProfileUpdated }) {
   const [confirmSignOut, setConfirmSignOut] = React.useState(false);
@@ -9046,13 +10140,13 @@ function SettingsScreen({ accent, profile, authConfigured = false, onBack, onSig
         fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
         color: ink40, textAlign: 'center', textTransform: 'uppercase',
       }}>
-        Everyday · v0.4.0
+        Everyday 路 v0.4.0
       </div>
     </div>
   );
 }
 
-// ────────────────────────────── ACTIVITY / HISTORY ──────────────────────────────
+// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ ACTIVITY / HISTORY 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 function ActivityGlyph({ kind }) {
   const paths = {
@@ -9157,7 +10251,7 @@ function ActivityScreen({ accent, onBack }) {
                   fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.06em',
                   textTransform: 'uppercase', color: ink55, marginTop: 4,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>{it.meta} · {it.date}</div>
+                }}>{it.meta} 路 {it.date}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{

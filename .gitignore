@@ -21,7 +21,6 @@ kokoro-env/
 kokoro-temp/
 # Local dev tool configs
 .claude/
-.scratch-tunnel/
 next-pwa/next-env.d.ts
 local-voice/tmp/
 local-voice/service/*.go.*
