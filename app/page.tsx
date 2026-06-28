@@ -90,7 +90,12 @@ export default function Home() {
   return (
     <main className={`il-site ${loaded ? "il-loaded" : "il-loading"}`}>
       <div className="il-loader" aria-hidden={loaded}>
-        <div className="il-loader-core"><i /><i /><i /><i /><i /><i /></div>
+        <div className="tetrominos">
+          <div className="tetromino box1" />
+          <div className="tetromino box2" />
+          <div className="tetromino box3" />
+          <div className="tetromino box4" />
+        </div>
         <p>Building practical futures</p>
         <span>KIGALI / RWANDA</span>
       </div>
