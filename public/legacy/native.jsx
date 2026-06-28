@@ -1,4 +1,4 @@
-// native.jsx — production / native-readiness layer for Everyday
+// native.jsx — production / native-readiness layer for Ingoga Invest
 // ───────────────────────────────────────────────────────────────────────────
 // Adds everything needed to ship the prototype as a real installed app
 // (Capacitor iOS/Android wrapper or installed PWA) without touching the
@@ -55,14 +55,14 @@ const EverydayPush = {
     try {
       const Cap = window.Capacitor;
       const PN = Cap && Cap.Plugins && Cap.Plugins.PushNotifications;
-      if (!PN) { console.info('[Everyday] Push unavailable (browser/preview) — scaffold ready.'); return; }
+      if (!PN) { console.info('[Ingoga Invest] Push unavailable (browser/preview) — scaffold ready.'); return; }
       const perm = await PN.requestPermissions();
       if (perm.receive === 'granted') await PN.register();
-      PN.addListener('registration', (t) => console.info('[Everyday] push token:', t.value));
-      PN.addListener('registrationError', (e) => console.warn('[Everyday] push reg error:', e));
-      PN.addListener('pushNotificationReceived', (n) => console.info('[Everyday] push received:', n));
-      PN.addListener('pushNotificationActionPerformed', (n) => console.info('[Everyday] push tapped:', n));
-    } catch (e) { console.warn('[Everyday] push init failed', e); }
+      PN.addListener('registration', (t) => console.info('[Ingoga Invest] push token:', t.value));
+      PN.addListener('registrationError', (e) => console.warn('[Ingoga Invest] push reg error:', e));
+      PN.addListener('pushNotificationReceived', (n) => console.info('[Ingoga Invest] push received:', n));
+      PN.addListener('pushNotificationActionPerformed', (n) => console.info('[Ingoga Invest] push tapped:', n));
+    } catch (e) { console.warn('[Ingoga Invest] push init failed', e); }
   },
 };
 
@@ -289,19 +289,19 @@ function Onboarding({ native, accent, onDone }) {
   const slides = [
     {
       mark: true,
-      eyebrow: 'Your Everyday',
+      eyebrow: 'Your Ingoga Invest',
       title: 'Your everyday trust.',
-      body: 'One place to shop, pay, plan and grow — where everyone you deal with has already been vetted. Welcome to Everyday.',
+      body: 'One place to shop, pay, plan and grow — where everyone you deal with has already been vetted. Welcome to Ingoga Invest.',
     },
     {
       eyebrow: 'Vetted, always',
       title: 'Only people worth your trust.',
-      body: 'Every business, brand, and individual on Everyday is verified before they’re let in. No strangers, no guesswork — just people and places you can rely on.',
+      body: 'Every business, brand, and individual on Ingoga Invest is verified before they’re let in. No strangers, no guesswork — just people and places you can rely on.',
     },
     {
       eyebrow: 'Plan · Save · Grow',
       title: 'And manage your wealth.',
-      body: 'Beyond the everyday, Everyday helps you plan your spending, save consistently, and grow your money — building real wealth, one day at a time.',
+      body: 'Beyond the everyday, Ingoga Invest helps you plan your spending, save consistently, and grow your money — building real wealth, one day at a time.',
     },
   ];
   const [i, setI] = React.useState(0);

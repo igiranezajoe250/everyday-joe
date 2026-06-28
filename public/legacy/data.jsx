@@ -1,4 +1,4 @@
-// data.jsx — mock data for Everyday.
+// data.jsx — mock data for Ingoga Invest.
 // Six funds (no sub-companies). All amounts in RWF.
 
 const CC_PORTFOLIO = {
@@ -18,13 +18,13 @@ const CC_PORTFOLIO = {
   ],
 };
 
-// ───────────────────────── Savings & Credit (Everyday core) ─────────────────────────
+// ───────────────────────── Savings & Credit (Ingoga Invest core) ─────────────────────────
 // Saving is the primary behaviour. Returns grow the savings; the savings
 // balance in turn unlocks a credit line (capacity = 70% of savings).
 //
 // INTERNAL ECONOMICS (not surfaced in the customer UI):
 //   Pooled savings are placed with professional investors earning ~12%.
-//   Customers receive 8% interest on their savings; Everyday keeps the
+//   Customers receive 8% interest on their savings; Ingoga Invest keeps the
 //   ~4% spread, which also funds the credit line. Only the 8% interest and
 //   the 70% borrowing ratio are shown to customers.
 
@@ -89,7 +89,7 @@ const CC_DESTINATIONS = [
 const CC_MANDATE_TARGETS = [
   { id: 'cash',     label: 'Your wallet',
                     sub: 'Hold as cash. Use to invest later.' },
-  { id: 'house',    label: 'Invest with Everyday',
+  { id: 'house',    label: 'Invest with Ingoga Invest',
                     sub: 'Our team allocates across the live funds.' },
   { id: 'savannah', label: 'Savannah Creek',
                     sub: 'Eco-tourism · safari camps in Akagera.' },

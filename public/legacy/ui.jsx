@@ -1,4 +1,4 @@
-// ui.jsx — shared low-fi swiss primitives for Everyday
+// ui.jsx — shared low-fi swiss primitives for Ingoga Invest
 
 // ───────────────────────────── theming ─────────────────────────────
 
@@ -534,7 +534,7 @@ function CCButton({
   );
 }
 
-// Tap-to-type field — the core of the Everyday design language. No card: just
+// Tap-to-type field — the core of the Ingoga Invest design language. No card: just
 // a label, and a shaded placeholder sitting over a dashed rule that firms to a
 // solid ink line on focus. Used app-wide instead of boxed inputs so the page
 // stays clean and the primary button is free to stand out.

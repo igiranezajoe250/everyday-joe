@@ -15,7 +15,7 @@
     if (!name && email) name = email.split("@")[0].replace(/[._-]+/g, " ");
     return {
       id: row && row.id ? row.id : user && user.id,
-      display_name: name || "Everyday user",
+      display_name: name || "Ingoga Invest user",
       phone: row && row.phone ? row.phone : user && user.phone ? user.phone : "",
       email: email,
       avatar_url: row && row.avatar_url ? row.avatar_url : "",
@@ -263,7 +263,7 @@
     if (sessionResult.error) throw sessionResult.error;
     var session = sessionResult.data && sessionResult.data.session;
     var user = session && session.user;
-    if (!user) throw new Error("Sign in before syncing Everyday data.");
+    if (!user) throw new Error("Sign in before syncing Ingoga Invest data.");
     return user;
   }
 
@@ -471,7 +471,7 @@
   }
 
   // UCP commerce — /api/ucp (Universal Commerce Protocol: checkout + order).
-  // Shop now checks out through UCP; Everyday is Merchant of Record and settles
+  // Shop now checks out through UCP; Ingoga Invest is Merchant of Record and settles
   // the total against the wallet. line_items: [{ product_id, quantity }].
   async function ucpDiscovery() {
     return callService("/.well-known/ucp");
@@ -619,7 +619,7 @@
       checkout: ucpCheckout, // UCP one-shot checkout
     },
     x402: {
-      // x402 payment protocol (Everyday Wallet rail). Settlement also happens
+      // x402 payment protocol (Ingoga Invest Wallet rail). Settlement also happens
       // automatically inside UCP checkout completion; these are for direct use.
       discovery: function () { return callService("/.well-known/x402"); },
       verify: function (requirements, payment) {

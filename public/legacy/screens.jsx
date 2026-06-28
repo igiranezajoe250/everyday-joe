@@ -1,5 +1,5 @@
 ﻿// screens.jsx 鈥?Capital home, Venture feed, Detail, Checkout
-// Everyday 鈥?low-fi swiss wireframes, pill-rounded geometry.
+// Ingoga Invest 鈥?low-fi swiss wireframes, pill-rounded geometry.
 
 
 // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ EVERYDAY HUB 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
@@ -7,7 +7,7 @@
 // functions the user chose at sign-up; tapping one opens that page. The old
 // vertical scroll-wheel switcher has been retired in favour of this.
 
-// Shared catalogue of the six Everyday functions. Each maps to a route the app
+// Shared catalogue of the six Ingoga Invest functions. Each maps to a route the app
 // already renders. `icon` is JSX; stroke colour is applied via cloneElement.
 // Focused catalogue: Marketplace is the trusted daily-life browser, Wallet is
 // the money surface, and Plan is the brain. Save/Pay/Commute/Listen still have
@@ -298,7 +298,7 @@ function EverydayAuthGate({ accent, onReady, onDemo }) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
       <div style={{ height: PK_NATIVE ? 'max(16px, env(safe-area-inset-top, 16px))' : 54, flexShrink: 0 }} />
       <div style={{ padding: '14px 24px 0' }}>
-        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
+        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Ingoga Invest</span>
       </div>
       <form onSubmit={submit} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px 36px', maxWidth: 440, width: '100%', margin: '0 auto' }}>
         <Eyebrow style={{ marginBottom: 16 }}>Your everyday trust</Eyebrow>
@@ -427,7 +427,7 @@ function EverydayProfileSetup({ profile, accent, onDone }) {
       <form onSubmit={save} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px 36px', maxWidth: 440, width: '100%', margin: '0 auto' }}>
         <Eyebrow style={{ marginBottom: 16 }}>Profile</Eyebrow>
         <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.035em', lineHeight: 1.08, color: ink, marginBottom: 28 }}>
-          Tell Everyday what to call you.
+          Tell Ingoga Invest what to call you.
         </div>
         <div style={{ display: 'grid', gap: 18 }}>
           <DashField label="Display name" value={name} onChange={setName} placeholder="Your name" autoFocus />
@@ -506,7 +506,7 @@ function everydayActivityItems(state) {
     id: tx.id,
     kind: everydayActivityKind(tx),
     title: tx.title || everydayCap(tx.section) || 'Transaction',
-    meta: EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Everyday',
+    meta: EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Ingoga Invest',
     date: everydayFmtActivityDate(tx.happened_at || tx.created_at),
     amount: (tx.direction === 'in' ? '+ ' : '鈭?') + fmtRWF(tx.amount_rwf || 0),
     dir: tx.direction === 'in' ? 'in' : 'out',
@@ -522,7 +522,7 @@ function everydayInboxItems(state, seenAt) {
   const fromTx = txs.map((tx) => {
     const ts = new Date(tx.happened_at || tx.created_at).getTime() || 0;
     const inbound = tx.direction === 'in';
-    const label = EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Everyday';
+    const label = EVERYDAY_SECTION_LABEL[tx.section] || everydayCap(tx.section) || 'Ingoga Invest';
     return {
       id: 'tx-' + tx.id, type: 'notif', ts,
       title: tx.kind === 'interest' ? 'Savings interest credited' : tx.title || label,
@@ -570,7 +570,7 @@ function NotificationsPanel({ onClose, seenAt = 0 }) {
     { id: 2, type: 'message', title: 'Aline N. 路 Moto',           body: 'I\'m 3 minutes away 鈥?meet at the gate?', time: '10m', unread: true },
     { id: 3, type: 'notif',   title: 'Payment sent',              body: 'RWF 5,000 to Eric Kwizera.', time: '1d', unread: false },
     { id: 4, type: 'message', title: 'Green Hills School',        body: 'Receipt for school fees attached.', time: '2d', unread: false },
-    { id: 5, type: 'notif',   title: 'New marketplace provider',  body: 'House of Tayo just joined Everyday.', time: '3d', unread: false },
+    { id: 5, type: 'notif',   title: 'New marketplace provider',  body: 'House of Tayo just joined Ingoga Invest.', time: '3d', unread: false },
   ];
   const items = realItems || demoItems;
   const shown = tab === 'messages' ? items.filter((i) => i.type === 'message') : items;
@@ -1061,7 +1061,7 @@ function BountyGeneratedResult({ item, web, onRoute, onSaveToPlan }) {
   const intent = (plan && plan.intent) || (calls[0] && calls[0].args && calls[0].args.intent) || null;
   const route = data && data.route;
   const action = data && data.action;
-  const label = route === 'capital' ? 'Save' : route ? route.charAt(0).toUpperCase() + route.slice(1) : 'Everyday';
+  const label = route === 'capital' ? 'Save' : route ? route.charAt(0).toUpperCase() + route.slice(1) : 'Ingoga Invest';
   const hasPlan = plan && Array.isArray(plan.steps) && plan.steps.length > 0;
   const pendingQuestion = calls.find((call) => call && call.name === 'clarify_missing_field');
 
@@ -1190,7 +1190,7 @@ function EverydayHub({ web, profile, onShop, onWallet, onSave, onPay, onPlan, on
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas, position: 'relative', overflow: 'hidden' }}>
       {/* Top wordmark 鈥?actions live in the global header cluster (top-right). */}
       <div style={{ padding: web ? '24px 40px 0' : '14px 24px 0', display: 'flex', alignItems: 'center' }}>
-        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Everyday</span>
+        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: ink70 }}>Ingoga Invest</span>
       </div>
 
       {/* Generated Bount surface. Results appear in-place instead of a side chat. */}
@@ -1392,7 +1392,7 @@ function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, in
             color: ink,
           }}>{m.intro}</div>
           <div style={{ marginTop: 12, fontSize: 15, lineHeight: 1.45, color: ink55, maxWidth: 520 }}>
-            Choose an action and keep moving. Everyday keeps this workspace focused on the task.
+            Choose an action and keep moving. Ingoga Invest keeps this workspace focused on the task.
           </div>
 
           <div style={{
@@ -1581,7 +1581,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
             </div>
             <div style={{ fontSize: web ? 34 : 27, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.08, color: ink }}>Sample item.</div>
             <div style={{ fontSize: 14.5, color: ink55, marginTop: 12, fontWeight: 500, lineHeight: 1.5 }}>{product.name} is part of {shop.name}'s preview catalogue. The provider has not listed it for online purchase yet, so it cannot be bought right now.</div>
-            <div style={{ fontSize: 13.5, color: ink40, marginTop: 14, fontWeight: 500, lineHeight: 1.5 }}>When the provider publishes its live catalogue, items become available to buy with your Everyday Wallet.</div>
+            <div style={{ fontSize: 13.5, color: ink40, marginTop: 14, fontWeight: 500, lineHeight: 1.5 }}>When the provider publishes its live catalogue, items become available to buy with your Ingoga Invest Wallet.</div>
             <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Marketplace</button>
           </div>
         </div>
@@ -1620,7 +1620,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2FAE9B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div style={{ fontSize: web ? 36 : 28, fontWeight: 840, letterSpacing: '-0.04em', lineHeight: 1.05, color: ink }}>Order placed.</div>
-            <div style={{ fontSize: 14, color: ink55, marginTop: 10, fontWeight: 500 }}>Your Everyday Wallet was charged {fmtAmt(total)}. The provider will confirm your {fulfillment}.</div>
+            <div style={{ fontSize: 14, color: ink55, marginTop: 10, fontWeight: 500 }}>Your Ingoga Invest Wallet was charged {fmtAmt(total)}. The provider will confirm your {fulfillment}.</div>
             {orderId && <div style={{ marginTop: 16, fontFamily: CC_MONO, fontSize: 11, color: ink40, letterSpacing: '0.06em' }}>Order ID 路 {orderId}</div>}
             <button onClick={onBack} style={{ marginTop: 32, height: 50, width: '100%', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 720, letterSpacing: '-0.01em' }}>Back to Marketplace</button>
           </div>
@@ -1684,7 +1684,7 @@ function ShopCheckoutFlow({ product, shop, web, onBack }) {
 
               <div style={{ marginTop: 4, padding: '14px 16px', borderRadius: 12, border: `1px dashed ${DASH}`, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={ink55} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/></svg>
-                <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>Everyday Wallet 路 charged {fmtAmt(total)}</span>
+                <span style={{ fontSize: 13, color: ink55, fontWeight: 600 }}>Ingoga Invest Wallet 路 charged {fmtAmt(total)}</span>
               </div>
 
               {error && <div style={{ marginTop: 12, fontSize: 13, color: '#C8102E', fontWeight: 600 }}>{error}</div>}
@@ -1831,7 +1831,7 @@ function MarketplaceServiceDetail({ service, web, onBack, isOperator = false, on
 
           <div style={{ marginTop: 28, borderTop: `1px dashed ${DASH}` }}>
             {[
-              ['Access', service.route ? 'Continue inside Everyday.' : service.url ? 'Open the official service in a new tab.' : 'Handled inside Everyday when this provider goes live.'],
+              ['Access', service.route ? 'Continue inside Ingoga Invest.' : service.url ? 'Open the official service in a new tab.' : 'Handled inside Ingoga Invest when this provider goes live.'],
               ['Command', service.command || 'Tell Marketplace what you need and Bounty will shape the request.'],
               ['Operator', 'Providers can manage requests, listings and fulfilment from the same marketplace surface.'],
             ].map(([label, value], i) => (
@@ -1850,7 +1850,7 @@ function MarketplaceServiceDetail({ service, web, onBack, isOperator = false, on
           </div>
 
           <button onClick={continueService} disabled={!canContinue} style={{ marginTop: 26, width: '100%', height: 52, borderRadius: 999, border: 0, background: canContinue ? ink : ink12, color: canContinue ? paper : ink40, cursor: canContinue ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 15, fontWeight: 740 }}>
-            {role === 'operator' ? 'Open operator console' : service.route ? 'Open in Everyday' : 'Open service'}
+            {role === 'operator' ? 'Open operator console' : service.route ? 'Open in Ingoga Invest' : 'Open service'}
           </button>
         </div>
       </div>
@@ -1961,8 +1961,8 @@ function ShopScreen({ web, onBack, isOperator = false, onOperatorChange, onOpenR
     { name: 'Typless.rw', cat: 'Forms', kind: 'service', url: 'https://typless.rw', desc: 'Create and share forms for registrations, surveys, intake flows and lightweight data collection.', command: 'Create a registration form for my event' },
     { name: 'RRA eTax', cat: 'Government', kind: 'service', url: 'https://etax.rra.gov.rw', desc: 'Find tax declarations, TIN-related services and Rwanda Revenue Authority payments.', command: 'Help me find where to pay RRA taxes' },
     { name: 'RwandaAir', cat: 'Services', kind: 'service', url: 'https://www.rwandair.com', desc: 'Search routes, manage flights and access travel services from RwandaAir.', command: 'Find a flight from Kigali to Nairobi next week' },
-    { name: 'Everyday Mobility', cat: 'Mobility', kind: 'service', route: 'commute', desc: 'Book vetted motos, cars and shared rides from the same trusted marketplace.', command: 'Find me a safe ride across Kigali' },
-    { name: 'Everyday Listen', cat: 'Listen', kind: 'service', route: 'listen', desc: 'Discover trusted podcasts, briefings and audio channels without leaving Everyday.', command: 'Find something useful to listen to' },
+    { name: 'Ingoga Invest Mobility', cat: 'Mobility', kind: 'service', route: 'commute', desc: 'Book vetted motos, cars and shared rides from the same trusted marketplace.', command: 'Find me a safe ride across Kigali' },
+    { name: 'Ingoga Invest Listen', cat: 'Listen', kind: 'service', route: 'listen', desc: 'Discover trusted podcasts, briefings and audio channels without leaving Ingoga Invest.', command: 'Find something useful to listen to' },
   ];
   const fallbackShops = [
     { name: 'House of Tayo', cat: 'Fashion', kind: 'shop' },
@@ -2379,7 +2379,7 @@ function generateDayPlan(text) {
 }
 
 // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ PLAN 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-// Plan is the brain of Everyday: a calm, private place to keep thoughts,
+// Plan is the brain of Ingoga Invest: a calm, private place to keep thoughts,
 // plans, goals, notes, voice memos and documents. Kept as the existing
 // two-pane workspace (collapsible rail + canvas, de-carded dashed style);
 // the rail now organizes Folders and the canvas holds Files. What the user
@@ -3452,7 +3452,7 @@ function PlanScreen({ web, onBack, bottomInset = 0, intent, onIntentHandled }) {
           {/* 鈹€鈹€ INSIGHTS 鈹€鈹€ */}
           {view === 'insights' ? (
             <div className="pk-stagger">
-              <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>What Everyday understands</div>
+              <div style={{ fontSize: web ? 26 : 22, fontWeight: 800, letterSpacing: '-0.02em', color: ink }}>What Ingoga Invest understands</div>
               <div style={{ marginTop: 6, fontSize: 13, color: ink55, lineHeight: 1.5 }}>The more you keep here, the more the rest of the app can quietly help. Nothing leaves your space.</div>
               <div style={{ marginTop: 20 }}>
                 {insights.length === 0 ? (
@@ -3890,7 +3890,7 @@ function PlanRecorder({ onCancel, onSave, language }) {
 // Playback state is lifted to App so audio keeps going across the app.
 
 const CC_LISTEN = [
-  { id: 'briefing', name: 'Everyday Briefing', author: 'EBC Studio', desc: 'Your daily brief on Kigali 鈥?in ten minutes.', hue: '#5B7CFA',
+  { id: 'briefing', name: 'Ingoga Invest Briefing', author: 'EBC Studio', desc: 'Your daily brief on Kigali 鈥?in ten minutes.', hue: '#5B7CFA',
     episodes: [
       { id: 'b1', title: 'Morning in Kigali', min: 12, date: 'Jun 11', type: 'long',  tag: 'new' },
       { id: 'b2', title: 'What to know before noon', min: 9, date: 'Jun 10', type: 'short', tag: 'popular' },
@@ -3910,7 +3910,7 @@ const CC_LISTEN = [
       { id: 'c2', title: 'Studio routines', min: 19, date: 'Jun 8', type: 'long', tag: 'new' },
       { id: 'c3', title: 'Pricing your work', min: 7, date: 'Jun 6', type: 'short', tag: 'highlighted' },
     ] },
-  { id: 'money', name: 'Money Habits', author: 'Everyday', desc: 'Small habits that compound.', hue: '#E2941F',
+  { id: 'money', name: 'Money Habits', author: 'Ingoga Invest', desc: 'Small habits that compound.', hue: '#E2941F',
     episodes: [
       { id: 'm1', title: 'Small savings that compound', min: 16, date: 'Jun 11', type: 'long', tag: 'highlighted' },
       { id: 'm2', title: 'Borrowing with care', min: 13, date: 'Jun 9', type: 'long', tag: 'new' },
@@ -4357,7 +4357,7 @@ function PayScreen({ web, onBack }) {
         pkHaptic('success');
         setPaidReceipt({
           amount, currency,
-          // Prefer the name the server resolved (the real Everyday user's name).
+          // Prefer the name the server resolved (the real Ingoga Invest user's name).
           recipient: (res && res.recipient) || recipientLabel,
           id: (res && res.tx_id) ? 'EV-' + String(res.tx_id).slice(0, 6).toUpperCase() : 'EV-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
         });
@@ -4370,7 +4370,7 @@ function PayScreen({ web, onBack }) {
     }
     // No store (signed out / preview) 鈥?we can't move real money. Be honest
     // rather than showing a fake receipt.
-    setPayError('Sign in to send money from your Everyday Wallet.');
+    setPayError('Sign in to send money from your Ingoga Invest Wallet.');
   };
   const resetPayment = () => { setAmount(''); setRecipientText(''); setRecipient(null); setContactOpen(false); setPaidReceipt(null); setPayError(''); };
 
@@ -4526,7 +4526,7 @@ function ReceiptRow({ label, value, green = false, last = false }) {
 }
 // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ COMMUTE 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 // A guided, progressively-disclosed journey that keeps the de-carded
-// Everyday language (dashed rules, ink/paper, mono labels):
+// Ingoga Invest language (dashed rules, ink/paper, mono labels):
 //   plan 鈫?results 鈫?detail 鈫?confirm 鈫?success, plus a focused
 //   "ride with someone" sub-flow. The map is a design-native demo
 //   surface (route, pickup, destination, live nearby riders).
@@ -5297,7 +5297,7 @@ function CommuteScreen({ web, onBack }) {
                   <div style={{ marginTop: 16 }}>
                     <DetailRow label="Pickup" value={origin || 'Current location'} />
                     <DetailRow label="Drop-off" value={destination} />
-                    <DetailRow label="Pay with" value="Everyday Wallet" />
+                    <DetailRow label="Pay with" value="Ingoga Invest Wallet" />
                     <DetailRow label="Agreed fare" value={ccPrice(agreedPrice)} accent last />
                   </div>
                 </div>
@@ -7217,7 +7217,7 @@ function VentureFeedScreen({ accent, onOpenVenture, onInvest }) {
   };
   const subByFilter = {
     funds:  'Optional 鈥?once you\'re saving, put some to work in vetted funds. Preview 鈥?investing isn\'t live yet.',
-    foryou: 'Businesses Everyday is helping grow directly. Preview 鈥?investing isn\'t live yet.',
+    foryou: 'Businesses Ingoga Invest is helping grow directly. Preview 鈥?investing isn\'t live yet.',
   };
 
   const sortOptions = [
@@ -7780,7 +7780,7 @@ function DetailReviewBlock({ venture }) {
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst 路 Everyday',
+    role: 'Senior Investment Analyst 路 Ingoga Invest',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -8294,10 +8294,10 @@ function CheckoutScreen({ ventureId, accent, allocationMode = 'fund', onClose, o
   );
 }
 
-// Mandate step 鈥?choose Everyday (in-house picks) OR a specific fund.
+// Mandate step 鈥?choose Ingoga Invest (in-house picks) OR a specific fund.
 function CheckoutMandate({ mandate, setMandate, venture }) {
   const options = [
-    { id: 'cc', label: 'Invest with Everyday',
+    { id: 'cc', label: 'Invest with Ingoga Invest',
       sub: 'Our in-house team allocates your capital across the funds.',
       tag: 'Recommended' },
     ...CC_FUNDS_V2.map((f) => ({
@@ -8504,14 +8504,14 @@ function buildReceiptText(title, rows, reference) {
     dateStyle: 'medium', timeStyle: 'short',
   });
   const lines = [];
-  lines.push('EVERYDAY JOE 鈥?' + title.toUpperCase());
+  lines.push('INGOGA INVEST 鈥?' + title.toUpperCase());
   lines.push('鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€');
   lines.push('Date:       ' + date);
   lines.push('Reference:  ' + reference);
   lines.push('');
   rows.forEach(([k, v]) => { lines.push((k + ':').padEnd(14, ' ') + v); });
   lines.push('');
-  lines.push('Saved to your Everyday account 路 everyday.app');
+  lines.push('Saved to your Ingoga Invest account 路 everyday.app');
   return lines.join('\n');
 }
 
@@ -8595,7 +8595,7 @@ function CheckoutRecommendation({ venture }) {
   const aiBullets = (venture.thesisBullets || venture.thesis || []).slice(0, 3);
   const analyst = {
     name: 'Olivia M.',
-    role: 'Senior Investment Analyst 路 Everyday',
+    role: 'Senior Investment Analyst 路 Ingoga Invest',
     note:
       `${venture.name} clears our internal screen on cash-flow visibility, ` +
       `governance, and exit pathway. The ${venture.lockMonths || 12}-month ` +
@@ -8910,7 +8910,7 @@ function CheckoutSourceLegacy({ source, setSource, amount, venture }) {
 // Resolve the mandate id to a readable label.
 function mandateLabel(mandateId) {
   if (!mandateId) return null;
-  if (mandateId === 'cc') return 'Everyday (house pick)';
+  if (mandateId === 'cc') return 'Ingoga Invest (house pick)';
   const fund = CC_FUNDS_V2.find((f) => f.id === mandateId);
   return fund ? fund.name + ' Fund' : mandateId;
 }
@@ -8961,7 +8961,7 @@ function CheckoutReview({ venture, amount, source, mandate, mode = 'fund' }) {
         borderRadius: 18, background: paperSoft,
         fontSize: 12, color: ink70, lineHeight: 1.55,
       }}>
-        By confirming you authorise Everyday to allocate funds from
+        By confirming you authorise Ingoga Invest to allocate funds from
         your selected source. Capital is locked for the stated period. Projected
         yields are not guaranteed.
       </div>
@@ -9686,7 +9686,7 @@ function FlowReview({ mode, cfg, amount, picks, pickerLabelFor }) {
         borderRadius: 18, background: paperSoft,
         fontSize: 12, color: ink70, lineHeight: 1.55,
       }}>
-        By confirming you authorise Everyday to process this
+        By confirming you authorise Ingoga Invest to process this
         transaction on your behalf. A receipt will be sent to your inbox.
       </div>
     </div>
@@ -10122,7 +10122,7 @@ function SettingsScreen({ accent, profile, authConfigured = false, onBack, onSig
             background: paper, border: `1px solid ${ink12}`, borderRadius: 20,
             padding: 18, boxShadow: cardShadow,
           }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: ink }}>Sign out of Everyday?</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: ink }}>Sign out of Ingoga Invest?</div>
             <div style={{ fontSize: 13, color: ink55, marginTop: 6, lineHeight: 1.5 }}>
               You'll need your passcode to sign back in.
             </div>
@@ -10140,7 +10140,7 @@ function SettingsScreen({ accent, profile, authConfigured = false, onBack, onSig
         fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.08em',
         color: ink40, textAlign: 'center', textTransform: 'uppercase',
       }}>
-        Everyday 路 v0.4.0
+        Ingoga Invest 路 v0.4.0
       </div>
     </div>
   );

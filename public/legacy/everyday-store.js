@@ -1,4 +1,4 @@
-// everyday-store.js — reactive cache over the Everyday microservices.
+// everyday-store.js — reactive cache over the Ingoga Invest microservices.
 //
 // The Go services are the source of truth. This store is a thin client-side
 // cache that hydrates from them on session-ready, exposes one snapshot to

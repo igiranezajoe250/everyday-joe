@@ -1,4 +1,4 @@
-// app.jsx — root app for Everyday
+// app.jsx — root app for Ingoga Invest
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accentKey": "teal",
@@ -42,7 +42,7 @@ function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onB
     { id: 'plan', label: 'Plan', onClick: onPlan, icon: (<svg {...iconProps}><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M4 9h16M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
   ];
   return (
-    <nav aria-label="Everyday shortcuts" style={{
+    <nav aria-label="Ingoga Invest shortcuts" style={{
       position: 'absolute',
       top: 0,
       left: 0,
@@ -57,7 +57,7 @@ function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onB
       background: 'rgba(250,246,241,0.78)',
       backdropFilter: 'blur(12px)',
     }}>
-      <button onClick={onHome} aria-label="Everyday home" title="Everyday" style={{
+      <button onClick={onHome} aria-label="Ingoga Invest home" title="Ingoga Invest" style={{
         width: 40,
         height: 40,
         borderRadius: 999,
@@ -617,7 +617,7 @@ function App() {
     </AppShell>
 
       {!PK_NATIVE && (
-      <TweaksPanel title="Everyday">
+      <TweaksPanel title="Ingoga Invest">
         <TweakSection label="Palette" />
         <TweakColor label="Accent"
           value={t.accentKey === 'teal'  ? '#2FAE9B' :
