@@ -2310,6 +2310,11 @@ function InvestOrderFlow({ ins, web, onBack, onPlace }) {
             </div>
             <Rule color={ink06} />
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Projected value · 1 yr</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink, fontFeatureSettings: '"tnum"' }}>{fmtRWF(Math.round(amt + annualIncome))}</span>
+            </div>
+            <Rule color={ink06} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
               <span style={{ fontSize: 13, color: ink55 }}>Settlement</span>
               <span style={{ fontSize: 13.5, fontWeight: 650, color: ink }}>T+2 · Ingoga Invest Wallet</span>
             </div>
