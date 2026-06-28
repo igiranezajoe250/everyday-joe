@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+  <title>Everyday</title>
+  <link rel="manifest" href="/legacy/manifest.webmanifest" />
+  <meta name="theme-color" content="#FAF6F1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Everyday" />
+  <link rel="apple-touch-icon" href="/legacy/icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/legacy/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/legacy/icons/icon-32.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body, #root { margin: 0; padding: 0; background: #FAF6F1; width: 100%; height: 100%; min-height: 100%; overscroll-behavior: none; }
+    html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+    html.pk-native, html.pk-native body { background: #FAF6F1; }
+    body {
+      font-family: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      color: #0A0A0A;
+      overflow: hidden;
+    }
+    * { box-sizing: border-box; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+    .cc-scroll { -webkit-overflow-scrolling: touch; }
+    button {
+      font-family: inherit;
+      transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease, box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease, color 180ms ease;
+    }
+    button:active:not(:disabled) { transform: scale(0.965); }
+    button:disabled { transform: none; }
+    /* Keyboard/pointer focus ring — visible only for keyboard navigation. */
+    button:focus-visible, [role="button"]:focus-visible, a:focus-visible,
+    input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid rgba(200,16,46,0.55); outline-offset: 2px;
+    }
+    @keyframes pkPulse {
+      0% { box-shadow: 0 0 0 0 rgba(10,10,10,0.20), 0 10px 28px rgba(0,0,0,0.22); }
+      70% { box-shadow: 0 0 0 14px rgba(10,10,10,0), 0 10px 28px rgba(0,0,0,0.22); }
+      100% { box-shadow: 0 0 0 0 rgba(10,10,10,0), 0 10px 28px rgba(0,0,0,0.22); }
+    }
+    .pk-pulse { animation: pkPulse 2.4s ease-out infinite; }
+    @keyframes pkRise { 0% { opacity: 0; transform: translateY(18px); } 100% { opacity: 1; transform: translateY(0); } }
+    .pk-rise { animation: pkRise 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .pk-soft-card { animation: pkRise 440ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .pk-soft-card:nth-of-type(2) { animation-delay: 45ms; }
+    .pk-soft-card:nth-of-type(3) { animation-delay: 90ms; }
+    .pk-calm-action { transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms ease, border-color 200ms ease; }
+    .pk-calm-action:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(0,0,0,0.10); }
+    .pk-calm-action:focus-visible { outline: 2px solid rgba(200,16,46,0.32); outline-offset: 2px; }
+    @media (max-width: 370px) {
+      .pk-page-pad { padding-left: 14px !important; padding-right: 14px !important; }
+      .pk-actions-row { gap: 5px !important; }
+      .pk-actions-row button { font-size: 10.5px !important; }
+      .pk-history-row { grid-template-columns: 45px 1fr auto !important; gap: 6px !important; }
+    }
+    @media (max-width: 340px) {
+      .pk-page-pad { padding-left: 10px !important; padding-right: 10px !important; }
+      .pk-actions-row { gap: 4px !important; }
+      .pk-actions-row button { font-size: 9.5px !important; padding: 0 6px !important; }
+    }
+    @media (max-height: 720px) {
+      .pk-page-pad { padding-left: 16px !important; padding-right: 16px !important; }
+      .pk-soft-card { animation-duration: 320ms; }
+    }
+    @media (max-height: 600px) {
+      .pk-page-pad { padding-left: 12px !important; padding-right: 12px !important; }
+    }
+    .pk-stagger > * { animation: pkRise 320ms cubic-bezier(.2,.7,.2,1) both; }
+    .pk-stagger > *:nth-child(2) { animation-delay: 60ms; }
+    .pk-stagger > *:nth-child(3) { animation-delay: 120ms; }
+    .pk-stagger > *:nth-child(4) { animation-delay: 180ms; }
+    .pk-check-path { stroke-dasharray: 30; stroke-dashoffset: 30; animation: pkDraw 700ms ease-out 200ms forwards; }
+    @keyframes pkDraw { to { stroke-dashoffset: 0; } }
+    @keyframes pkRing {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pk-ring { animation: pkRing 480ms cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes pkSpin { to { transform: rotate(360deg); } }
+    .pk-spin { animation: pkSpin 700ms linear infinite; transform-origin: 50% 50%; }
+    @keyframes pkPop {
+      0% { transform: scale(0); }
+      60% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+    .pk-pop { animation: pkPop 220ms cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes pkShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-9px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(4px); }
+    }
+    .pk-shake { animation: pkShake 460ms cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes pkShimmer { 0% { background-position: -360px 0; } 100% { background-position: 360px 0; } }
+    .pk-shimmer { background: linear-gradient(90deg, rgba(10,10,10,0.05) 25%, rgba(10,10,10,0.10) 37%, rgba(10,10,10,0.05) 63%); background-size: 720px 100%; animation: pkShimmer 1.25s linear infinite; }
+
+    /* ── Everyday design language ──────────────────────────────────────────
+       Inputs read as a shaded placeholder over a dashed rule — no card. The
+       placeholder colour signals "tap here to write". */
+    .pk-field input::placeholder,
+    .pk-field textarea::placeholder { color: rgba(10,10,10,0.30); font-weight: 600; }
+    .pk-field input:focus::placeholder { color: rgba(10,10,10,0.22); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    (function () {
+      try {
+        var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+          || window.navigator.standalone === true
+          || new URLSearchParams(location.search).get('app') === '1';
+        if (standalone) document.documentElement.classList.add('pk-native');
+        // Agent service base URL. A tester opens the shared link once with
+        // ?voiceBase=https://your-agent.onrender.com and it persists, so the
+        // param isn't needed on later visits.
+        var vb = new URLSearchParams(location.search).get('voiceBase');
+        if (vb) { try { localStorage.setItem('everyday.voiceBase', vb); } catch (e) {} }
+        else { try { vb = localStorage.getItem('everyday.voiceBase') || ''; } catch (e) {} }
+        if (vb) window.__EVERYDAY_VOICE_BASE__ = vb;
+      } catch (e) {}
+    })();
+  </script>
+  <script type="text/babel" src="/legacy/ui.jsx"></script>
+  <script type="text/babel" src="/legacy/data.jsx"></script>
+  <script type="text/babel" src="/legacy/ios-frame.jsx"></script>
+  <script type="text/babel" src="/legacy/tweaks-panel.jsx"></script>
+  <script src="/legacy/supabase-api.js"></script>
+  <script src="/legacy/everyday-store.js"></script>
+  <script type="text/babel" src="/legacy/screens.jsx"></script>
+  <script type="text/babel" src="/legacy/native.jsx"></script>
+  <script type="text/babel" src="/legacy/app.jsx"></script>
+</body>
+</html>

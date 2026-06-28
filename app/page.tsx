@@ -12,7 +12,7 @@ const focusAreas = [
 const projects = [
   { id: "A", label: "PRECISION MEDICINE", title: "Care designed around the person", copy: "Exploring data, diagnostics, and locally grounded health intelligence to identify vulnerable populations earlier and support more precise prevention, treatment, and care pathways.", metric: "HEALTH RESEARCH", tone: "blue" },
   { id: "B", label: "AGRICULTURAL SYSTEMS", title: "Food systems that can see risk coming", copy: "Connecting climate signals, soil and crop data, farmer knowledge, and supply-chain visibility to expose vulnerabilities and guide precise action from field to market.", metric: "FOOD + CLIMATE", tone: "black" },
-  { id: "C", label: "MANUFACTURING SYSTEMS", title: "Stronger production through better signals", copy: "Studying material, energy, workforce, and process gaps to design intelligent production systems that reduce waste, strengthen quality, and improve local resilience.", metric: "INDUSTRIAL R+D", tone: "copper" },
+  { id: "C", label: "MANUFACTURING SYSTEMS", title: "Stronger production through better signals", copy: "Studying material, energy, workforce, and process gaps to design intelligent production systems that reduce waste, strengthen quality, and improve local resilience.", metric: "INDUSTRIAL R+D", tone: "copper", href: "/legacy/Everyday.html", external: true },
   { id: "D", label: "MOBILITY SYSTEMS", title: "Movement shaped around real needs", copy: "Using spatial intelligence and lived travel patterns to reveal where access breaks down and design safer, cleaner, and more inclusive mobility for people and goods.", metric: "ACCESS + CITIES", tone: "paper" },
 ];
 
@@ -178,7 +178,7 @@ export default function Home() {
             <article className={`il-project il-project-${project.tone}`} key={project.id} data-il-reveal style={{ "--il-delay": `${index * 120}ms` } as React.CSSProperties}>
               <div className="il-project-meta"><span>[{project.id}]</span><span>{project.label}</span></div>
               <div className="il-project-visual" aria-hidden="true"><div className="il-radar"><i /><i /><i /></div><span>{project.metric}</span></div>
-              <h3>{project.title}</h3><p>{project.copy}</p><a href="/apps">VIEW EXPLORATION <b>↗</b></a>
+              <h3>{project.title}</h3><p>{project.copy}</p><a href={"href" in project ? project.href : "/apps"} {...("external" in project && project.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>VIEW EXPLORATION <b>↗</b></a>
             </article>
           ))}
         </div>
