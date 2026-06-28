@@ -1,0 +1,327 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - link "Frame 4" [ref=e6] [cursor=pointer]:
+      - /url: /
+      - img "Frame 4" [ref=e8]
+    - generic [ref=e9]:
+      - link "ABOUT" [ref=e10] [cursor=pointer]:
+        - /url: /#intzi9gof_0
+        - generic [ref=e11]: ABOUT
+      - link "Technology" [ref=e12] [cursor=pointer]:
+        - /url: /#i3tgdjwj5_0
+        - generic [ref=e13]: Technology
+      - link "cases" [ref=e14] [cursor=pointer]:
+        - /url: /#it2c8nweg_0
+        - generic [ref=e15]: cases
+  - generic [ref=e17]:
+    - link "logo_black" [ref=e18] [cursor=pointer]:
+      - /url: /
+      - img "logo_black" [ref=e20]
+    - generic [ref=e21]:
+      - link "ABOUT" [ref=e22] [cursor=pointer]:
+        - /url: /#i5zxhaz9i_0
+        - generic [ref=e23]: ABOUT
+      - link "technology" [ref=e24] [cursor=pointer]:
+        - /url: /#i3tgdjwj5_0
+        - generic [ref=e25]: technology
+      - link "cases" [ref=e26] [cursor=pointer]:
+        - /url: /#it2c8nweg_0
+        - generic [ref=e27]: cases
+  - generic [ref=e28]:
+    - generic [ref=e30]:
+      - generic:
+        - generic:
+          - generic:
+            - img "Loader"
+          - generic:
+            - img "Loader (1)"
+          - generic:
+            - img "Loader (2)"
+          - generic:
+            - img "Loader (3)"
+          - generic:
+            - img "Loader (4)"
+          - generic:
+            - img "Loader (5)"
+          - generic:
+            - img "Loader (6)"
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e41]: "empathy:"
+            - generic [ref=e42]:
+              - img "Empathy loader" [ref=e45]
+              - generic [ref=e47]: 25%
+            - generic [ref=e50]: "emotions: calm state"
+          - generic [ref=e51]:
+            - generic [ref=e53]: "empathy:"
+            - generic [ref=e54]:
+              - img "Empathy loader" [ref=e57]
+              - generic [ref=e59]: 25%
+            - generic [ref=e62]: "emotions: calm state"
+        - generic [ref=e63]:
+          - generic [ref=e65]:
+            - generic [ref=e67]: u
+            - generic [ref=e69]: "n"
+            - generic [ref=e71]: l
+            - generic [ref=e73]: o
+            - generic [ref=e75]: c
+            - generic [ref=e77]: k
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e84]: t
+              - generic [ref=e86]: h
+              - generic [ref=e88]: e
+            - generic [ref=e89]:
+              - generic [ref=e91]: f
+              - generic [ref=e93]: u
+              - generic [ref=e95]: t
+              - generic [ref=e97]: u
+              - generic [ref=e99]: r
+              - generic [ref=e101]: e
+          - generic [ref=e102]:
+            - generic [ref=e104]: AI-powered real-time speech and text pattern analysis for deep psychological insights.
+            - generic [ref=e107]: AI-powered real-time speech and text pattern analysis for deep psychological insights.
+    - generic [ref=e114]: We revolutionize mental health diagnostics using AI-driven linguistic analysis.
+  - generic [ref=e117]:
+    - generic [ref=e119]:
+      - generic:
+        - generic:
+          - img "Lottie animation":
+            - generic:
+              - generic: ⚠️
+    - generic [ref=e122]:
+      - generic:
+        - generic:
+          - generic: Speech & Text Analysis
+        - generic:
+          - generic:
+            - img "Tech_icons (2)"
+        - generic:
+          - generic: Advanced natural language processing captures emotional and cognitive patterns.
+      - generic:
+        - generic:
+          - generic: Neural Pattern Recognition
+        - generic:
+          - generic:
+            - img "Tech_icons (1)"
+        - generic:
+          - generic: Deep learning detects subtle indicators in speech and text
+      - generic:
+        - generic:
+          - generic: Real-Time Insights
+        - generic:
+          - generic:
+            - img "Tech_icons"
+        - generic:
+          - generic: Immediate mental state assessments delivered within seconds.
+  - generic [ref=e123]:
+    - generic:
+      - generic:
+        - generic:
+          - img "nclogo_png_1_2x"
+    - generic [ref=e128]:
+      - generic [ref=e131]:
+        - generic [ref=e134]: Instant Mental Health Reports
+        - generic [ref=e137]: Instant Mental Health Reports
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - img "Health Reports on real-time" [ref=e143]
+          - generic [ref=e144]:
+            - generic [ref=e146]: Health Reports on real-time
+            - generic [ref=e148]: "[1]"
+        - generic [ref=e149]:
+          - img "cognitive_health" [ref=e151]
+          - generic [ref=e152]:
+            - generic [ref=e154]: cognitive health
+            - generic [ref=e156]: "[2]"
+        - generic [ref=e157]:
+          - img [ref=e160]
+          - generic [ref=e163]: Rapid emotional and cognitive health assessments based on real-time data
+      - generic [ref=e165]:
+        - generic [ref=e166]:
+          - generic [ref=e169]: AI-Powered Therapy Support
+          - generic [ref=e172]: AI-Powered Therapy Support
+        - generic [ref=e174]:
+          - img [ref=e176]
+          - generic [ref=e179]: Assist therapists with AI-generated insights during sessions
+      - img "nclabs" [ref=e183]
+      - generic [ref=e186]:
+        - generic [ref=e189]: Enterprise Analytics
+        - generic [ref=e192]: Enterprise Analytics
+      - generic [ref=e195]:
+        - generic [ref=e196]:
+          - img [ref=e198]
+          - generic [ref=e201]: Understand and enhance your team’s mental wellness with tailored analytics.
+        - generic [ref=e202]:
+          - img "doctor_examines_an_mri_image_of_the_patient_s_brai_2025_02_12_04_46_54_utc_1_2x" [ref=e204]
+          - generic [ref=e205]:
+            - generic [ref=e207]: tailored analytics
+            - generic [ref=e209]: "[3]"
+        - generic [ref=e210]:
+          - img "mental_wellness" [ref=e212]
+          - generic [ref=e213]:
+            - generic [ref=e215]: mental wellness
+            - generic [ref=e217]: "[4]"
+    - generic [ref=e226]:
+      - generic [ref=e227]:
+        - generic [ref=e228]:
+          - generic [ref=e230]:
+            - img "glass_man_2x" [ref=e233]
+            - generic [ref=e236]: Clinicians were able to detect subtle linguistic and speech patterns associated with anxiety and depression much earlier than traditional methods allowed.
+          - generic [ref=e238]:
+            - generic [ref=e241]: A major healthcare provider adopted NeuraCore's advanced AI analytics to improve patient outcomes and clinical efficiency.
+            - generic [ref=e242]:
+              - img "rectangle_2085654300_2x" [ref=e245]
+              - img "image_2x" [ref=e248]
+          - generic [ref=e250]:
+            - img "rectangle_2085654299_2x" [ref=e253]
+            - generic [ref=e256]: A global tech company integrated NeuraCore's AI-based mental health analytics to enhance employee wellbeing across international teams.
+        - generic [ref=e258]:
+          - generic [ref=e259]:
+            - generic [ref=e262]: Enhancing Diagnostic Precision
+            - generic [ref=e266]: Enhancing Diagnostic Precision
+          - generic [ref=e267]:
+            - generic [ref=e270]: Healthcare Breakthroughs
+            - generic [ref=e274]: Healthcare Breakthroughs
+          - generic [ref=e275]:
+            - generic [ref=e278]: Enterprise Wellbeing Success
+            - generic [ref=e282]: Enterprise Wellbeing Success
+      - generic [ref=e287]:
+        - img "lb1" [ref=e292]
+        - img "lb2" [ref=e298]
+        - img "lb3" [ref=e304]
+        - img "lb4" [ref=e310]
+    - generic [ref=e312]:
+      - generic [ref=e316]:
+        - img "faq" [ref=e320]
+        - img "faq" [ref=e324]
+        - img "faq" [ref=e328]
+        - img "faq" [ref=e332]
+        - img "faq" [ref=e336]
+        - img "faq" [ref=e340]
+        - img "faq" [ref=e344]
+        - img "faq" [ref=e348]
+        - img "faq" [ref=e352]
+        - img "faq" [ref=e356]
+        - img "faq" [ref=e360]
+        - img "faq" [ref=e364]
+        - img "faq" [ref=e368]
+        - img "faq" [ref=e372]
+        - img "faq" [ref=e376]
+        - img "faq" [ref=e380]
+        - img "faq" [ref=e384]
+        - img "faq" [ref=e388]
+        - img "faq" [ref=e392]
+        - img "faq" [ref=e396]
+        - img "faq" [ref=e400]
+        - img "faq" [ref=e404]
+        - img "faq" [ref=e408]
+        - img "faq" [ref=e412]
+        - img "faq" [ref=e416]
+        - img "faq" [ref=e420]
+        - img "faq" [ref=e424]
+        - img "faq" [ref=e428]
+        - img "faq" [ref=e432]
+        - img "faq" [ref=e436]
+      - generic [ref=e439]:
+        - generic [ref=e441]:
+          - generic [ref=e443]: How does your AI work?
+          - generic [ref=e445]: (1)
+        - generic [ref=e448]:
+          - generic [ref=e450]: How is data security ensured?
+          - generic [ref=e452]: (2)
+        - generic [ref=e455]:
+          - generic [ref=e457]: How can I integrate NeuraCore AI into my business?
+          - generic [ref=e459]: (3)
+        - generic [ref=e462]:
+          - generic [ref=e464]: What kinds of insights does the platform provide?
+          - generic [ref=e466]: (4)
+        - generic [ref=e469]:
+          - generic [ref=e471]: How often does the system update its models?
+          - generic [ref=e473]: (5)
+  - generic [ref=e481]:
+    - generic [ref=e482]:
+      - generic [ref=e483]:
+        - generic [ref=e485]: "Contact:"
+        - link "hello@neuracorelabs.ai" [ref=e486] [cursor=pointer]:
+          - /url: mailto:hello@neuracorelabs.ai
+          - generic [ref=e487]: hello@neuracorelabs.ai
+      - generic [ref=e488]:
+        - generic [ref=e490]: "Address:"
+        - generic [ref=e491]:
+          - generic [ref=e492]:
+            - generic [ref=e494]: 548 Market St, Suite 73925
+            - generic [ref=e496]: 548 Market St, Suite 73925
+          - generic [ref=e497]:
+            - generic [ref=e499]: San Francisco, CA 94104
+            - generic [ref=e501]: San Francisco, CA 94104
+          - generic [ref=e502]:
+            - generic [ref=e504]: United States
+            - generic [ref=e506]: United States
+      - generic [ref=e507]:
+        - generic [ref=e509]: "Name:"
+        - generic [ref=e510]:
+          - generic [ref=e512]: NeuraCore Labs, Inc.
+          - generic [ref=e514]: NeuraCore Labs, Inc.
+      - generic [ref=e515]:
+        - generic [ref=e517]: "Menu:"
+        - generic [ref=e518]:
+          - generic [ref=e519]:
+            - link "About" [ref=e520] [cursor=pointer]:
+              - /url: /#i5zxhaz9i_0
+              - generic [ref=e521]: About
+            - link "About" [ref=e522] [cursor=pointer]:
+              - /url: /#i9vxgstc8_0
+              - generic [ref=e523]: About
+          - generic [ref=e524]:
+            - link "Technology" [ref=e525] [cursor=pointer]:
+              - /url: /#i3tgdjwj5_0
+              - generic [ref=e526]: Technology
+            - link "Technology" [ref=e527] [cursor=pointer]:
+              - /url: /#iv7m40nbq_0
+              - generic [ref=e528]: Technology
+          - generic [ref=e529]:
+            - link "Our Services" [ref=e530] [cursor=pointer]:
+              - /url: /#iz0ejndek_0
+              - generic [ref=e531]: Our Services
+            - link "Our Services" [ref=e532] [cursor=pointer]:
+              - /url: /#iatuv6q2w_0
+              - generic [ref=e533]: Our Services
+          - generic [ref=e534]:
+            - link "Cases" [ref=e535] [cursor=pointer]:
+              - /url: /#it2c8nweg_0
+              - generic [ref=e536]: Cases
+            - link "Cases" [ref=e537] [cursor=pointer]:
+              - /url: /#it2c8nweg_0
+              - generic [ref=e538]: Cases
+          - generic [ref=e539]:
+            - link "FAQ" [ref=e540] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e541]: FAQ
+            - link "FAQ" [ref=e542] [cursor=pointer]:
+              - /url: /#ib6hisfg4_0
+              - generic [ref=e543]: FAQ
+    - generic [ref=e544]:
+      - generic [ref=e545]:
+        - generic [ref=e547]: AI-powered mental health insights. All rights reserved.
+        - img "neura2" [ref=e550]
+      - img "wheel" [ref=e553]
+      - generic [ref=e554]:
+        - generic [ref=e555]:
+          - generic [ref=e556]:
+            - link "Designed by Shah" [ref=e557] [cursor=pointer]:
+              - /url: https://www.behance.net/keylersh
+              - generic [ref=e558]: Designed by Shah
+            - generic [ref=e560]: and
+            - link "Uprock studio" [ref=e561] [cursor=pointer]:
+              - /url: https://www.uprock.ru/
+              - generic [ref=e562]: Uprock studio
+          - generic [ref=e563]:
+            - button "Builded by NeuraCoreTeam" [ref=e564] [cursor=pointer]:
+              - generic [ref=e565]: Builded by NeuraCoreTeam
+            - generic [ref=e567]: /
+            - link "Made in TapTop" [ref=e568] [cursor=pointer]:
+              - /url: https://taptop.pro/
+              - generic [ref=e569]: Made in TapTop
+        - img "core" [ref=e572]

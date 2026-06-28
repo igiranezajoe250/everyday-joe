@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+
+    <title>FDL | Solving NASA's Toughest Challenges with Google Cloud ?? Intel</title>
+    <meta name="description" content="The Frontier Development Lab brings together researchers from various fields to solve scientific challenges through AI technologies in partnership with Google Cloud and Intel.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="FDL | Solving NASA's Toughest Challenges with Google Cloud ?? Intel">
+    <meta property="og:description" content="The Frontier Development Lab brings together researchers from various fields to solve scientific challenges through AI technologies in partnership with Google Cloud and Intel.">
+    <meta property="og:image" content="https://cloud.withgoogle.com/intel/share-facebook.jpg">
+    <meta property="og:locale" content="en">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://cloud.withgoogle.com/intel/">
+    <meta name="twitter:title" content="FDL | Solving NASA's Toughest Challenges with Google Cloud ?? Intel">
+    <meta name="twitter:description" content="The Frontier Development Lab brings together researchers from various fields to solve scientific challenges through AI technologies in partnership with Google Cloud and Intel.">
+    <meta name="twitter:image" content="https://cloud.withgoogle.com/intel/share-twitter.jpg">
+
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="canonical" content="https://cloud.withgoogle.com/intel/">
+
+    <style type="text/css">
+      html {
+        font-size: 10px;
+        overflow-y: scroll;
+      }
+      html, body {
+        background: #9396a2;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .site-preloader-copy {
+        position: absolute;
+        white-space: nowrap;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        font-size: 20px;
+        top: 100%;
+        left: 50%;
+        margin: 2.8rem 0 0;
+        -webkit-transform: translate(-50%, 0);
+        transform: translate(-50%, 0);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .site-preloader {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 1em;
+        height: 1em;
+        font-size: 115px;
+        margin-top: -0.5em;
+        margin-left: -0.5em;
+        border-radius: 50%;
+        box-sizing: border-box;
+        pointer-events: none;
+        transition: visibility 200ms linear, opacity 200ms linear;
+      }
+      @media screen and (min-width: 460px) {
+        .site-preloader {
+          font-size: calc(115px + 41 * ((100vw - 460px) / 1460));
+        }
+      }
+      @media screen and (min-width: 1920px) {
+        .site-preloader {
+          font-size: 156px;
+        }
+      }
+
+      .site-preloader.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .site-preloader svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+      }
+
+      @keyframes fadeLoader {
+        33.333%, 99.999% { opacity: 0; }
+        0%, 100% { opacity: 0.5; }
+      }
+
+      @keyframes moveLoader {
+        0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        12.5% { transform: rotate(45deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        25% { transform: rotate(90deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        37.5% { transform: rotate(135deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        50% { transform: rotate(180deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        62.5% { transform: rotate(225deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        75% { transform: rotate(270deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        87.5% { transform: rotate(315deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+        100% { transform: rotate(360deg); animation-timing-function: cubic-bezier(1, 0, 0, 1); }
+      }
+
+      @keyframes circleLoader {
+        0% { opacity: 0; transform: scale(0.2); transition-timing-function: ease-in-out; }
+        50% { opacity: 1; transform: scale(1); transition-timing-function: ease-in-out; }
+        100% { opacity: 0; transform: scale(1); }
+      }
+
+      .site-preloader .loader-circle {
+        transform-origin: 50% 50%;
+        animation: fadeLoader 2s linear infinite;
+      }
+      .site-preloader .loader-circle:nth-child(1) { transform: none; animation-delay: -2s; }
+      .site-preloader .loader-circle:nth-child(2) { transform: rotate(45deg); animation-delay: -1.75s; }
+      .site-preloader .loader-circle:nth-child(3) { transform: rotate(90deg); animation-delay: -1.5s; }
+      .site-preloader .loader-circle:nth-child(4) { transform: rotate(135deg); animation-delay: -1.25s; }
+      .site-preloader .loader-circle:nth-child(5) { transform: rotate(180deg); animation-delay: -1s; }
+      .site-preloader .loader-circle:nth-child(6) { transform: rotate(225deg); animation-delay: -0.75s; }
+      .site-preloader .loader-circle:nth-child(7) { transform: rotate(270deg); animation-delay: -0.5s; }
+      .site-preloader .loader-circle:nth-child(8) { transform: rotate(315deg); animation-delay: -0.25s; }
+
+      .site-preloader .moving-circle {
+        animation: moveLoader 2s linear infinite;
+        transform-origin: 50% 50%;
+      }
+
+      .site-preloader .circle {
+        animation: circleLoader 2s linear infinite;
+        transform-origin: 50% 50%;
+      }
+      .site-preloader .circle:nth-child(2) {
+        animation-delay: -1s;
+      }
+
+      .app-container {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+      }
+    </style>
+    <link href="https://www.gstatic.com/glue/cookienotificationbar/cookienotificationbar.min.css" rel="stylesheet">
+
+    <script nonce="JptoIGFP3Nd4AEemGb0x">
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        isSpa: true,
+      });
+
+      function glueCookieNotificationBarLoaded() {
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-5PZ5JTV');
+      }
+    </script>
+
+    <link href="//ad.doubleclick.net" rel="dns-prefetch" />
+    <link href="//www.googletagmanager.com" rel="dns-prefetch" />
+    <link href="//www.google-analytics.com" rel="dns-prefetch" />
+    <link href="//adservice.google.com" rel="dns-prefetch" />
+  <link href="/intel/version/1701338711315/css/app.css" rel="stylesheet"></head>
+  <body>
+    <main class="app js-app">
+      <div class="app-container js-app-container">
+        <div id="app"></div>
+      </div>
+    </main>
+
+    <div class="site-preloader js-site-preloader">
+      <p class="site-preloader-copy">Solving NASA's Toughest Challenges</p>
+      <svg viewBox="0 0 156 156">
+        <circle class="outline" cx="78" cy="78" r="76.5" fill="none" stroke-width="3" stroke="#fff" />
+        <g opacity="0.1">
+          <path class="circle"
+                d="M78,26.18A51.82,51.82,0,1,1,26.18,78,51.88,51.88,0,0,1,78,26.18m0-1A52.82,52.82,0,1,0,130.82,78,52.82,52.82,0,0,0,78,25.18Z" fill="#fff"/>
+          <path class="circle"
+                d="M78,26.18A51.82,51.82,0,1,1,26.18,78,51.88,51.88,0,0,1,78,26.18m0-1A52.82,52.82,0,1,0,130.82,78,52.82,52.82,0,0,0,78,25.18Z" fill="#fff"/>
+          <rect class="rect" width="105.5" height="105.5" x="25.25" y="25.25" fill="none"
+                stroke="#fff" />
+          <line class="line" x1="25.5" y1="25.5" x2="130.5" y2="130.5" fill="none" stroke="#fff" />
+          <line class="line" x1="130.5" y1="25.5" x2="25.5" y2="130.5" fill="none" stroke="#fff" />
+        </g>
+
+        <g>
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+          <circle class="loader-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#fff" stroke-dasharray="21 166,5044106403" />
+        </g>
+        <circle class="moving-circle" cx="78" cy="78" r="26.5" fill="none" stroke-width="53" stroke="#c9cbd1" stroke-dasharray="21 166,5044106403" />
+      </svg>
+    </div>
+    <!-- built files will be auto injected -->
+    <script src="https://www.gstatic.com/glue/cookienotificationbar/cookienotificationbar.min.js"
+        data-glue-cookie-notification-bar-category="2B"
+        data-glue-cookie-notification-bar-language="en"
+        data-glue-cookie-notification-bar-site-id="cloud.withgoogle.com/intel">
+    </script>
+  <script type="text/javascript" src="/intel/version/1701338711315/js/vendors.js"></script><script type="text/javascript" src="/intel/version/1701338711315/js/app.js"></script></body>
+</html>
+

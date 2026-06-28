@@ -1,0 +1,330 @@
+/* ── Ingoga Labs About page ─────────────────────────────────── */
+
+.il-about {
+  background: var(--paper, #f1f0e9);
+  color: var(--night, #0d1011);
+  font-family: var(--font-space-grotesk), Arial, sans-serif;
+  overflow: clip;
+}
+.il-about * { box-sizing: border-box; }
+.il-about a { color: inherit; }
+
+/* hero */
+.il-ab-hero {
+  min-height: 100svh;
+  background: var(--night, #0d1011);
+  color: #f5f3ec;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 22px 32px;
+  position: relative;
+}
+.il-ab-hero__kicker {
+  position: absolute;
+  top: 100px;
+  left: 22px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  color: #555;
+}
+.il-ab-hero__title {
+  font-size: clamp(80px, 14vw, 220px);
+  font-weight: 700;
+  line-height: .72;
+  letter-spacing: -.09em;
+  text-transform: uppercase;
+  margin: 0 0 32px;
+}
+.il-ab-hero__title span { display: block; }
+.il-ab-hero__title em {
+  font-style: normal;
+  color: var(--blue, #a9d9ec);
+  font-family: var(--font-playfair), serif;
+  font-weight: 400;
+  font-style: italic;
+}
+.il-ab-hero__lead {
+  max-width: 520px;
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.55;
+  color: #9da1a0;
+  margin-bottom: 40px;
+}
+.il-ab-hero__scroll {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  letter-spacing: .12em;
+  color: #555;
+  text-decoration: none;
+  transition: color .2s ease;
+}
+.il-ab-hero__scroll:hover { color: #f5f3ec; }
+
+/* hero load animation */
+.il-ab-hero__title span,
+.il-ab-hero__lead,
+.il-ab-hero__scroll {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity .7s cubic-bezier(.19,1,.22,1), transform .9s cubic-bezier(.19,1,.22,1);
+}
+.il-ab-hero__title span:first-child { transition-delay: .2s; }
+.il-ab-hero__title span:last-child  { transition-delay: .32s; }
+.il-ab-hero__lead   { transition-delay: .45s; }
+.il-ab-hero__scroll { transition-delay: .55s; }
+.il-ab-loaded .il-ab-hero__title span,
+.il-ab-loaded .il-ab-hero__lead,
+.il-ab-loaded .il-ab-hero__scroll {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* mission */
+.il-ab-mission {
+  min-height: 100vh;
+  padding: 110px 26px 54px;
+  background: var(--paper);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.il-ab-mission__orbit {
+  position: absolute;
+  top: 78px;
+  right: 4%;
+  width: 150px;
+  height: 150px;
+  border: 1px solid #9da1a0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.il-ab-mission__orbit:after {
+  content: "";
+  position: absolute;
+  width: 17px;
+  height: 17px;
+  background: var(--copper, #9b4f32);
+  border-radius: 50%;
+  top: -8px;
+  left: 66px;
+  transform-origin: 9px 83px;
+  animation: il-spin 7s linear infinite;
+}
+.il-ab-mission__orbit span { font-size: 50px; font-weight: 700; letter-spacing: -.12em; }
+.il-ab-mission__headline {
+  max-width: 1260px;
+  font-size: clamp(62px, 9.5vw, 146px);
+  line-height: .82;
+  letter-spacing: -.075em;
+  font-weight: 600;
+}
+.il-ab-mission__headline span {
+  display: block;
+  text-align: right;
+  color: var(--copper, #9b4f32);
+  font-family: var(--font-playfair), serif;
+  font-weight: 400;
+  font-style: italic;
+}
+.il-ab-mission__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8vw;
+  margin-left: auto;
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* principles */
+.il-ab-principles {
+  background: var(--blue-bright, #bde9f6);
+  padding: 94px 22px 60px;
+}
+.il-ab-principles__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(0,0,0,.45);
+  border-left: 1px solid rgba(0,0,0,.45);
+  margin-top: 40px;
+}
+.il-ab-card {
+  border-right: 1px solid rgba(0,0,0,.45);
+  border-bottom: 1px solid rgba(0,0,0,.45);
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 420px;
+  transition: background .3s ease, color .3s ease;
+}
+.il-ab-card:hover { background: var(--night); color: var(--blue-bright, #bde9f6); }
+.il-ab-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  letter-spacing: .1em;
+}
+.il-ab-card__num { font-size: 42px; font-weight: 700; opacity: .18; line-height: 1; }
+.il-ab-card__title {
+  font-size: clamp(22px, 2.8vw, 36px);
+  font-weight: 600;
+  letter-spacing: -.04em;
+  line-height: 1.05;
+}
+.il-ab-card__body { font-size: 13px; line-height: 1.6; opacity: .75; }
+
+/* domains */
+.il-ab-domains {
+  background: var(--night);
+  color: #f5f3ec;
+  padding: 100px 22px 40px;
+}
+.il-ab-domains__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.il-ab-domain {
+  min-height: 420px;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform .3s ease;
+}
+.il-ab-domain:hover { transform: translateY(-6px); }
+.il-ab-domain--blue   { background: var(--blue); color: var(--night); }
+.il-ab-domain--copper { background: var(--copper, #9b4f32); color: #fff; }
+.il-ab-domain--night  { background: #242829; color: #fff; }
+.il-ab-domain--paper  { background: var(--paper); color: var(--night); }
+.il-ab-domain__tag {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 8px;
+  letter-spacing: .14em;
+  opacity: .6;
+}
+.il-ab-domain__title {
+  font-size: clamp(28px, 3.5vw, 48px);
+  font-weight: 600;
+  letter-spacing: -.05em;
+  line-height: .95;
+  margin-top: auto;
+}
+.il-ab-domain__copy {
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: .75;
+  max-width: 380px;
+}
+.il-ab-domain__link {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-decoration: none;
+  border-top: 1px solid currentColor;
+  padding-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  opacity: .7;
+  transition: opacity .2s ease;
+}
+.il-ab-domain__link:hover { opacity: 1; }
+
+/* place */
+.il-ab-place {
+  background: var(--paper);
+  padding: 110px 22px 90px;
+}
+.il-ab-place__inner { max-width: 900px; }
+.il-ab-place__headline {
+  font-size: clamp(72px, 11vw, 170px);
+  font-weight: 700;
+  letter-spacing: -.09em;
+  line-height: .75;
+  margin: 32px 0 36px;
+}
+.il-ab-place__headline em {
+  font-style: normal;
+  color: var(--copper, #9b4f32);
+  font-family: var(--font-playfair), serif;
+  font-style: italic;
+  font-weight: 400;
+}
+.il-ab-place__copy {
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.6;
+  max-width: 620px;
+  margin-bottom: 40px;
+  color: #4a4a4a;
+}
+.il-ab-place__tags {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.il-ab-place__tags span {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  letter-spacing: .14em;
+  border: 1px solid rgba(0,0,0,.2);
+  padding: 7px 14px;
+  color: #555;
+}
+
+/* kootana */
+.il-ab-kootana {
+  background: var(--night);
+  color: #f5f3ec;
+  padding: 80px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+}
+.il-ab-kootana__copy {
+  font-size: clamp(18px, 2.5vw, 28px);
+  line-height: 1.45;
+  max-width: 700px;
+  color: #9da1a0;
+}
+.il-ab-kootana__copy strong { color: #f5f3ec; font-weight: 600; }
+.il-ab-kootana__link {
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-decoration: none;
+  color: #9da1a0;
+  border-bottom: 1px solid #333;
+  padding-bottom: 2px;
+  transition: color .2s ease, border-color .2s ease;
+}
+.il-ab-kootana__link:hover { color: var(--blue); border-color: var(--blue); }
+
+/* responsive */
+@media (max-width: 800px) {
+  .il-ab-hero { padding: 0 15px 28px; }
+  .il-ab-hero__title { font-size: 19vw; }
+  .il-ab-hero__kicker { left: 15px; top: 88px; }
+  .il-ab-mission { padding: 80px 15px 40px; min-height: 0; }
+  .il-ab-mission__orbit { width: 80px; height: 80px; right: 14px; top: 62px; }
+  .il-ab-mission__orbit span { font-size: 28px; }
+  .il-ab-mission__orbit:after { transform-origin: 9px 48px; left: 31px; }
+  .il-ab-mission__headline { font-size: 16vw; }
+  .il-ab-mission__body { grid-template-columns: 1fr; gap: 18px; max-width: 100%; }
+  .il-ab-principles { padding: 70px 14px 40px; }
+  .il-ab-principles__grid { grid-template-columns: 1fr; }
+  .il-ab-card { min-height: 300px; }
+  .il-ab-domains { padding: 70px 14px 30px; }
+  .il-ab-domains__grid { grid-template-columns: 1fr; }
+  .il-ab-domain { min-height: 300px; }
+  .il-ab-place { padding: 75px 15px 60px; }
+  .il-ab-place__headline { font-size: 20vw; }
+  .il-ab-kootana { padding: 60px 15px; }
+}

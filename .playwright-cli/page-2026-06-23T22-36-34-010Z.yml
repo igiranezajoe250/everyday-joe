@@ -1,0 +1,235 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - paragraph [ref=e11]: Building practical futures
+    - generic [ref=e12]: KIGALI / RWANDA
+  - navigation [ref=e13]:
+    - link "Ingoga Labs home" [ref=e14] [cursor=pointer]:
+      - /url: "#top"
+      - generic [ref=e22]:
+        - text: INGOGA
+        - text: LABS
+    - generic [ref=e23]:
+      - link "ABOUT" [ref=e24] [cursor=pointer]:
+        - /url: "#about"
+      - link "RESEARCH" [ref=e25] [cursor=pointer]:
+        - /url: "#research"
+      - link "WORK" [ref=e26] [cursor=pointer]:
+        - /url: "#work"
+    - link "START A CONVERSATION ↗" [ref=e27] [cursor=pointer]:
+      - /url: "#contact"
+  - generic [ref=e28]:
+    - img "Rwandan researcher looking toward the camera" [ref=e29]
+    - generic [ref=e31]:
+      - generic [ref=e32]: curiosity index
+      - generic [ref=e33]: 94%
+    - generic [ref=e36]:
+      - generic [ref=e37]: "LOCATION: KIGALI"
+      - generic [ref=e38]: "MODE: EXPLORATION"
+    - generic [ref=e39]:
+      - generic [ref=e40]: HUMAN INSIGHT
+      - generic [ref=e41]: + TECHNOLOGY
+    - generic [ref=e42]:
+      - paragraph [ref=e43]: Independent research & development lab
+      - heading "IMAGINE WHAT'S NEXT" [level=1] [ref=e44]:
+        - generic [ref=e45]: IMAGINE
+        - generic [ref=e46]:
+          - text: WHAT'S
+          - emphasis [ref=e47]: NEXT
+    - paragraph [ref=e48]:
+      - text: We investigate complex problems and build
+      - text: practical futures from Kigali, Rwanda.
+    - link "Scroll to discover" [ref=e49] [cursor=pointer]:
+      - /url: "#about"
+      - generic [ref=e50]: SCROLL TO DISCOVER
+      - generic [ref=e51]: ↓
+  - generic [ref=e52]:
+    - generic [ref=e54]: IL
+    - paragraph [ref=e55]: WHY WE EXIST / 001
+    - heading "PROGRESS NEEDS MORE THAN GOOD IDEAS." [level=2] [ref=e56]:
+      - text: PROGRESS NEEDS MORE THAN
+      - generic [ref=e57]: GOOD IDEAS.
+    - generic [ref=e58]:
+      - paragraph [ref=e59]: It needs rigorous inquiry, unusual collaboration, and the courage to test what has not been tried before.
+      - paragraph [ref=e60]:
+        - text: Ingoga means
+        - strong [ref=e61]: curiosity
+        - text: . It is the force behind every question we ask and every system we build.
+  - generic [ref=e62]:
+    - generic [ref=e63]:
+      - paragraph [ref=e64]: RESEARCH DOMAINS / 002
+      - heading "WHERE WE FOCUS" [level=2] [ref=e65]:
+        - text: WHERE WE
+        - text: FOCUS
+      - generic [ref=e66]:
+        - text: Three connected fields.
+        - text: One shared future.
+    - generic [ref=e67]:
+      - article [ref=e68]:
+        - generic [ref=e69]:
+          - generic [ref=e70]: "01"
+          - generic [ref=e71]: ◎
+        - generic [ref=e72]:
+          - paragraph [ref=e73]: SOCIAL IMPACT
+          - heading "Human Systems" [level=3] [ref=e74]
+          - paragraph [ref=e76]: We study how people access opportunity, public services, education, and care—then turn evidence into systems that work in real life.
+      - article [ref=e77]:
+        - generic [ref=e78]:
+          - generic [ref=e79]: "02"
+          - generic [ref=e80]: ✳
+        - generic [ref=e81]:
+          - paragraph [ref=e82]: APPLIED AI
+          - heading "Intelligent Technology" [level=3] [ref=e83]
+          - paragraph [ref=e85]: We build responsible AI, data tools, and emerging interfaces designed around African realities, languages, and institutions.
+      - article [ref=e86]:
+        - generic [ref=e87]:
+          - generic [ref=e88]: "03"
+          - generic [ref=e89]: ◌
+        - generic [ref=e90]:
+          - paragraph [ref=e91]: CLIMATE TECH
+          - heading "Climate + Resilience" [level=3] [ref=e92]
+          - paragraph [ref=e94]: We develop practical technologies for adaptation, circular production, agriculture, and resilient cities across the continent.
+  - generic [ref=e95]:
+    - generic [ref=e96]:
+      - paragraph [ref=e97]: OUR METHOD / 003
+      - heading "FROM QUESTION TO CHANGE." [level=2] [ref=e98]:
+        - text: FROM
+        - text: QUESTION
+        - text: TO CHANGE.
+    - list [ref=e99]:
+      - listitem [ref=e100]:
+        - generic [ref=e101]: "01"
+        - generic [ref=e102]:
+          - generic [ref=e103]: LISTEN
+          - paragraph [ref=e104]: Start close to people and context. Find the question beneath the question.
+      - listitem [ref=e105]:
+        - generic [ref=e106]: "02"
+        - generic [ref=e107]:
+          - generic [ref=e108]: INVESTIGATE
+          - paragraph [ref=e109]: Combine field research, data, systems thinking, and technical exploration.
+      - listitem [ref=e110]:
+        - generic [ref=e111]: "03"
+        - generic [ref=e112]:
+          - generic [ref=e113]: MAKE
+          - paragraph [ref=e114]: Turn knowledge into experiments, tools, services, and tangible prototypes.
+      - listitem [ref=e115]:
+        - generic [ref=e116]: "04"
+        - generic [ref=e117]:
+          - generic [ref=e118]: LEARN IN PUBLIC
+          - paragraph [ref=e119]: Measure honestly, share what works, and let the evidence shape what comes next.
+  - generic [ref=e120]:
+    - generic [ref=e121]:
+      - paragraph [ref=e122]: SELECTED EXPLORATIONS / 004
+      - heading "WORK IN PROGRESS" [level=2] [ref=e123]:
+        - text: WORK IN
+        - text: PROGRESS
+      - generic [ref=e124]:
+        - text: Research becomes valuable
+        - text: when it enters the world.
+    - generic [ref=e125]:
+      - article [ref=e126]:
+        - generic [ref=e127]:
+          - generic [ref=e128]: "[A]"
+          - generic [ref=e129]: CIVIC SYSTEMS
+        - generic [ref=e135]: 12 DISTRICTS
+        - heading "Signals for better public decisions" [level=3] [ref=e136]
+        - paragraph [ref=e137]: A research platform translating community feedback into clear, timely evidence for institutions.
+        - link "VIEW EXPLORATION ↗" [ref=e138] [cursor=pointer]:
+          - /url: "#contact"
+          - text: VIEW EXPLORATION
+          - generic [ref=e139]: ↗
+      - article [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: "[B]"
+          - generic [ref=e143]: LANGUAGE AI
+        - generic [ref=e149]: LOCAL BY DESIGN
+        - heading "Technology that understands context" [level=3] [ref=e150]
+        - paragraph [ref=e151]: Exploring language models and voice interfaces for Kinyarwanda-first digital services.
+        - link "VIEW EXPLORATION ↗" [ref=e152] [cursor=pointer]:
+          - /url: "#contact"
+          - text: VIEW EXPLORATION
+          - generic [ref=e153]: ↗
+      - article [ref=e154]:
+        - generic [ref=e155]:
+          - generic [ref=e156]: "[C]"
+          - generic [ref=e157]: RESILIENT CITIES
+        - generic [ref=e163]: LIVE PROTOTYPE
+        - heading "Seeing risk before it becomes loss" [level=3] [ref=e164]
+        - paragraph [ref=e165]: Low-cost sensing and spatial intelligence for safer, more adaptive urban communities.
+        - link "VIEW EXPLORATION ↗" [ref=e166] [cursor=pointer]:
+          - /url: "#contact"
+          - text: VIEW EXPLORATION
+          - generic [ref=e167]: ↗
+  - generic [ref=e168]:
+    - generic [ref=e169]:
+      - text: ✳
+      - generic [ref=e170]: RESEARCH • PROTOTYPE • LEARN • BUILD •
+    - generic [ref=e171]:
+      - paragraph [ref=e172]: COLLABORATE / 005
+      - heading "BRING US THE HARD QUESTION." [level=2] [ref=e173]:
+        - text: BRING US THE
+        - text: HARD QUESTION.
+    - paragraph [ref=e174]: We partner with ambitious institutions, communities, and teams who believe the future can be intentionally designed.
+    - link "WORK WITH US ↗" [ref=e175] [cursor=pointer]:
+      - /url: mailto:hello@ingogalabs.com
+  - generic [ref=e176]:
+    - generic [ref=e177]:
+      - paragraph [ref=e178]: COMMON QUESTIONS / 006
+      - heading "BEFORE YOU ASK" [level=2] [ref=e179]:
+        - text: BEFORE
+        - text: YOU ASK
+    - generic [ref=e180]:
+      - group [ref=e181]:
+        - generic "What is Ingoga Labs? (1) +" [ref=e182] [cursor=pointer]:
+          - generic [ref=e183]: What is Ingoga Labs?
+          - generic [ref=e184]: (1) +
+      - group [ref=e185]:
+        - generic "Who do you work with? (2) +" [ref=e186] [cursor=pointer]:
+          - generic [ref=e187]: Who do you work with?
+          - generic [ref=e188]: (2) +
+      - group [ref=e189]:
+        - generic "Do you fund research? (3) +" [ref=e190] [cursor=pointer]:
+          - generic [ref=e191]: Do you fund research?
+          - generic [ref=e192]: (3) +
+      - group [ref=e193]:
+        - generic "Can Ingoga Labs build a prototype with us? (4) +" [ref=e194] [cursor=pointer]:
+          - generic [ref=e195]: Can Ingoga Labs build a prototype with us?
+          - generic [ref=e196]: (4) +
+      - group [ref=e197]:
+        - generic "Where are you based? (5) +" [ref=e198] [cursor=pointer]:
+          - generic [ref=e199]: Where are you based?
+          - generic [ref=e200]: (5) +
+  - generic [ref=e201]:
+    - generic [ref=e202]:
+      - paragraph [ref=e203]:
+        - text: THE NEXT DISCOVERY
+        - text: COULD START HERE.
+      - link "HELLO@INGOGALABS.COM ↗" [ref=e204] [cursor=pointer]:
+        - /url: mailto:hello@ingogalabs.com
+    - generic [ref=e205]:
+      - generic [ref=e206]: INGOGA
+      - generic [ref=e207]: ✳
+    - generic [ref=e208]:
+      - generic [ref=e209]:
+        - generic [ref=e210]: BASED IN
+        - paragraph [ref=e211]:
+          - text: Kigali, Rwanda
+          - text: East Africa
+      - generic [ref=e212]:
+        - generic [ref=e213]: EXPLORE
+        - link "About" [ref=e214] [cursor=pointer]:
+          - /url: "#about"
+        - link "Research" [ref=e215] [cursor=pointer]:
+          - /url: "#research"
+        - link "Work" [ref=e216] [cursor=pointer]:
+          - /url: "#work"
+      - generic [ref=e217]:
+        - generic [ref=e218]: CONNECT
+        - link "Email" [ref=e219] [cursor=pointer]:
+          - /url: mailto:hello@ingogalabs.com
+        - link "LinkedIn ↗" [ref=e220] [cursor=pointer]:
+          - /url: "#top"
+        - link "Instagram ↗" [ref=e221] [cursor=pointer]:
+          - /url: "#top"
+      - generic [ref=e222]:
+        - generic [ref=e223]: INGOGA LABS
+        - paragraph [ref=e224]: © 2026. Curiosity, applied.

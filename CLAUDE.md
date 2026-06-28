@@ -1,28 +1,11 @@
-# CLAUDE.md — Everyday App
+# Ingoga Labs Project Instructions
 
-**Before any work, read in order:**
-[`PRODUCT_CONSTITUTION.md`](./PRODUCT_CONSTITUTION.md) →
-[`PROJECT_BRIEF.md`](./PROJECT_BRIEF.md) →
-[`AI_CONTEXT.md`](./AI_CONTEXT.md); then [`CONTRIBUTING.md`](./CONTRIBUTING.md) for
-run/test/deploy. The Constitution is the highest-level source of truth and takes
-precedence over any conflicting instruction. See also [`AGENTS.md`](./AGENTS.md) — the
-same guidance shared across AI coding tools.
+Read `docs/INGOGA_LABS_CONSTITUTION.md` before planning, writing, designing, or
+editing this project.
 
-## The short version (authoritative detail is in the Constitution)
+Treat it as the source of truth for the brand idea, research direction, voice,
+design tokens, imagery, motion, accessibility, and responsive behavior.
 
-- Evolve the existing product; never redesign or introduce a new visual language.
-- Completing and hardening existing flows outranks adding new features.
-- Use progressive disclosure: one primary task per screen, predictable navigation.
-- Reuse the `ui.jsx` design tokens and primitives — never hardcode a new look.
-- Ship production-ready only: loading / empty / error / success states, responsive
-  on mobile + desktop, realistic data.
-- When uncertain, pick the simpler, clearer, more consistent option.
+After meaningful interface work, run `npm run build` and verify desktop and
+mobile layouts.
 
-## Orientation
-
-The live app is the in-browser-Babel React JSX under `next-pwa/public/legacy/`
-(`screens.jsx`, `app.jsx`, `ui.jsx`, `data.jsx`, `Everyday.html`). Because that JSX
-is transformed in the browser, `next build` will **not** catch JSX errors there —
-always run the app (`npm run dev` in `next-pwa/`) and verify every state on mobile
-and desktop. Deploy by pushing to `main` (Vercel auto-deploys). Full repository
-map and design-language notes are in Appendix A of the Constitution.

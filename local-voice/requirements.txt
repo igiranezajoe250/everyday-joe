@@ -1,8 +1,0 @@
-# Voice path dependencies (ASR + TTS) for the full agent container.
-# torch is installed CPU-only in the Dockerfile via the PyTorch CPU index to
-# keep the image from pulling multi-GB CUDA wheels.
-transformers>=4.44
-kokoro>=0.9.2
-soundfile>=0.12
-numpy>=1.26
-accelerate>=0.33
