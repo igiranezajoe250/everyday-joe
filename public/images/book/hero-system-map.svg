@@ -1,0 +1,29 @@
+<svg width="1400" height="900" viewBox="0 0 1400 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="900" fill="#101216"/>
+  <rect x="76" y="70" width="1248" height="760" rx="44" fill="#171A20" stroke="#333840"/>
+  <path d="M145 174H1255" stroke="#3B4048" stroke-width="2"/>
+  <path d="M145 354H1255" stroke="#2D3239" stroke-width="2"/>
+  <path d="M145 534H1255" stroke="#2D3239" stroke-width="2"/>
+  <path d="M350 126V780M640 126V780M930 126V780" stroke="#292E35" stroke-width="2"/>
+  <rect x="184" y="208" width="252" height="92" rx="22" fill="#F5EFE4"/>
+  <rect x="474" y="208" width="252" height="92" rx="22" fill="#232832" stroke="#3E4653"/>
+  <rect x="764" y="208" width="252" height="92" rx="22" fill="#232832" stroke="#3E4653"/>
+  <rect x="1054" y="208" width="142" height="92" rx="22" fill="#C8102E"/>
+  <rect x="184" y="400" width="252" height="92" rx="22" fill="#232832" stroke="#3E4653"/>
+  <rect x="474" y="400" width="252" height="92" rx="22" fill="#F5EFE4"/>
+  <rect x="764" y="400" width="252" height="92" rx="22" fill="#232832" stroke="#3E4653"/>
+  <rect x="1054" y="400" width="142" height="92" rx="22" fill="#2FAE9B"/>
+  <rect x="184" y="592" width="252" height="92" rx="22" fill="#232832" stroke="#3E4653"/>
+  <rect x="474" y="592" width="252" height="92" rx="22" fill="#232832" stroke="#3E4653"/>
+  <rect x="764" y="592" width="252" height="92" rx="22" fill="#F5EFE4"/>
+  <rect x="1054" y="592" width="142" height="92" rx="22" fill="#D2A46F"/>
+  <path d="M436 254H474M726 254H764M1016 254H1054M436 446H474M726 446H764M1016 446H1054M436 638H474M726 638H764M1016 638H1054" stroke="#D2A46F" stroke-width="5" stroke-linecap="round"/>
+  <text x="190" y="146" fill="#F5EFE4" font-family="Arial, sans-serif" font-size="34" font-weight="700">Operating system map</text>
+  <text x="190" y="262" fill="#111319" font-family="Arial, sans-serif" font-size="28" font-weight="700">Observe</text>
+  <text x="492" y="262" fill="#F5EFE4" font-family="Arial, sans-serif" font-size="28" font-weight="700">Structure</text>
+  <text x="786" y="262" fill="#F5EFE4" font-family="Arial, sans-serif" font-size="28" font-weight="700">Execute</text>
+  <text x="1078" y="262" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="28" font-weight="700">Proof</text>
+  <circle cx="1182" cy="128" r="18" fill="#C8102E"/>
+  <circle cx="1232" cy="128" r="18" fill="#D2A46F"/>
+  <circle cx="1282" cy="128" r="18" fill="#2FAE9B"/>
+</svg>

@@ -1,0 +1,11 @@
+<svg width="760" height="560" viewBox="0 0 760 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="760" height="560" rx="34" fill="#FAF6F1"/>
+  <rect x="90" y="382" width="102" height="72" rx="18" fill="#15171D"/>
+  <rect x="236" y="316" width="102" height="138" rx="18" fill="#252B35"/>
+  <rect x="382" y="238" width="102" height="216" rx="18" fill="#C8102E"/>
+  <rect x="528" y="142" width="102" height="312" rx="18" fill="#D2A46F"/>
+  <path d="M138 348C216 308 272 304 334 244C402 179 468 196 574 88" stroke="#15171D" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="574" cy="88" r="28" fill="#2FAE9B"/>
+  <path d="M562 88H586M586 88L576 78M586 88L576 98" stroke="#FAF6F1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="92" y="106" fill="#15171D" font-family="Arial, sans-serif" font-size="34" font-weight="700">Performance creates options</text>
+</svg>

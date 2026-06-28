@@ -1,0 +1,16 @@
+<svg width="1100" height="900" viewBox="0 0 1100 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="900" fill="#F5EFE4"/>
+  <rect x="94" y="92" width="912" height="716" rx="36" fill="#171A20"/>
+  <rect x="154" y="154" width="330" height="228" rx="24" fill="#FAF6F1"/>
+  <rect x="550" y="154" width="396" height="76" rx="18" fill="#C8102E"/>
+  <rect x="550" y="266" width="396" height="76" rx="18" fill="#252B35"/>
+  <rect x="550" y="378" width="396" height="76" rx="18" fill="#252B35"/>
+  <rect x="154" y="458" width="792" height="1.5" fill="#3B4048"/>
+  <rect x="154" y="528" width="240" height="168" rx="24" fill="#252B35"/>
+  <rect x="430" y="528" width="240" height="168" rx="24" fill="#252B35"/>
+  <rect x="706" y="528" width="240" height="168" rx="24" fill="#D2A46F"/>
+  <path d="M214 222H424M214 270H382M214 318H404" stroke="#171A20" stroke-width="12" stroke-linecap="round"/>
+  <path d="M590 304H870M590 416H842M190 612H352M466 612H612M744 612H898" stroke="#F5EFE4" stroke-width="10" stroke-linecap="round"/>
+  <path d="M484 268C512 268 522 192 550 192M484 314C522 314 512 304 550 304M484 348C538 348 496 416 550 416" stroke="#D2A46F" stroke-width="5" stroke-linecap="round"/>
+  <text x="154" y="752" fill="#F5EFE4" font-family="Arial, sans-serif" font-size="30" font-weight="700">Notes become workflows. Workflows become evidence.</text>
+</svg>

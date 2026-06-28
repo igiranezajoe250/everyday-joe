@@ -1,0 +1,20 @@
+<svg width="1100" height="620" viewBox="0 0 1100 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="620" rx="36" fill="#15171D"/>
+  <path d="M190 124H910M190 216H910M190 308H910M190 400H910M190 492H910" stroke="#343A43" stroke-width="3"/>
+  <rect x="178" y="92" width="744" height="64" rx="18" fill="#FAF6F1"/>
+  <rect x="178" y="184" width="628" height="64" rx="18" fill="#252B35" stroke="#444B56"/>
+  <rect x="178" y="276" width="690" height="64" rx="18" fill="#252B35" stroke="#444B56"/>
+  <rect x="178" y="368" width="548" height="64" rx="18" fill="#C8102E"/>
+  <rect x="178" y="460" width="648" height="64" rx="18" fill="#D2A46F"/>
+  <path d="M136 92V524" stroke="#C8102E" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="136" cy="124" r="17" fill="#FAF6F1"/>
+  <circle cx="136" cy="216" r="17" fill="#FAF6F1"/>
+  <circle cx="136" cy="308" r="17" fill="#FAF6F1"/>
+  <circle cx="136" cy="400" r="17" fill="#FAF6F1"/>
+  <circle cx="136" cy="492" r="17" fill="#FAF6F1"/>
+  <text x="220" y="132" fill="#15171D" font-family="Arial, sans-serif" font-size="26" font-weight="700">Observe before designing</text>
+  <text x="220" y="224" fill="#FAF6F1" font-family="Arial, sans-serif" font-size="26" font-weight="700">Remove avoidable choices</text>
+  <text x="220" y="316" fill="#FAF6F1" font-family="Arial, sans-serif" font-size="26" font-weight="700">Structure the trail</text>
+  <text x="220" y="408" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="26" font-weight="700">Keep the system legible</text>
+  <text x="220" y="500" fill="#15171D" font-family="Arial, sans-serif" font-size="26" font-weight="700">Let the work compound</text>
+</svg>
