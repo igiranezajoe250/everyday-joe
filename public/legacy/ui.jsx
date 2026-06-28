@@ -392,7 +392,7 @@ function ProgressBar({ percent = 0, accent, track = ink12, height = 4 }) {
 // Bottom tab bar — only 2 tabs, very minimal
 function TabBar({ active, onChange, accent, native }) {
   const tabs = [
-    { id: 'shop',     label: 'Marketplace' },
+    { id: 'shop',     label: 'Market' },
     { id: 'wallet',   label: 'Wallet' },
     { id: 'plan',     label: 'Plan'    },
   ];

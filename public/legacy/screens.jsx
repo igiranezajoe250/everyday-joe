@@ -13,7 +13,7 @@
 // the money surface, and Plan is the brain. Save/Pay/Commute/Listen still have
 // their own live routes, but sit under these primary surfaces.
 const EVERYDAY_FUNCTIONS = [
-  { id: 'shop', label: 'Marketplace', sub: 'Vetted goods and services', color: '#A37BF2',
+  { id: 'shop', label: 'Market', sub: 'Bonds, unit trusts & REITs', color: '#A37BF2',
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>) },
   { id: 'wallet', label: 'Wallet', sub: 'Save, pay and borrow', color: '#2FAE9B', locked: true,
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>) },
@@ -1317,10 +1317,10 @@ function EverydayHub({ web, profile, onShop, onWallet, onSave, onPay, onPlan, on
 function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, intent, onIntentHandled, isOperator = false, onOperatorChange, onOpenRoute }) {
   const modes = {
     shop: {
-      title: 'Marketplace',
-      intro: 'Demand or access trusted goods and services.',
-      actions: ['Browse providers', 'Command a request', 'Saved services'],
-      items: ['Government services', 'Form sharing', 'Trusted providers'],
+      title: 'Market',
+      intro: 'Invest in Rwanda bonds, T-bills, unit trusts and REITs.',
+      actions: ['Browse market', 'Build a portfolio', 'Your holdings'],
+      items: ['Government bonds', 'Unit trusts', 'REITs'],
     },
     pay: {
       title: 'Pay',
@@ -1350,7 +1350,7 @@ function EverydayFunctionScreen({ mode, web, onBack, player, bottomInset = 0, in
   const m = modes[mode] || modes.shop;
 
   if (mode === 'shop') {
-    return <ShopScreen web={web} onBack={onBack} isOperator={isOperator} onOperatorChange={onOperatorChange} onOpenRoute={onOpenRoute} />;
+    return <MarketScreen web={web} onBack={onBack} />;
   }
   if (mode === 'plan') {
     return <PlanScreen web={web} onBack={onBack} bottomInset={bottomInset} intent={intent} onIntentHandled={onIntentHandled} />;
@@ -1902,6 +1902,393 @@ function ShopProductList({ shop, products, web, onBack, onBuy }) {
               );
             })}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Ingoga Invest — Rwanda securities marketplace (Robinhood-style)
+// Browse and invest in Rwanda Bonds, Treasury Bills, Unit Trusts and REITs.
+// Self-contained: holdings persist to localStorage so the prototype behaves like
+// a real, stateful portfolio. Mock market data (illustrative, Rwanda-grounded).
+// ============================================================================
+
+const INVEST_CLASSES = ['All', 'Bonds', 'T-Bills', 'Unit Trusts', 'REITs'];
+const INVEST_GLYPH = { 'Bonds': 'govtech-lab', 'T-Bills': 'gll', 'Unit Trusts': 'services-fund', 'REITs': 'reit-fund' };
+function investGlyphId(klass) { return INVEST_GLYPH[klass] || 'services-fund'; }
+const UP_GREEN = '#1F7A4D';
+function changeColor(n) { return n >= 0 ? UP_GREEN : '#C8102E'; }
+function fmtSignedPct(n) { return (n > 0 ? '+' : '') + Number(n).toFixed(2) + '%'; }
+
+const RW_INSTRUMENTS = [
+  { id: 'gor-fxd-2030', ticker: 'FXD2030', name: 'GoR Treasury Bond 2030', issuer: 'Govt of Rwanda', klass: 'Bonds', metricKind: 'yield', yield: 12.85, coupon: 12.8, price: 994, faceMin: 100000, maturity: '15 Jul 2030', tenorLabel: '7-yr', rating: 'B+ (Fitch)', changePct: 0.12, listed: 'Rwanda Stock Exchange', spark: [982, 986, 984, 989, 991, 988, 993, 990, 992, 994], desc: "Fixed-rate 7-year government bond paying a 12.8% semi-annual coupon. Backed by the Government of Rwanda and listed on the Rwanda Stock Exchange (RSE)." },
+  { id: 'gor-fxd-2027', ticker: 'FXD2027', name: 'GoR Treasury Bond 2027', issuer: 'Govt of Rwanda', klass: 'Bonds', metricKind: 'yield', yield: 11.45, coupon: 11.25, price: 1006, faceMin: 100000, maturity: '20 Mar 2027', tenorLabel: '5-yr', rating: 'B+ (Fitch)', changePct: -0.08, listed: 'Rwanda Stock Exchange', spark: [1011, 1009, 1010, 1007, 1008, 1005, 1007, 1006, 1005, 1006], desc: "Mid-tenor 5-year government note and a liquid RSE benchmark. Used by pension funds and banks for stable, predictable income." },
+  { id: 'brd-infra-2029', ticker: 'BRD29', name: 'BRD Infrastructure Bond 2029', issuer: 'Dev. Bank of Rwanda', klass: 'Bonds', metricKind: 'yield', yield: 13.20, coupon: 13.0, price: 989, faceMin: 100000, maturity: '10 Sep 2029', tenorLabel: '6-yr', rating: 'A (natl)', changePct: 0.25, listed: 'Rwanda Stock Exchange', spark: [976, 979, 981, 980, 983, 985, 984, 987, 988, 989], desc: "Sustainability bond from the Development Bank of Rwanda funding green and affordable-housing infrastructure. A higher yield for a development-bank credit." },
+  { id: 'tbill-364', ticker: 'TB364', name: '364-Day Treasury Bill', issuer: 'Nat. Bank of Rwanda', klass: 'T-Bills', metricKind: 'yield', yield: 10.95, price: 901, faceMin: 100000, maturity: '52 weeks', tenorLabel: '364-day', rating: 'Sovereign', changePct: 0.05, listed: 'BNR Auction', spark: [10.4, 10.5, 10.6, 10.7, 10.6, 10.8, 10.85, 10.9, 10.92, 10.95], desc: "One-year discount bill auctioned by the National Bank of Rwanda. Bought below face value and redeemed at 100 at maturity — your return is the discount." },
+  { id: 'tbill-182', ticker: 'TB182', name: '182-Day Treasury Bill', issuer: 'Nat. Bank of Rwanda', klass: 'T-Bills', metricKind: 'yield', yield: 9.80, price: 953, faceMin: 100000, maturity: '26 weeks', tenorLabel: '182-day', rating: 'Sovereign', changePct: -0.03, listed: 'BNR Auction', spark: [9.5, 9.55, 9.6, 9.62, 9.7, 9.68, 9.74, 9.78, 9.79, 9.8], desc: "Six-month sovereign bill. A short, near-cash place to hold money at a fixed discount rate, easy to roll over each auction." },
+  { id: 'tbill-91', ticker: 'TB91', name: '91-Day Treasury Bill', issuer: 'Nat. Bank of Rwanda', klass: 'T-Bills', metricKind: 'yield', yield: 8.65, price: 979, faceMin: 100000, maturity: '13 weeks', tenorLabel: '91-day', rating: 'Sovereign', changePct: 0.02, listed: 'BNR Auction', spark: [8.3, 8.35, 8.4, 8.45, 8.5, 8.55, 8.6, 8.62, 8.64, 8.65], desc: "The shortest sovereign instrument at 13 weeks. Lowest yield and lowest duration risk — a clean parking spot for short-term cash." },
+  { id: 'rnit-iterambere', ticker: 'ITRB', name: 'RNIT Iterambere Fund', issuer: 'RNIT Ltd', klass: 'Unit Trusts', metricKind: 'price', price: 142.6, unitName: 'unit', yield: 9.4, minInvest: 5000, aum: 'RWF 28.4B', rating: 'Balanced', changePct: 0.42, listed: 'Rwanda Stock Exchange', spark: [131, 133, 132, 135, 137, 136, 139, 140, 141, 142.6], desc: "Rwanda's flagship listed unit trust from RNIT — a diversified balanced fund holding RSE equities and government bonds. Open to retail investors from RWF 5,000." },
+  { id: 'rnit-aguka', ticker: 'AGK', name: 'Aguka Unit Trust', issuer: 'RNIT Ltd', klass: 'Unit Trusts', metricKind: 'price', price: 118.9, unitName: 'unit', yield: 8.1, minInvest: 5000, aum: 'RWF 9.1B', rating: 'Income', changePct: 0.18, listed: 'Open-ended', spark: [112, 113, 114, 113.5, 115, 116, 116.5, 117.5, 118.2, 118.9], desc: "An income-tilted open-ended fund (Aguka means to grow). Targets steady distributions from money-market and fixed-income holdings — ideal for first-time savers." },
+  { id: 'bk-money-market', ticker: 'BKMM', name: 'BK Capital Money Market', issuer: 'BK Capital', klass: 'Unit Trusts', metricKind: 'price', price: 107.3, unitName: 'unit', yield: 10.2, minInvest: 10000, aum: 'RWF 41.7B', rating: 'Money market', changePct: 0.06, listed: 'Open-ended', spark: [103, 103.6, 104.2, 104.9, 105.4, 105.9, 106.4, 106.8, 107.0, 107.3], desc: "A low-volatility money-market fund from BK Capital holding T-bills and bank deposits. Designed to beat a savings account while staying near-cash liquid." },
+  { id: 'irreit', ticker: 'IRR', name: 'I&M Rwanda Income REIT', issuer: 'I&M Capital', klass: 'REITs', metricKind: 'price', price: 96.4, unitName: 'unit', yield: 7.6, minInvest: 20000, aum: 'RWF 18.2B', rating: 'Income REIT', changePct: -0.22, listed: 'Rwanda Stock Exchange', spark: [99, 98.4, 98.6, 97.9, 97.4, 97.6, 96.9, 96.7, 96.5, 96.4], desc: "A listed real-estate income trust holding grade-A Kigali commercial property. Distributes rental income quarterly; unit price tracks net asset value." },
+  { id: 'vuba-reit', ticker: 'VBR', name: 'Vuba Heights Property Fund', issuer: 'Vuba Asset Mgmt', klass: 'REITs', metricKind: 'price', price: 134.8, unitName: 'unit', yield: 8.9, minInvest: 20000, aum: 'RWF 12.6B', rating: 'Growth REIT', changePct: 0.55, listed: 'Open-ended', spark: [124, 126, 127, 128.5, 130, 131, 132, 133, 134, 134.8], desc: "A growth-oriented property fund developing mixed-use residential estates around Kigali's expanding suburbs. Targets capital appreciation plus rental yield." },
+];
+
+function loadInvestHoldings() {
+  try { return JSON.parse(localStorage.getItem('ingoga.invest.holdings') || '{}') || {}; } catch (e) { return {}; }
+}
+function saveInvestHoldings(h) {
+  try { localStorage.setItem('ingoga.invest.holdings', JSON.stringify(h)); } catch (e) {}
+}
+function instMetric(ins) {
+  return ins.metricKind === 'yield' ? ins.yield.toFixed(2) + '%' : fmtRWF(ins.price);
+}
+
+// ── Watchlist-style instrument row ──
+function InstrumentRow({ ins, onClick, last }) {
+  return (
+    <button onClick={onClick} className="pk-calm-action" style={{
+      width: '100%', background: 'transparent', border: 0, cursor: 'pointer',
+      fontFamily: 'inherit', padding: '13px 0', textAlign: 'left',
+      borderBottom: last ? 'none' : `1px solid ${ink06}`,
+      display: 'flex', alignItems: 'center', gap: 13,
+    }}>
+      <FundIcon id={investGlyphId(ins.klass)} size={42} radius={12} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: '-0.01em', color: ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ins.name}</div>
+        <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: ink55, marginTop: 4 }}>{ins.ticker} · {ins.issuer}</div>
+      </div>
+      <div style={{ width: 50, height: 28, flexShrink: 0 }}>
+        <Sparkline data={ins.spark} width={50} height={28} accent={changeColor(ins.changePct)} strokeWidth={1.5} />
+      </div>
+      <div style={{ textAlign: 'right', minWidth: 58 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, fontFeatureSettings: '"tnum"', color: ink }}>{instMetric(ins)}</div>
+        <div style={{ fontFamily: CC_MONO, fontSize: 10.5, color: changeColor(ins.changePct), marginTop: 4 }}>{fmtSignedPct(ins.changePct)}</div>
+      </div>
+    </button>
+  );
+}
+
+// ── Main marketplace: portfolio hero + class tabs + instrument list ──
+function MarketScreen({ web, onBack }) {
+  const [holdings, setHoldings] = React.useState(loadInvestHoldings);
+  const [klass, setKlass] = React.useState('All');
+  const [query, setQuery] = React.useState('');
+  const [sel, setSel] = React.useState(null);
+  const [order, setOrder] = React.useState(null);
+
+  const placeOrder = (ins, units, amount) => {
+    setHoldings((h) => {
+      const prev = h[ins.id] || { units: 0, invested: 0 };
+      const next = { ...h, [ins.id]: { units: prev.units + units, invested: prev.invested + amount, yield: ins.yield } };
+      saveInvestHoldings(next);
+      return next;
+    });
+  };
+
+  if (order) {
+    return <InvestOrderFlow ins={order} web={web}
+      onBack={() => setOrder(null)}
+      onPlace={(units, amount) => placeOrder(order, units, amount)} />;
+  }
+  if (sel) {
+    return <InstrumentDetail ins={sel} web={web} holding={holdings[sel.id]}
+      onBack={() => setSel(null)} onInvest={() => setOrder(sel)} />;
+  }
+
+  const positions = RW_INSTRUMENTS
+    .filter((i) => holdings[i.id] && holdings[i.id].units > 0)
+    .map((i) => ({ ins: i, h: holdings[i.id], value: holdings[i.id].invested }));
+  const invested = positions.reduce((s, p) => s + p.value, 0);
+  const annualIncome = positions.reduce((s, p) => s + p.value * (p.ins.yield || 0) / 100, 0);
+  const blendedYield = invested > 0 ? (annualIncome / invested * 100) : 0;
+  const heroSpark = invested > 0
+    ? [invested * 0.92, invested * 0.94, invested * 0.93, invested * 0.96, invested * 0.97, invested * 0.99, invested]
+    : null;
+
+  const list = RW_INSTRUMENTS
+    .filter((i) => klass === 'All' || i.klass === klass)
+    .filter((i) => !query || (i.name + i.ticker + i.issuer).toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>Market</span>}
+        right={<Eyebrow>Kigali · RSE</Eyebrow>}
+      />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 48px 40px' : '14px 20px 40px' }}>
+        <div style={{ maxWidth: web ? 760 : 'none', margin: web ? '0 auto' : 0 }}>
+
+          {/* Portfolio hero */}
+          <div className="pk-rise" style={{ marginBottom: 8 }}>
+            <Eyebrow style={{ marginBottom: 9 }}>Portfolio value</Eyebrow>
+            <div style={{ fontSize: web ? 46 : 40, fontWeight: 850, letterSpacing: '-0.045em', lineHeight: 1, color: ink, fontFeatureSettings: '"tnum"' }}>{fmtRWF(invested)}</div>
+            {invested > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: CC_MONO, fontSize: 11.5, color: UP_GREEN, letterSpacing: '0.02em' }}>▲ {fmtRWF(Math.round(annualIncome))}/yr est. income</span>
+                <span style={{ fontFamily: CC_MONO, fontSize: 11.5, color: ink55, letterSpacing: '0.02em' }}>{blendedYield.toFixed(1)}% blended yield</span>
+              </div>
+            ) : (
+              <div style={{ fontSize: 13.5, color: ink55, marginTop: 11, fontWeight: 500, lineHeight: 1.5 }}>Build your first Rwanda portfolio — government bonds, T-bills, unit trusts and REITs, from RWF 5,000.</div>
+            )}
+            {heroSpark && (
+              <div className="ivx-chart" style={{ height: 64, marginTop: 14 }}>
+                <style>{`.ivx-chart svg{height:100%!important;width:100%!important;display:block}`}</style>
+                <Sparkline data={heroSpark} width={320} height={64} accent={UP_GREEN} strokeWidth={2.5} />
+              </div>
+            )}
+          </div>
+
+          {/* Your positions */}
+          {positions.length > 0 && (
+            <div style={{ marginTop: 22 }}>
+              <Eyebrow style={{ marginBottom: 4 }}>Your holdings</Eyebrow>
+              {positions.map((p, i) => (
+                <InstrumentRow key={p.ins.id} ins={p.ins} last={i === positions.length - 1} onClick={() => { pkHaptic('select'); setSel(p.ins); }} />
+              ))}
+            </div>
+          )}
+
+          {/* Search */}
+          <div style={{ marginTop: 24 }}>
+            <DashField label="Search market" value={query} onChange={setQuery} placeholder="Bond, fund, REIT or issuer" />
+          </div>
+
+          {/* Class tabs */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 20, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+            {INVEST_CLASSES.map((c) => {
+              const on = klass === c;
+              return (
+                <button key={c} onClick={() => { pkHaptic('select'); setKlass(c); }} style={{
+                  flexShrink: 0, height: 34, padding: '0 16px', borderRadius: 999, cursor: 'pointer',
+                  fontFamily: CC_MONO, fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  background: on ? ink : paper, color: on ? '#fff' : ink70,
+                  border: `1px solid ${on ? ink : ink12}`, transition: 'all 160ms ease',
+                }}>{c}</button>
+              );
+            })}
+          </div>
+
+          {/* Instrument list */}
+          <div style={{ marginTop: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 16, marginBottom: 2 }}>
+              <Eyebrow>{klass === 'All' ? 'All instruments' : klass}</Eyebrow>
+              <span style={{ fontFamily: CC_MONO, fontSize: 10, color: ink40, letterSpacing: '0.06em' }}>{list.length} LISTED</span>
+            </div>
+            {list.length === 0 ? (
+              <div style={{ padding: '28px 0', textAlign: 'center', color: ink40, fontSize: 13 }}>No instruments match.</div>
+            ) : list.map((ins, i) => (
+              <InstrumentRow key={ins.id} ins={ins} last={i === list.length - 1} onClick={() => { pkHaptic('select'); setSel(ins); }} />
+            ))}
+          </div>
+
+          <div style={{ marginTop: 22, fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.04em', color: ink25, lineHeight: 1.6, textTransform: 'uppercase' }}>
+            Prototype · illustrative market data. Capital at risk. Investments via licensed RSE participants.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Instrument detail: chart + stats + about + position + Invest CTA ──
+function InstrumentDetail({ ins, web, holding, onBack, onInvest }) {
+  const isYield = ins.metricKind === 'yield';
+  const stats = [];
+  stats.push(['Indicative yield', ins.yield.toFixed(2) + '% p.a.']);
+  if (ins.coupon) stats.push(['Coupon', ins.coupon.toFixed(2) + '%']);
+  stats.push(['Tenor', ins.tenorLabel || '—']);
+  stats.push(['Maturity', ins.maturity || 'Open-ended']);
+  if (!isYield) stats.push(['Unit price', fmtRWF(ins.price)]);
+  stats.push(['Min. investment', fmtRWF(ins.minInvest || ins.faceMin || 5000)]);
+  stats.push(['Rating', ins.rating || '—']);
+  if (ins.aum) stats.push(['Fund size', ins.aum]);
+  stats.push(['Listing', ins.listed || '—']);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <BackBtn onClick={onBack} />
+          <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-0.01em', color: ink }}>{ins.ticker}</span>
+        </div>}
+        right={<StatusPill variant="outline">{ins.klass}</StatusPill>}
+      />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '18px 48px 28px' : '14px 20px 24px' }}>
+        <div style={{ maxWidth: web ? 720 : 'none', margin: web ? '0 auto' : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <FundIcon id={investGlyphId(ins.klass)} size={48} radius={14} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: web ? 24 : 21, fontWeight: 820, letterSpacing: '-0.03em', lineHeight: 1.05, color: ink }}>{ins.name}</div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: ink55, marginTop: 5 }}>{ins.issuer}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginTop: 22 }}>
+            <span style={{ fontSize: 38, fontWeight: 850, letterSpacing: '-0.04em', color: ink, fontFeatureSettings: '"tnum"' }}>{isYield ? ins.yield.toFixed(2) + '%' : fmtRWF(ins.price)}</span>
+            <span style={{ fontFamily: CC_MONO, fontSize: 13, color: changeColor(ins.changePct) }}>{fmtSignedPct(ins.changePct)}</span>
+          </div>
+          <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40, marginTop: 4 }}>{isYield ? 'Yield to maturity' : 'Net asset value / unit'}</div>
+
+          <div className="ivx-chart" style={{ height: 168, marginTop: 18 }}>
+            <style>{`.ivx-chart svg{height:100%!important;width:100%!important;display:block}`}</style>
+            <Sparkline data={ins.spark} width={340} height={168} accent={changeColor(ins.changePct)} strokeWidth={2.5} />
+          </div>
+          <div style={{ display: 'flex', gap: 7, marginTop: 12 }}>
+            {['1W', '1M', '3M', '1Y', 'MAX'].map((t, i) => (
+              <div key={t} style={{
+                flex: 1, textAlign: 'center', height: 30, lineHeight: '30px', borderRadius: 8,
+                fontFamily: CC_MONO, fontSize: 10.5, letterSpacing: '0.06em',
+                background: i === 1 ? ink : 'transparent', color: i === 1 ? '#fff' : ink55,
+                border: `1px solid ${i === 1 ? ink : ink12}`,
+              }}>{t}</div>
+            ))}
+          </div>
+
+          {holding && holding.units > 0 && (
+            <RoundedCard style={{ marginTop: 22 }} padding={18}>
+              <Eyebrow style={{ marginBottom: 12 }}>Your position</Eyebrow>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <StatBlock label="Invested" value={fmtRWF(Math.round(holding.invested))} />
+                <StatBlock label="Units" value={holding.units.toFixed(2)} />
+                <StatBlock label="Est. income / yr" value={fmtRWF(Math.round(holding.invested * ins.yield / 100))} />
+              </div>
+            </RoundedCard>
+          )}
+
+          <div style={{ marginTop: 24 }}>
+            <Eyebrow style={{ marginBottom: 12 }}>Key facts</Eyebrow>
+            <div style={{ border: `1px solid ${ink12}`, borderRadius: 18, overflow: 'hidden', background: paper }}>
+              {stats.map(([k, v], i) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 18px', borderBottom: i === stats.length - 1 ? 'none' : `1px solid ${ink06}` }}>
+                  <span style={{ fontSize: 13, color: ink55 }}>{k}</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 650, color: ink, fontFeatureSettings: '"tnum"' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 24 }}>
+            <Eyebrow style={{ marginBottom: 10 }}>About</Eyebrow>
+            <p style={{ fontSize: 14, lineHeight: 1.62, color: ink70, margin: 0 }}>{ins.desc}</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, padding: web ? '14px 48px' : '12px 20px', borderTop: `1px solid ${ink12}`, background: paper, paddingBottom: PK_NATIVE ? 'max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px))' : undefined }}>
+        <div style={{ maxWidth: web ? 720 : 'none', margin: web ? '0 auto' : 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>From {fmtRWF(ins.minInvest || ins.faceMin || 5000)}</div>
+            <div style={{ fontSize: 13, color: ink70, fontWeight: 500, marginTop: 2 }}>{ins.yield.toFixed(2)}% p.a. indicative</div>
+          </div>
+          <CCButton variant="solid" accent={ink} onClick={() => { pkHaptic('success'); onInvest(); }} style={{ flex: '0 0 auto', minWidth: 160 }}>Invest</CCButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Order flow: amount entry + breakdown + confirm + success ──
+function InvestOrderFlow({ ins, web, onBack, onPlace }) {
+  const [amount, setAmount] = React.useState('');
+  const [done, setDone] = React.useState(false);
+  const min = ins.minInvest || ins.faceMin || 5000;
+  const amt = Number(String(amount).replace(/[^0-9]/g, '')) || 0;
+  const units = ins.price ? amt / ins.price : 0;
+  const annualIncome = amt * (ins.yield || 0) / 100;
+  const valid = amt >= min;
+  const chips = [min, 50000, 100000, 250000].filter((v, i, a) => a.indexOf(v) === i);
+
+  const confirm = () => {
+    if (!valid) return;
+    pkHaptic('success');
+    onPlace(units, amt);
+    setDone(true);
+  };
+
+  if (done) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        <ScreenHeader left={<span style={{ fontSize: 15, fontWeight: 800, color: ink }}>Confirmed</span>} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 28px', textAlign: 'center' }}>
+          <div className="pk-pop" style={{ width: 76, height: 76, borderRadius: '50%', background: UP_GREEN, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
+            <svg width="34" height="34" viewBox="0 0 24 24"><path className="pk-check-path" d="M5 12.5l4 4 10-10" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <div style={{ fontSize: 23, fontWeight: 820, letterSpacing: '-0.03em', color: ink }}>Order placed</div>
+          <div style={{ fontSize: 14.5, color: ink70, marginTop: 10, lineHeight: 1.55, maxWidth: 320 }}>
+            You invested <strong>{fmtRWF(amt)}</strong> in {ins.name}{ins.metricKind === 'price' ? <span> for <strong>{units.toFixed(2)} units</strong></span> : null}. Estimated income <strong>{fmtRWF(Math.round(annualIncome))}/yr</strong> at {ins.yield.toFixed(2)}%.
+          </div>
+          <div style={{ marginTop: 30, width: '100%', maxWidth: 320 }}>
+            <CCButton variant="solid" accent={ink} fullWidth onClick={() => onBack()}>Done</CCButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><BackBtn onClick={onBack} /><span style={{ fontSize: 15, fontWeight: 800, color: ink }}>Invest</span></div>}
+        right={<Eyebrow>{ins.ticker}</Eyebrow>}
+      />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 48px 24px' : '16px 20px 24px' }}>
+        <div style={{ maxWidth: web ? 620 : 'none', margin: web ? '0 auto' : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 26 }}>
+            <FundIcon id={investGlyphId(ins.klass)} size={44} radius={12} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 750, letterSpacing: '-0.02em', color: ink }}>{ins.name}</div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: ink55, marginTop: 3 }}>{ins.yield.toFixed(2)}% p.a. · {ins.klass}</div>
+            </div>
+          </div>
+
+          <DashField label="Amount to invest" value={amount} onChange={setAmount} placeholder="0" inputMode="numeric" big prefix={<span style={{ fontSize: 24, fontWeight: 800, color: ink40 }}>RWF</span>} />
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+            {chips.map((v) => (
+              <button key={v} onClick={() => { pkHaptic('select'); setAmount(String(v)); }} style={{
+                height: 34, padding: '0 14px', borderRadius: 999, cursor: 'pointer',
+                fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.04em',
+                background: paper, color: ink70, border: `1px solid ${ink12}`,
+              }}>{v >= 1000 ? (v / 1000) + 'K' : v}</button>
+            ))}
+          </div>
+
+          <RoundedCard style={{ marginTop: 24 }} padding={18}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>{ins.metricKind === 'price' ? 'Units (approx.)' : 'Face value'}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink, fontFeatureSettings: '"tnum"' }}>{ins.metricKind === 'price' ? units.toFixed(2) + ' units' : fmtRWF(amt)}</span>
+            </div>
+            <Rule color={ink06} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Indicative yield</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink }}>{ins.yield.toFixed(2)}% p.a.</span>
+            </div>
+            <Rule color={ink06} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Est. annual income</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: UP_GREEN, fontFeatureSettings: '"tnum"' }}>{fmtRWF(Math.round(annualIncome))}</span>
+            </div>
+            <Rule color={ink06} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Settlement</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink }}>T+2 · Ingoga Invest Wallet</span>
+            </div>
+          </RoundedCard>
+
+          {!valid && amt > 0 && (
+            <div style={{ marginTop: 12, fontSize: 12.5, color: '#C8102E', fontWeight: 500 }}>Minimum investment is {fmtRWF(min)}.</div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, padding: web ? '14px 48px' : '12px 20px', borderTop: `1px solid ${ink12}`, background: paper, paddingBottom: PK_NATIVE ? 'max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px))' : undefined }}>
+        <div style={{ maxWidth: web ? 620 : 'none', margin: web ? '0 auto' : 0 }}>
+          <CCButton variant="solid" accent={valid ? ink : ink25} fullWidth onClick={confirm} style={{ opacity: valid ? 1 : 0.6, pointerEvents: valid ? 'auto' : 'none' }}>
+            {valid ? `Confirm · ${fmtRWF(amt)}` : 'Enter an amount'}
+          </CCButton>
         </div>
       </div>
     </div>
