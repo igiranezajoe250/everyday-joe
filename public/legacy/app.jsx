@@ -37,7 +37,7 @@ function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onB
   const railWidth = PK_WEB ? 58 : 52;
   const items = [
     { id: 'hub', label: 'Home', onClick: onHome, icon: (<svg {...iconProps}><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></svg>) },
-    { id: 'shop', label: 'Marketplace', onClick: onMarketplace, icon: (<svg {...iconProps}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>) },
+    { id: 'shop', label: 'Market', onClick: onMarketplace, icon: (<svg {...iconProps}><path d="M4 19V9l5-3v13"/><path d="M9 19v-6l5-3v9"/><path d="M14 19V8l5-3v14"/><path d="M3 19h18"/></svg>) },
     { id: 'wallet', label: 'Wallet', onClick: onWallet, icon: (<svg {...iconProps}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>) },
     { id: 'plan', label: 'Plan', onClick: onPlan, icon: (<svg {...iconProps}><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M4 9h16M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
   ];

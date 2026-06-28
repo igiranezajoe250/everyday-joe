@@ -1131,7 +1131,7 @@ function EverydayHub({ web, profile, onShop, onWallet, onSave, onPay, onPlan, on
   // Menu lives inside the Bounty search surface. Keep every primary service one
   // tap away, but keep the first screen calm: one bar, one prompt, one send.
   const sections = [
-    { key: 'shop',    label: 'Marketplace', sub: 'Vetted goods and services', icon: 'shop',    run: onShop },
+    { key: 'shop',    label: 'Market', sub: 'Bonds, unit trusts & REITs', icon: 'shop',    run: onShop },
     { key: 'wallet',  label: 'Wallet',  sub: 'Save, pay, loan',     icon: 'wallet',  run: onWallet || onSave },
     { key: 'plan',    label: 'Plan',    sub: 'Calendar and notes',  icon: 'note',    run: onPlan },
   ];
@@ -1978,11 +1978,25 @@ function MarketScreen({ web, onBack }) {
   const [query, setQuery] = React.useState('');
   const [sel, setSel] = React.useState(null);
   const [order, setOrder] = React.useState(null);
+  const [sell, setSell] = React.useState(null);
 
   const placeOrder = (ins, units, amount) => {
     setHoldings((h) => {
       const prev = h[ins.id] || { units: 0, invested: 0 };
       const next = { ...h, [ins.id]: { units: prev.units + units, invested: prev.invested + amount, yield: ins.yield } };
+      saveInvestHoldings(next);
+      return next;
+    });
+  };
+  const redeem = (ins, units, amount) => {
+    setHoldings((h) => {
+      const prev = h[ins.id];
+      if (!prev) return h;
+      const next = { ...h };
+      const nextUnits = prev.units - units;
+      const nextInvested = prev.invested - amount;
+      if (nextUnits <= 0.001 || nextInvested <= 1) delete next[ins.id];
+      else next[ins.id] = { ...prev, units: nextUnits, invested: nextInvested };
       saveInvestHoldings(next);
       return next;
     });
@@ -1993,9 +2007,14 @@ function MarketScreen({ web, onBack }) {
       onBack={() => setOrder(null)}
       onPlace={(units, amount) => placeOrder(order, units, amount)} />;
   }
+  if (sell) {
+    return <RedeemFlow ins={sell} web={web} holding={holdings[sell.id]}
+      onBack={() => setSell(null)}
+      onRedeem={(units, amount) => redeem(sell, units, amount)} />;
+  }
   if (sel) {
     return <InstrumentDetail ins={sel} web={web} holding={holdings[sel.id]}
-      onBack={() => setSel(null)} onInvest={() => setOrder(sel)} />;
+      onBack={() => setSel(null)} onInvest={() => setOrder(sel)} onSell={() => setSell(sel)} />;
   }
 
   const positions = RW_INSTRUMENTS
@@ -2048,6 +2067,20 @@ function MarketScreen({ web, onBack }) {
               {positions.map((p, i) => (
                 <InstrumentRow key={p.ins.id} ins={p.ins} last={i === positions.length - 1} onClick={() => { pkHaptic('select'); setSel(p.ins); }} />
               ))}
+              {(() => {
+                const byClass = {};
+                positions.forEach((p) => { byClass[p.ins.klass] = (byClass[p.ins.klass] || 0) + p.value; });
+                const rows = Object.keys(byClass).sort((a, b) => byClass[b] - byClass[a]);
+                if (rows.length < 1) return null;
+                return (
+                  <RoundedCard style={{ marginTop: 16 }} padding={18}>
+                    <Eyebrow style={{ marginBottom: 4 }}>Allocation</Eyebrow>
+                    {rows.map((k) => (
+                      <AllocBar key={k} label={k} percent={Math.round(byClass[k] / invested * 100)} accent={ink} />
+                    ))}
+                  </RoundedCard>
+                );
+              })()}
             </div>
           )}
 
@@ -2094,7 +2127,8 @@ function MarketScreen({ web, onBack }) {
 }
 
 // ── Instrument detail: chart + stats + about + position + Invest CTA ──
-function InstrumentDetail({ ins, web, holding, onBack, onInvest }) {
+function InstrumentDetail({ ins, web, holding, onBack, onInvest, onSell }) {
+  const hasPos = holding && holding.units > 0;
   const isYield = ins.metricKind === 'yield';
   const stats = [];
   stats.push(['Indicative yield', ins.yield.toFixed(2) + '% p.a.']);
@@ -2180,10 +2214,13 @@ function InstrumentDetail({ ins, web, holding, onBack, onInvest }) {
       <div style={{ flexShrink: 0, padding: web ? '14px 48px' : '12px 20px', borderTop: `1px solid ${ink12}`, background: paper, paddingBottom: PK_NATIVE ? 'max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px))' : undefined }}>
         <div style={{ maxWidth: web ? 720 : 'none', margin: web ? '0 auto' : 0, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>From {fmtRWF(ins.minInvest || ins.faceMin || 5000)}</div>
+            <div style={{ fontFamily: CC_MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: ink40 }}>{hasPos ? 'You hold ' + fmtRWF(Math.round(holding.invested)) : 'From ' + fmtRWF(ins.minInvest || ins.faceMin || 5000)}</div>
             <div style={{ fontSize: 13, color: ink70, fontWeight: 500, marginTop: 2 }}>{ins.yield.toFixed(2)}% p.a. indicative</div>
           </div>
-          <CCButton variant="solid" accent={ink} onClick={() => { pkHaptic('success'); onInvest(); }} style={{ flex: '0 0 auto', minWidth: 160 }}>Invest</CCButton>
+          {hasPos && (
+            <CCButton variant="ghost" onClick={() => { pkHaptic('select'); onSell && onSell(); }} style={{ flex: '0 0 auto', minWidth: 96 }}>Sell</CCButton>
+          )}
+          <CCButton variant="solid" accent={ink} onClick={() => { pkHaptic('success'); onInvest(); }} style={{ flex: '0 0 auto', minWidth: hasPos ? 120 : 160 }}>Invest</CCButton>
         </div>
       </div>
     </div>
@@ -2288,6 +2325,107 @@ function InvestOrderFlow({ ins, web, onBack, onPlace }) {
         <div style={{ maxWidth: web ? 620 : 'none', margin: web ? '0 auto' : 0 }}>
           <CCButton variant="solid" accent={valid ? ink : ink25} fullWidth onClick={confirm} style={{ opacity: valid ? 1 : 0.6, pointerEvents: valid ? 'auto' : 'none' }}>
             {valid ? `Confirm · ${fmtRWF(amt)}` : 'Enter an amount'}
+          </CCButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Redeem / sell flow ──
+function RedeemFlow({ ins, web, holding, onBack, onRedeem }) {
+  const owned = (holding && holding.invested) || 0;
+  const ownedUnits = (holding && holding.units) || 0;
+  const [amount, setAmount] = React.useState('');
+  const [done, setDone] = React.useState(false);
+  const amt = Number(String(amount).replace(/[^0-9]/g, '')) || 0;
+  const fraction = owned > 0 ? Math.min(1, amt / owned) : 0;
+  const units = ownedUnits * fraction;
+  const valid = amt > 0 && amt <= owned + 1;
+  const chips = [['25%', Math.round(owned * 0.25)], ['50%', Math.round(owned * 0.5)], ['All', Math.round(owned)]];
+
+  const confirm = () => {
+    if (!valid) return;
+    pkHaptic('success');
+    onRedeem(units, Math.min(amt, owned));
+    setDone(true);
+  };
+
+  if (done) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+        <ScreenHeader left={<span style={{ fontSize: 15, fontWeight: 800, color: ink }}>Redeemed</span>} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 28px', textAlign: 'center' }}>
+          <div className="pk-pop" style={{ width: 76, height: 76, borderRadius: '50%', background: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
+            <svg width="32" height="32" viewBox="0 0 24 24"><path className="pk-check-path" d="M5 12.5l4 4 10-10" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <div style={{ fontSize: 23, fontWeight: 820, letterSpacing: '-0.03em', color: ink }}>Redemption placed</div>
+          <div style={{ fontSize: 14.5, color: ink70, marginTop: 10, lineHeight: 1.55, maxWidth: 320 }}>
+            <strong>{fmtRWF(Math.min(amt, owned))}</strong> from {ins.name} will settle to your Ingoga Invest Wallet (T+2).
+          </div>
+          <div style={{ marginTop: 30, width: '100%', maxWidth: 320 }}>
+            <CCButton variant="solid" accent={ink} fullWidth onClick={() => onBack()}>Done</CCButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: canvas }}>
+      <ScreenHeader
+        left={<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><BackBtn onClick={onBack} /><span style={{ fontSize: 15, fontWeight: 800, color: ink }}>Sell</span></div>}
+        right={<Eyebrow>{ins.ticker}</Eyebrow>}
+      />
+      <div className="cc-scroll" style={{ flex: 1, overflow: 'auto', padding: web ? '20px 48px 24px' : '16px 20px 24px' }}>
+        <div style={{ maxWidth: web ? 620 : 'none', margin: web ? '0 auto' : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
+            <FundIcon id={investGlyphId(ins.klass)} size={44} radius={12} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 750, letterSpacing: '-0.02em', color: ink }}>{ins.name}</div>
+              <div style={{ fontFamily: CC_MONO, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: ink55, marginTop: 3 }}>You hold {fmtRWF(Math.round(owned))} · {ownedUnits.toFixed(2)} units</div>
+            </div>
+          </div>
+
+          <DashField label="Amount to redeem" value={amount} onChange={setAmount} placeholder="0" inputMode="numeric" big prefix={<span style={{ fontSize: 24, fontWeight: 800, color: ink40 }}>RWF</span>} />
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+            {chips.map(([label, v]) => (
+              <button key={label} onClick={() => { pkHaptic('select'); setAmount(String(v)); }} style={{
+                height: 34, padding: '0 16px', borderRadius: 999, cursor: 'pointer',
+                fontFamily: CC_MONO, fontSize: 11, letterSpacing: '0.04em',
+                background: paper, color: ink70, border: `1px solid ${ink12}`,
+              }}>{label}</button>
+            ))}
+          </div>
+
+          <RoundedCard style={{ marginTop: 24 }} padding={18}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Units redeemed</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink, fontFeatureSettings: '"tnum"' }}>{units.toFixed(2)} units</span>
+            </div>
+            <Rule color={ink06} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Remaining holding</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink }}>{fmtRWF(Math.max(0, Math.round(owned - Math.min(amt, owned))))}</span>
+            </div>
+            <Rule color={ink06} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0' }}>
+              <span style={{ fontSize: 13, color: ink55 }}>Settlement</span>
+              <span style={{ fontSize: 13.5, fontWeight: 650, color: ink }}>T+2 · Ingoga Invest Wallet</span>
+            </div>
+          </RoundedCard>
+
+          {amt > owned + 1 && (
+            <div style={{ marginTop: 12, fontSize: 12.5, color: '#C8102E', fontWeight: 500 }}>You can redeem at most {fmtRWF(Math.round(owned))}.</div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, padding: web ? '14px 48px' : '12px 20px', borderTop: `1px solid ${ink12}`, background: paper, paddingBottom: PK_NATIVE ? 'max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px))' : undefined }}>
+        <div style={{ maxWidth: web ? 620 : 'none', margin: web ? '0 auto' : 0 }}>
+          <CCButton variant="solid" accent={valid ? ink : ink25} fullWidth onClick={confirm} style={{ opacity: valid ? 1 : 0.6, pointerEvents: valid ? 'auto' : 'none' }}>
+            {valid ? `Redeem · ${fmtRWF(Math.min(amt, owned))}` : 'Enter an amount'}
           </CCButton>
         </div>
       </div>
