@@ -131,7 +131,7 @@ export default function AboutPageClient() {
               <p className="il-ab-domain__tag">{d.tag}</p>
               <h3 className="il-ab-domain__title">{d.title}</h3>
               <p className="il-ab-domain__copy">{d.copy}</p>
-              <Link href="/apps" className="il-ab-domain__link">EXPLORE PROGRAM ↗</Link>
+              <Link href="/#work" className="il-ab-domain__link">EXPLORE PROGRAM ↗</Link>
             </article>
           ))}
         </div>

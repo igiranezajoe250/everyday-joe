@@ -692,32 +692,31 @@ export default function TheBottomLine() {
 
           {/* COVER */}
           {screen.kind === "cover" && (
-            <div className="bl-col bl-col--center">
-              <img
-                className="bl-cov__background"
-                src="/images/books/sheja-valliere-plate-v2.png"
-                alt=""
-                aria-hidden="true"
-              />
-              <div className="bl-cov__wash" aria-hidden="true" />
-              <p className="bl-cov__label">INGOGA LABS PRESENTS</p>
-              <h1 className="bl-cov__title">THE BOTTOM LINE</h1>
-              <p className="bl-cov__sub">Building Trusted Systems</p>
-              <div className="bl-cov__source">
-                <div>
+            <div className="bl-cover">
+              <div className="bl-cover__text">
+                <p className="bl-cov__label">INGOGA LABS PRESENTS</p>
+                <h1 className="bl-cov__title">THE BOTTOM LINE</h1>
+                <p className="bl-cov__sub">Building Trusted Systems</p>
+                <div className="bl-cov__source">
                   <span>THE AUTHOR</span>
                   <strong>Sheja Vallière</strong>
                   <p>Author and strategist writing on trust, evidence, and the systems that make progress durable.</p>
                 </div>
+                <button className="bl-cov__btn" onClick={goNext}>
+                  <span className="bl-cov__btn-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 2.5L13.5 8 4 13.5V2.5Z" />
+                    </svg>
+                  </span>
+                  BEGIN READING
+                </button>
               </div>
-              <button className="bl-cov__btn" onClick={goNext}>
-                <span className="bl-cov__btn-icon" aria-hidden="true">
-                  <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 2.5L13.5 8 4 13.5V2.5Z" />
-                  </svg>
-                </span>
-                BEGIN READING
-              </button>
+              <div className="bl-cover__art">
+                <img
+                  src="/images/books/sheja-valliere-plate-v2.png"
+                  alt="Portrait of Sheja Vallière"
+                />
+              </div>
             </div>
           )}
 

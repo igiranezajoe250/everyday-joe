@@ -323,65 +323,54 @@
   text-align: center;
 }
 
-/* ── Cover ─────────────────────────────────────────────── */
-.bl-cov__background {
-  position: fixed;
-  z-index: -2;
-  inset: var(--bl-top-h) 0 var(--bl-bot-h);
+/* ── Cover — split layout: text left, author portrait right ── */
+.bl-cover {
   width: 100%;
-  height: calc(100% - var(--bl-top-h) - var(--bl-bot-h));
+  max-width: 1060px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.04fr 0.96fr;
+  align-items: center;
+  gap: clamp(28px, 5vw, 76px);
+}
+.bl-cover__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-width: 0;
+}
+.bl-cover__art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.bl-cover__art img {
+  width: 100%;
+  height: auto;
+  max-height: min(72vh, 560px);
   object-fit: contain;
-  object-position: center;
-  background: var(--bl-parchment);
   filter: grayscale(1) contrast(.97);
-  opacity: .72;
-  mix-blend-mode: normal;
-  pointer-events: none;
 }
-/* Legibility wash: a soft scrim through the central title band only, so the
-   portrait stays clearly visible while the type keeps enough contrast. */
-.bl-cov__wash {
-  position: fixed;
-  z-index: -1;
-  inset: var(--bl-top-h) 0 var(--bl-bot-h);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bl-parchment) 22%, transparent) 0%,
-    color-mix(in srgb, var(--bl-parchment) 66%, transparent) 40%,
-    color-mix(in srgb, var(--bl-parchment) 66%, transparent) 62%,
-    color-mix(in srgb, var(--bl-parchment) 20%, transparent) 100%
-  );
-  pointer-events: none;
-}
-:root[data-theme="dark"] .bl-cov__background {
-  filter: grayscale(1) brightness(1) contrast(1.04);
-  opacity: .6;
-  mix-blend-mode: normal;
-}
-:root[data-theme="dark"] .bl-cov__wash {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bl-parchment) 28%, transparent) 0%,
-    color-mix(in srgb, var(--bl-parchment) 74%, transparent) 42%,
-    color-mix(in srgb, var(--bl-parchment) 74%, transparent) 64%,
-    color-mix(in srgb, var(--bl-parchment) 26%, transparent) 100%
-  );
+:root[data-theme="dark"] .bl-cover__art img {
+  filter: grayscale(1) brightness(.92) contrast(1.05);
 }
 .bl-cov__label {
   font-size: 9px;
   letter-spacing: .3em;
   color: var(--bl-copper);
   opacity: .65;
-  margin-bottom: 32px;
+  margin-bottom: 22px;
 }
 .bl-cov__title {
   font-family: var(--bl-serif);
-  font-size: clamp(38px,10vw,76px);
+  font-size: clamp(34px,4.8vw,60px);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: .87;
+  line-height: .9;
   color: var(--bl-ink);
-  margin: 0 0 20px;
+  margin: 0 0 14px;
 }
 .bl-cov__sub {
   font-size: 11px;
@@ -403,27 +392,16 @@
   margin-bottom: 44px;
 }
 .bl-cov__source {
-  width: min(100%, 470px);
+  width: 100%;
+  max-width: 440px;
   margin: 24px 0 28px;
-  padding: 12px 15px;
-  display: block;
-  align-items: center;
-  border: 1px solid var(--bl-rule);
+  padding-top: 18px;
+  border-top: 1px solid var(--bl-rule);
   text-align: left;
-  background: color-mix(in srgb, var(--bl-parchment) 74%, transparent);
-  backdrop-filter: blur(8px);
 }
-.bl-cov__source img {
-  width: 70px;
-  height: 84px;
-  display: block;
-  object-fit: cover;
-  object-position: center top;
-}
-.bl-cov__source div { min-width: 0; }
 .bl-cov__source span {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   font-size: 8px;
   letter-spacing: .18em;
   color: var(--bl-ink-faint);
@@ -431,13 +409,13 @@
 .bl-cov__source strong {
   display: block;
   font-family: var(--bl-serif);
-  font-size: 17px;
+  font-size: 19px;
   color: var(--bl-ink);
 }
 .bl-cov__source p {
-  margin-top: 5px;
-  font-size: 11px;
-  line-height: 1.4;
+  margin-top: 7px;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--bl-ink-muted);
 }
 .bl-cov__btn {
@@ -471,16 +449,27 @@
   margin-left: 1px;
 }
 
+/* Stack on narrow screens: portrait on top, text below, centered. */
+@media (max-width: 820px) {
+  .bl-cover {
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 3vh, 26px);
+    max-width: 460px;
+  }
+  .bl-cover__art { order: -1; }
+  .bl-cover__art img { max-height: 34vh; }
+  .bl-cover__text { align-items: center; text-align: center; }
+  .bl-cov__source { text-align: center; margin-inline: auto; }
+}
+
 @media (max-height: 720px) {
-  .bl-cov__label { margin-bottom: 18px; }
-  .bl-cov__title { margin-bottom: 12px; }
-  .bl-cov__source {
-    margin: 16px 0 18px;
-  }
-  .bl-cov__source img {
-    width: 58px;
-    height: 68px;
-  }
+  .bl-cov__label { margin-bottom: 14px; }
+  .bl-cov__title { margin-bottom: 10px; }
+  .bl-cov__source { margin: 16px 0 18px; padding-top: 14px; }
+}
+
+@media (max-width: 820px) and (max-height: 720px) {
+  .bl-cover__art img { max-height: 26vh; }
 }
 
 /* ── Chapter intro ─────────────────────────────────────── */

@@ -115,7 +115,7 @@ export default function Home() {
           <span className="il-mark" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>
           <span>INGOGA<br />LABS</span>
         </a>
-        <div className="il-nav-links"><a href="#about">ABOUT</a><a href="#research">RESEARCH</a><a href="/apps">PROGRAMS</a></div>
+        <div className="il-nav-links"><a href="#about">ABOUT</a><a href="#research">RESEARCH</a><a href="#work">PROGRAMS</a></div>
         <div className="il-nav-right">
           <a className="il-nav-contact" href="#contact">START A CONVERSATION ↗</a>
           <button
@@ -135,7 +135,7 @@ export default function Home() {
           <a href="#about"    onClick={() => setMenuOpen(false)}>ABOUT</a>
           <a href="#research" onClick={() => setMenuOpen(false)}>RESEARCH</a>
           <a href="#contact"  onClick={() => setMenuOpen(false)}>CONTACT</a>
-          <a href="/apps"     onClick={() => setMenuOpen(false)}>PROGRAMS</a>
+          <a href="#work"     onClick={() => setMenuOpen(false)}>PROGRAMS</a>
         </nav>
         <div className="il-mobile-menu__foot">
           <a href="mailto:hello@ingogalabs.com">hello@ingogalabs.com</a>
@@ -192,7 +192,7 @@ export default function Home() {
             <article className={`il-project il-project-${project.tone}`} key={project.id} data-il-reveal style={{ "--il-delay": `${index * 120}ms` } as React.CSSProperties}>
               <div className="il-project-meta"><span>[{project.id}]</span><span>{project.label}</span></div>
               <div className="il-project-visual" aria-hidden="true"><div className="il-radar"><i /><i /><i /></div><span>{project.metric}</span></div>
-              <h3>{project.title}</h3><p>{project.copy}</p><a href={"href" in project ? project.href : "/apps"} {...("external" in project && project.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>VIEW EXPLORATION <b>↗</b></a>
+              <h3>{project.title}</h3><p>{project.copy}</p><a href={"href" in project ? project.href : "#contact"} {...("external" in project && project.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>VIEW EXPLORATION <b>↗</b></a>
             </article>
           ))}
         </div>
