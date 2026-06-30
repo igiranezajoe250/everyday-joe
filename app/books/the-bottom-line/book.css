@@ -333,38 +333,38 @@
   object-fit: contain;
   object-position: center;
   background: var(--bl-parchment);
-  filter: grayscale(1) contrast(.94);
-  opacity: .42;
+  filter: grayscale(1) contrast(.97);
+  opacity: .72;
   mix-blend-mode: normal;
   pointer-events: none;
 }
-/* Legibility wash: denser through the central title band, lighter at the
-   edges so the portrait frames the type instead of smudging behind it. */
+/* Legibility wash: a soft scrim through the central title band only, so the
+   portrait stays clearly visible while the type keeps enough contrast. */
 .bl-cov__wash {
   position: fixed;
   z-index: -1;
   inset: var(--bl-top-h) 0 var(--bl-bot-h);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--bl-parchment) 52%, transparent) 0%,
-    color-mix(in srgb, var(--bl-parchment) 86%, transparent) 38%,
-    color-mix(in srgb, var(--bl-parchment) 86%, transparent) 66%,
-    color-mix(in srgb, var(--bl-parchment) 48%, transparent) 100%
+    color-mix(in srgb, var(--bl-parchment) 22%, transparent) 0%,
+    color-mix(in srgb, var(--bl-parchment) 66%, transparent) 40%,
+    color-mix(in srgb, var(--bl-parchment) 66%, transparent) 62%,
+    color-mix(in srgb, var(--bl-parchment) 20%, transparent) 100%
   );
   pointer-events: none;
 }
 :root[data-theme="dark"] .bl-cov__background {
-  filter: grayscale(1) brightness(.95) contrast(1.02);
-  opacity: .3;
+  filter: grayscale(1) brightness(1) contrast(1.04);
+  opacity: .6;
   mix-blend-mode: normal;
 }
 :root[data-theme="dark"] .bl-cov__wash {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--bl-parchment) 58%, transparent) 0%,
-    color-mix(in srgb, var(--bl-parchment) 90%, transparent) 40%,
-    color-mix(in srgb, var(--bl-parchment) 90%, transparent) 66%,
-    color-mix(in srgb, var(--bl-parchment) 55%, transparent) 100%
+    color-mix(in srgb, var(--bl-parchment) 28%, transparent) 0%,
+    color-mix(in srgb, var(--bl-parchment) 74%, transparent) 42%,
+    color-mix(in srgb, var(--bl-parchment) 74%, transparent) 64%,
+    color-mix(in srgb, var(--bl-parchment) 26%, transparent) 100%
   );
 }
 .bl-cov__label {
