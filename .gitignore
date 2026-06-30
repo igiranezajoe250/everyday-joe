@@ -18,6 +18,11 @@ node_modules
 .env*.local
 .codex-write-test/
 
+# secrets / local tooling — never commit
+Keys.txt
+*.keys.txt
+/.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

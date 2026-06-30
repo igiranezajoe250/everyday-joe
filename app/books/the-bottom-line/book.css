@@ -7,7 +7,7 @@
 :root {
   --bl-parchment:  #f4f1ea;                 /* Single light field       */
   --bl-bar-bg:     #f4f1ea;                 /* Same field, no split     */
-  --bl-scrim:      rgba(250,250,250,.85);   /* Elevated surface / overlay */
+  --bl-scrim:      #f4f1ea;                 /* Elevated surface / overlay */
   --bl-ink:        #161616;                 /* Primary text · emphasis */
   --bl-ink-muted:  #3a3a3a;                 /* Secondary text          */
   --bl-ink-faint:  #6e6e6e;                 /* Muted text · meta       */
@@ -24,7 +24,7 @@
 :root[data-theme="dark"] {
   --bl-parchment:  #0d0d0d;
   --bl-bar-bg:     #0d0d0d;
-  --bl-scrim:      rgba(8,8,8,.94);
+  --bl-scrim:      #0d0d0d;
   --bl-ink:        #f2f2f2;
   --bl-ink-muted:  #bdbdbd;
   --bl-ink-faint:  #8a8a8a;
@@ -324,6 +324,49 @@
 }
 
 /* ── Cover ─────────────────────────────────────────────── */
+.bl-cov__background {
+  position: fixed;
+  z-index: -2;
+  inset: var(--bl-top-h) 0 var(--bl-bot-h);
+  width: 100%;
+  height: calc(100% - var(--bl-top-h) - var(--bl-bot-h));
+  object-fit: contain;
+  object-position: center;
+  background: var(--bl-parchment);
+  filter: grayscale(1) contrast(.94);
+  opacity: .42;
+  mix-blend-mode: normal;
+  pointer-events: none;
+}
+/* Legibility wash: denser through the central title band, lighter at the
+   edges so the portrait frames the type instead of smudging behind it. */
+.bl-cov__wash {
+  position: fixed;
+  z-index: -1;
+  inset: var(--bl-top-h) 0 var(--bl-bot-h);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bl-parchment) 52%, transparent) 0%,
+    color-mix(in srgb, var(--bl-parchment) 86%, transparent) 38%,
+    color-mix(in srgb, var(--bl-parchment) 86%, transparent) 66%,
+    color-mix(in srgb, var(--bl-parchment) 48%, transparent) 100%
+  );
+  pointer-events: none;
+}
+:root[data-theme="dark"] .bl-cov__background {
+  filter: grayscale(1) brightness(.95) contrast(1.02);
+  opacity: .3;
+  mix-blend-mode: normal;
+}
+:root[data-theme="dark"] .bl-cov__wash {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bl-parchment) 58%, transparent) 0%,
+    color-mix(in srgb, var(--bl-parchment) 90%, transparent) 40%,
+    color-mix(in srgb, var(--bl-parchment) 90%, transparent) 66%,
+    color-mix(in srgb, var(--bl-parchment) 55%, transparent) 100%
+  );
+}
 .bl-cov__label {
   font-size: 9px;
   letter-spacing: .3em;
@@ -359,6 +402,44 @@
   color: var(--bl-ink-muted);
   margin-bottom: 44px;
 }
+.bl-cov__source {
+  width: min(100%, 470px);
+  margin: 24px 0 28px;
+  padding: 12px 15px;
+  display: block;
+  align-items: center;
+  border: 1px solid var(--bl-rule);
+  text-align: left;
+  background: color-mix(in srgb, var(--bl-parchment) 74%, transparent);
+  backdrop-filter: blur(8px);
+}
+.bl-cov__source img {
+  width: 70px;
+  height: 84px;
+  display: block;
+  object-fit: cover;
+  object-position: center top;
+}
+.bl-cov__source div { min-width: 0; }
+.bl-cov__source span {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 8px;
+  letter-spacing: .18em;
+  color: var(--bl-ink-faint);
+}
+.bl-cov__source strong {
+  display: block;
+  font-family: var(--bl-serif);
+  font-size: 17px;
+  color: var(--bl-ink);
+}
+.bl-cov__source p {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--bl-ink-muted);
+}
 .bl-cov__btn {
   display: inline-flex;
   align-items: center;
@@ -388,6 +469,18 @@
   width: 11px; height: 11px;
   fill: var(--bl-parchment);
   margin-left: 1px;
+}
+
+@media (max-height: 720px) {
+  .bl-cov__label { margin-bottom: 18px; }
+  .bl-cov__title { margin-bottom: 12px; }
+  .bl-cov__source {
+    margin: 16px 0 18px;
+  }
+  .bl-cov__source img {
+    width: 58px;
+    height: 68px;
+  }
 }
 
 /* ── Chapter intro ─────────────────────────────────────── */

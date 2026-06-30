@@ -693,11 +693,23 @@ export default function TheBottomLine() {
           {/* COVER */}
           {screen.kind === "cover" && (
             <div className="bl-col bl-col--center">
+              <img
+                className="bl-cov__background"
+                src="/images/books/sheja-valliere-plate-v2.png"
+                alt=""
+                aria-hidden="true"
+              />
+              <div className="bl-cov__wash" aria-hidden="true" />
               <p className="bl-cov__label">INGOGA LABS PRESENTS</p>
               <h1 className="bl-cov__title">THE BOTTOM LINE</h1>
               <p className="bl-cov__sub">Building Trusted Systems</p>
-              <div className="bl-cov__rule" />
-              <p className="bl-cov__author">Sheja Vallière</p>
+              <div className="bl-cov__source">
+                <div>
+                  <span>THE AUTHOR</span>
+                  <strong>Sheja Vallière</strong>
+                  <p>Author and strategist writing on trust, evidence, and the systems that make progress durable.</p>
+                </div>
+              </div>
               <button className="bl-cov__btn" onClick={goNext}>
                 <span className="bl-cov__btn-icon" aria-hidden="true">
                   <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
@@ -868,9 +880,21 @@ export default function TheBottomLine() {
               <button className={`au-tab${listenTab === "listen" ? " is-active" : ""}`} onClick={() => setListenTab("listen")} role="tab" aria-selected={listenTab === "listen"}>Listen</button>
               <button className={`au-tab${listenTab === "podcast" ? " is-active" : ""}`} onClick={() => setListenTab("podcast")} role="tab" aria-selected={listenTab === "podcast"}>Podcast</button>
             </div>
-            <button className="au-iconbtn" onClick={() => { setLibTab("notes"); setLibOpen(true); }} aria-label="Open library">
-              <svg viewBox="0 0 16 16" fill="none"><path d="M3 2.5h3v11l-1.5-1-1.5 1v-11Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><path d="M7.5 2.5H13v11H7.5" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><line x1="9" y1="6" x2="11.5" y2="6" stroke="currentColor" strokeWidth="1" /><line x1="9" y1="8.5" x2="11.5" y2="8.5" stroke="currentColor" strokeWidth="1" /></svg>
-            </button>
+            <div className="au-sheet__actions">
+              <button className="au-iconbtn" onClick={() => setMenu(true)} aria-label="Open table of contents">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <line x1="5.5" y1="4" x2="13" y2="4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  <line x1="5.5" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  <line x1="5.5" y1="12" x2="13" y2="12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  <circle cx="2.5" cy="4" r=".8" fill="currentColor" />
+                  <circle cx="2.5" cy="8" r=".8" fill="currentColor" />
+                  <circle cx="2.5" cy="12" r=".8" fill="currentColor" />
+                </svg>
+              </button>
+              <button className="au-iconbtn" onClick={() => { setLibTab("notes"); setLibOpen(true); }} aria-label="Open library">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 2.5h3v11l-1.5-1-1.5 1v-11Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><path d="M7.5 2.5H13v11H7.5" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><line x1="9" y1="6" x2="11.5" y2="6" stroke="currentColor" strokeWidth="1" /><line x1="9" y1="8.5" x2="11.5" y2="8.5" stroke="currentColor" strokeWidth="1" /></svg>
+              </button>
+            </div>
           </div>
 
           <div className="au-sheet__body">

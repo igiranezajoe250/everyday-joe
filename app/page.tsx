@@ -27,6 +27,7 @@ const faqs = [
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loaderMounted, setLoaderMounted] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -87,24 +88,34 @@ export default function Home() {
     };
   }, []);
 
+  // Once the loader has faded out, drop it from the DOM so its infinite
+  // tetromino animations stop running behind the loaded page.
+  useEffect(() => {
+    if (!loaded) return;
+    const timer = window.setTimeout(() => setLoaderMounted(false), 650);
+    return () => window.clearTimeout(timer);
+  }, [loaded]);
+
   return (
     <main className={`il-site ${loaded ? "il-loaded" : "il-loading"}`}>
-      <div className="il-loader" aria-hidden={loaded}>
-        <div className="tetrominos">
-          <div className="tetromino box1" />
-          <div className="tetromino box2" />
-          <div className="tetromino box3" />
-          <div className="tetromino box4" />
+      {loaderMounted && (
+        <div className="il-loader" aria-hidden={loaded}>
+          <div className="tetrominos">
+            <div className="tetromino box1" />
+            <div className="tetromino box2" />
+            <div className="tetromino box3" />
+            <div className="tetromino box4" />
+          </div>
+          <p>Building practical futures</p>
+          <span>KIGALI / RWANDA</span>
         </div>
-        <p>Building practical futures</p>
-        <span>KIGALI / RWANDA</span>
-      </div>
+      )}
       <nav className={`il-nav ${scrolled ? "is-scrolled" : ""}`}>
         <a className="il-brand" href="#top" aria-label="Ingoga Labs home">
           <span className="il-mark" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>
           <span>INGOGA<br />LABS</span>
         </a>
-        <div className="il-nav-links"><a href="#about">ABOUT</a><a href="#research">RESEARCH</a><a href="/apps">PROGRAMS</a><a href="/books">BOOKS</a></div>
+        <div className="il-nav-links"><a href="#about">ABOUT</a><a href="#research">RESEARCH</a><a href="/apps">PROGRAMS</a></div>
         <div className="il-nav-right">
           <a className="il-nav-contact" href="#contact">START A CONVERSATION ↗</a>
           <button
@@ -123,10 +134,8 @@ export default function Home() {
         <nav className="il-mobile-menu__nav">
           <a href="#about"    onClick={() => setMenuOpen(false)}>ABOUT</a>
           <a href="#research" onClick={() => setMenuOpen(false)}>RESEARCH</a>
-          <a href="#work"     onClick={() => setMenuOpen(false)}>WORK</a>
           <a href="#contact"  onClick={() => setMenuOpen(false)}>CONTACT</a>
           <a href="/apps"     onClick={() => setMenuOpen(false)}>PROGRAMS</a>
-          <a href="/books"    onClick={() => setMenuOpen(false)}>BOOKS</a>
         </nav>
         <div className="il-mobile-menu__foot">
           <a href="mailto:hello@ingogalabs.com">hello@ingogalabs.com</a>
@@ -211,7 +220,7 @@ export default function Home() {
         <a className="il-footer-kootana" href="https://syncabi.com/kootana">Ingoga Labs is a <strong>Kootana Ventures</strong> company ↗</a>
         <div className="il-footer-bottom">
           <div><span>BASED IN</span><p>Kigali, Rwanda<br />East Africa</p></div>
-          <div><span>EXPLORE</span><a href="#about">About</a><a href="#research">Research</a><a href="#work">Work</a></div>
+          <div><span>EXPLORE</span><a href="#about">About</a><a href="#research">Research</a><a href="/aptitude">Aptitude</a></div>
           <div><span>CONNECT</span><a href="mailto:hello@ingogalabs.com">Email</a><a href="#top">LinkedIn ↗</a><a href="#top">Instagram ↗</a></div>
           <div className="il-copyright"><span>INGOGA LABS</span><p>© 2026. Curiosity, applied.</p></div>
         </div>

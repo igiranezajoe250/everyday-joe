@@ -19,6 +19,8 @@ const EVERYDAY_FUNCTIONS = [
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>) },
   { id: 'plan', label: 'Plan', sub: 'Notes, files and plans', color: '#E2941F',
     icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
+  { id: 'notes', label: 'Public notes', sub: 'Publish updates people can find', color: '#9B4F32',
+    icon: (<svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M16 2v4"/></svg>) },
 ];
 const DEFAULT_FUNCTION_IDS = EVERYDAY_FUNCTIONS.map((f) => f.id);
 
@@ -27,7 +29,7 @@ const DEFAULT_FUNCTION_IDS = EVERYDAY_FUNCTIONS.map((f) => f.id);
 function pkSelectedFunctions() {
   const ids = PKStore.get('functions', null);
   const chosen = Array.isArray(ids) && ids.length ? ids : DEFAULT_FUNCTION_IDS;
-  const set = new Set(chosen); set.add('shop'); set.add('wallet'); set.add('plan');
+  const set = new Set(chosen); set.add('shop'); set.add('wallet'); set.add('plan'); set.add('notes');
   return EVERYDAY_FUNCTIONS.filter((f) => set.has(f.id));
 }
 
@@ -1311,6 +1313,162 @@ function EverydayHub({ web, profile, onShop, onWallet, onSave, onPay, onPlan, on
 
 
 // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ SAVE HOME 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ── Public Notes ────────────────────────────────────────────────────
+// Public identity + concise updates. The local-first prototype emits JSON-LD
+// for every published note so the data model is ready for a public backend.
+function PublicNotesScreen({ web, profile, onBack }) {
+  const PROFILE_KEY = 'everyday.publicProfile';
+  const NOTES_KEY = 'everyday.publicNotes';
+  const fallbackName = everydayProfileName(profile);
+  const [publicProfile, setPublicProfile] = React.useState(() => PKStore.get(PROFILE_KEY, {
+    type: 'person',
+    name: fallbackName,
+    handle: fallbackName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    description: '',
+    website: '',
+    location: (profile && profile.city) || 'Kigali',
+  }));
+  const [notes, setNotes] = React.useState(() => PKStore.get(NOTES_KEY, []));
+  const [editingProfile, setEditingProfile] = React.useState(false);
+  const [composerOpen, setComposerOpen] = React.useState(false);
+  const [draft, setDraft] = React.useState({ title: '', body: '', topics: '' });
+
+  const saveProfile = (next) => {
+    PKStore.set(PROFILE_KEY, next);
+    setPublicProfile(next);
+    setEditingProfile(false);
+  };
+  const publish = () => {
+    if (!draft.title.trim() || !draft.body.trim()) return;
+    const now = new Date();
+    const next = [{
+      id: 'pub-' + now.getTime(),
+      title: draft.title.trim(),
+      body: draft.body.trim(),
+      topics: draft.topics.split(',').map((x) => x.trim()).filter(Boolean),
+      publishedAt: now.toISOString(),
+      status: 'published',
+    }, ...notes];
+    PKStore.set(NOTES_KEY, next);
+    setNotes(next);
+    setDraft({ title: '', body: '', topics: '' });
+    setComposerOpen(false);
+    pkHaptic('success');
+  };
+  const removeNote = (id) => {
+    const next = notes.filter((n) => n.id !== id);
+    PKStore.set(NOTES_KEY, next);
+    setNotes(next);
+  };
+
+  React.useEffect(() => {
+    const old = document.getElementById('everyday-public-notes-jsonld');
+    if (old) old.remove();
+    if (!notes.length) return;
+    const base = window.location.origin + '/legacy/Everyday.html';
+    const author = publicProfile.type === 'company'
+      ? { '@type': 'Organization', name: publicProfile.name, url: publicProfile.website || base }
+      : { '@type': 'Person', name: publicProfile.name, url: publicProfile.website || base };
+    const data = {
+      '@context': 'https://schema.org',
+      '@graph': notes.map((note) => ({
+        '@type': 'Article',
+        '@id': base + '#note-' + note.id,
+        headline: note.title,
+        articleBody: note.body,
+        keywords: note.topics.join(', '),
+        datePublished: note.publishedAt,
+        author,
+        publisher: author,
+        isAccessibleForFree: true,
+      })),
+    };
+    const script = document.createElement('script');
+    script.id = 'everyday-public-notes-jsonld';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(data);
+    document.head.appendChild(script);
+    return () => { if (script.parentNode) script.parentNode.removeChild(script); };
+  }, [notes, publicProfile]);
+
+  const field = { width: '100%', border: 0, borderBottom: `1px dashed ${DASH}`, background: 'transparent', color: ink, fontFamily: 'inherit', fontSize: 14, padding: '10px 0', outline: 'none' };
+  return (
+    <div className="pk-page-pad" style={{ minHeight: '100%', padding: web ? '34px 38px 100px' : '22px 18px 110px', color: ink }}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <button onClick={onBack} style={{ border: 0, background: 'transparent', color: ink55, padding: 0, cursor: 'pointer', fontFamily: CC_MONO, fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase' }}>← Home</button>
+
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginTop: 26, paddingBottom: 24, borderBottom: `1px dashed ${DASH}` }}>
+          <div>
+            <div style={{ fontFamily: CC_MONO, fontSize: 9, letterSpacing: '.16em', textTransform: 'uppercase', color: '#9B4F32' }}>{publicProfile.type === 'company' ? 'Company profile' : 'Public profile'}</div>
+            <h1 style={{ margin: '8px 0 5px', fontSize: web ? 38 : 30, lineHeight: 1, letterSpacing: '-.045em' }}>{publicProfile.name || 'Your public profile'}</h1>
+            <div style={{ fontSize: 12.5, color: ink40 }}>@{publicProfile.handle || 'profile'} · {publicProfile.location || 'Rwanda'}</div>
+            {publicProfile.description && <p style={{ maxWidth: 520, margin: '13px 0 0', fontSize: 14, lineHeight: 1.55, color: ink70 }}>{publicProfile.description}</p>}
+          </div>
+          <button onClick={() => setEditingProfile(true)} style={{ height: 38, padding: '0 15px', borderRadius: 999, border: `1px solid ${ink25}`, background: 'transparent', color: ink, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Edit profile</button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 12px' }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.025em' }}>Notes</div>
+            <div style={{ marginTop: 3, fontSize: 12, color: ink40 }}>Public updates, announcements and useful context.</div>
+          </div>
+          <button onClick={() => setComposerOpen(true)} style={{ height: 40, padding: '0 17px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontSize: 12.5, fontWeight: 760 }}>New note</button>
+        </div>
+
+        {!notes.length ? (
+          <div style={{ padding: '50px 0', borderTop: `1px dashed ${DASH}`, textAlign: 'center', color: ink40 }}>
+            <div style={{ fontFamily: 'Playfair Display, serif', fontStyle: 'italic', fontSize: 24, color: ink70 }}>Publish what changed.</div>
+            <div style={{ marginTop: 8, fontSize: 12.5 }}>Updates become structured information people and machines can understand.</div>
+          </div>
+        ) : notes.map((note) => (
+          <article key={note.id} style={{ padding: '21px 0', borderTop: `1px dashed ${DASH}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontFamily: CC_MONO, fontSize: 9, letterSpacing: '.11em', textTransform: 'uppercase', color: ink40 }}>Published · {new Date(note.publishedAt).toLocaleDateString()}</div>
+              <button onClick={() => removeNote(note.id)} aria-label="Delete note" style={{ border: 0, background: 'transparent', color: ink40, cursor: 'pointer', fontSize: 11 }}>Delete</button>
+            </div>
+            <h2 style={{ margin: '9px 0 7px', fontSize: 21, lineHeight: 1.2, letterSpacing: '-.025em' }}>{note.title}</h2>
+            <p style={{ margin: 0, maxWidth: 650, whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.65, color: ink70 }}>{note.body}</p>
+            {!!note.topics.length && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>{note.topics.map((topic) => <span key={topic} style={{ padding: '4px 9px', border: `1px solid ${ink12}`, borderRadius: 999, fontSize: 10, color: ink55 }}>{topic}</span>)}</div>}
+          </article>
+        ))}
+      </div>
+
+      {editingProfile && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(10,10,10,.26)', display: 'grid', placeItems: 'center', padding: 18 }} onClick={() => setEditingProfile(false)}>
+          <ProfileEditor value={publicProfile} field={field} onCancel={() => setEditingProfile(false)} onSave={saveProfile} />
+        </div>
+      )}
+      {composerOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 90, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', right: web ? 28 : 12, bottom: web ? 28 : 76, width: web ? 410 : 'calc(100vw - 76px)', maxWidth: 410, background: paper, border: `1px solid ${ink25}`, boxShadow: '0 18px 50px rgba(10,10,10,.18)', padding: 18, pointerEvents: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><strong style={{ fontSize: 15 }}>New public note</strong><button onClick={() => setComposerOpen(false)} aria-label="Close" style={{ border: 0, background: 'transparent', cursor: 'pointer', color: ink55, fontSize: 20 }}>×</button></div>
+            <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="What changed?" style={field} autoFocus />
+            <textarea value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} placeholder="Share the update and why it matters." style={{ ...field, minHeight: 112, resize: 'vertical', lineHeight: 1.5 }} />
+            <input value={draft.topics} onChange={(e) => setDraft({ ...draft, topics: e.target.value })} placeholder="Topics, separated by commas" style={field} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }}><span style={{ fontFamily: CC_MONO, fontSize: 8.5, color: ink40, letterSpacing: '.08em' }}>PUBLIC · STRUCTURED</span><button disabled={!draft.title.trim() || !draft.body.trim()} onClick={publish} style={{ height: 36, padding: '0 15px', borderRadius: 999, border: 0, background: ink, color: paper, opacity: (!draft.title.trim() || !draft.body.trim()) ? .35 : 1, cursor: 'pointer', fontWeight: 750 }}>Publish</button></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileEditor({ value, field, onCancel, onSave }) {
+  const [draft, setDraft] = React.useState(value);
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(430px, 100%)', background: paper, border: `1px solid ${ink25}`, padding: 20, boxShadow: '0 20px 60px rgba(10,10,10,.2)' }}>
+      <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 10 }}>Public profile</div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>{['person', 'company'].map((type) => <button key={type} onClick={() => setDraft({ ...draft, type })} style={{ height: 32, padding: '0 12px', borderRadius: 999, border: `1px solid ${draft.type === type ? ink : ink12}`, background: draft.type === type ? ink : 'transparent', color: draft.type === type ? paper : ink, cursor: 'pointer', textTransform: 'capitalize' }}>{type}</button>)}</div>
+      <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder={draft.type === 'company' ? 'Company name' : 'Your name'} style={field} />
+      <input value={draft.handle} onChange={(e) => setDraft({ ...draft, handle: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="Public handle" style={field} />
+      <textarea value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="What should the public know?" style={{ ...field, minHeight: 82, resize: 'vertical' }} />
+      <input value={draft.website} onChange={(e) => setDraft({ ...draft, website: e.target.value })} placeholder="Website" style={field} />
+      <input value={draft.location} onChange={(e) => setDraft({ ...draft, location: e.target.value })} placeholder="Location" style={field} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}><button onClick={onCancel} style={{ height: 36, padding: '0 14px', borderRadius: 999, border: `1px solid ${ink12}`, background: 'transparent', cursor: 'pointer' }}>Cancel</button><button disabled={!draft.name.trim() || !draft.handle.trim()} onClick={() => onSave(draft)} style={{ height: 36, padding: '0 15px', borderRadius: 999, border: 0, background: ink, color: paper, cursor: 'pointer', fontWeight: 750 }}>Save profile</button></div>
+    </div>
+  );
+}
+
 // Savings is the hero behaviour. The screen answers, top to bottom:
 // how much have I saved 路 how much has it grown 路 how much can I access.
 

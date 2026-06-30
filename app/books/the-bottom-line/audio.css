@@ -40,16 +40,23 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 60px;
-  padding: 0 16px;
+  align-self: center;
+  gap: 10px;
+  width: min(680px, calc(100% - 32px));
+  height: 52px;
+  margin: 7px auto;
+  padding: 0 8px;
   background: var(--bl-bar-bg);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--bl-rule);
+  border: 1px solid var(--bl-rule);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .06);
 }
 .au-mini__thread {            /* tiny seek line across the very top */
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 22px;
+  right: 22px;
   height: 2px;
   background: transparent;
 }
@@ -60,7 +67,7 @@
   transition: width .2s linear;
 }
 .au-mini__play {
-  width: 38px; height: 38px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   background: var(--bl-ink);
   border: none;
@@ -80,12 +87,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
 }
 .au-mini__title {
   font-family: var(--bl-serif);
-  font-size: 15px;
+  font-size: 14px;
   font-style: italic;
   color: var(--bl-ink);
   white-space: nowrap;
@@ -100,6 +107,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .au-mini__time { font-variant-numeric: tabular-nums; }
 .au-mini__dot { opacity: .4; }
@@ -107,7 +117,7 @@
 .au-mini__actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   flex-shrink: 0;
 }
 .au-iconbtn {
@@ -127,6 +137,27 @@
 .au-iconbtn:disabled { opacity: .3; cursor: default; }
 .au-iconbtn svg { width: 16px; height: 16px; }
 .au-iconbtn--expand svg { width: 18px; height: 18px; }
+
+@media (max-width: 560px) {
+  .au-mini {
+    width: calc(100% - 20px);
+    height: 50px;
+    margin: 5px auto;
+    gap: 7px;
+    padding-inline: 7px 4px;
+  }
+  .au-mini__play {
+    width: 34px;
+    height: 34px;
+  }
+  .au-mini__title { font-size: 13px; }
+  .au-mini__sub { font-size: 8px; gap: 5px; }
+  .au-mini__actions .au-iconbtn {
+    width: 32px;
+    height: 34px;
+  }
+}
+
 
 /* ── Listen sheet (expanded now-playing) ─────────────────────────── */
 .au-sheet {
@@ -153,6 +184,11 @@
   border-bottom: 1px solid var(--bl-rule);
 }
 .au-sheet__tabs { display: flex; gap: 4px; }
+.au-sheet__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 .au-tab {
   appearance: none;
   background: none;

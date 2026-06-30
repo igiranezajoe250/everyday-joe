@@ -395,6 +395,7 @@ function TabBar({ active, onChange, accent, native }) {
     { id: 'shop',     label: 'Market' },
     { id: 'wallet',   label: 'Wallet' },
     { id: 'plan',     label: 'Plan'    },
+    { id: 'notes',    label: 'Notes'   },
   ];
   return (
     <div style={{

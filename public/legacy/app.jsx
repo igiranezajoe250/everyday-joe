@@ -31,7 +31,7 @@ function LeftRailButton({ label, active, onClick, badge, children }) {
   );
 }
 
-function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onBounty, onInbox, unread = 0, onProfile, initials = 'JK', showOperator = false, isOperator = false, onOperator }) {
+function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onNotes, onBounty, onInbox, unread = 0, onProfile, initials = 'JK', showOperator = false, isOperator = false, onOperator }) {
   const stroke = 'currentColor';
   const iconProps = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' };
   const railWidth = PK_WEB ? 58 : 52;
@@ -40,6 +40,7 @@ function EverydayLeftRail({ active, onHome, onMarketplace, onWallet, onPlan, onB
     { id: 'shop', label: 'Market', onClick: onMarketplace, icon: (<svg {...iconProps}><path d="M4 19V9l5-3v13"/><path d="M9 19v-6l5-3v9"/><path d="M14 19V8l5-3v14"/><path d="M3 19h18"/></svg>) },
     { id: 'wallet', label: 'Wallet', onClick: onWallet, icon: (<svg {...iconProps}><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>) },
     { id: 'plan', label: 'Plan', onClick: onPlan, icon: (<svg {...iconProps}><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M4 9h16M8 2v4M16 2v4M8 14h5M8 18h3"/></svg>) },
+    { id: 'notes', label: 'Public notes', onClick: onNotes, icon: (<svg {...iconProps}><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M16 2v4"/></svg>) },
   ];
   return (
     <nav aria-label="Ingoga Invest shortcuts" style={{
@@ -119,8 +120,8 @@ function App() {
 
   // route: 'hub' | 'shop' | 'capital' | 'pay' | 'plan' | 'listen' | 'commute' | ...
   const TRANSIENT = ['money'];
-  const MAIN_TABS = ['shop', 'wallet', 'plan'];
-  const ALLOWED_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'listen', 'commute', 'credit', 'growth', 'money', 'wallet', 'settings', 'activity'];
+  const MAIN_TABS = ['shop', 'wallet', 'plan', 'notes'];
+  const ALLOWED_ROUTES = ['hub', 'shop', 'capital', 'pay', 'plan', 'notes', 'listen', 'commute', 'credit', 'growth', 'money', 'wallet', 'settings', 'activity'];
   const [route, setRoute] = React.useState(() => {
     return 'hub';
   });
@@ -524,6 +525,13 @@ function App() {
                   onIntentHandled={() => setPlanIntent(null)}
                 />
               )}
+              {route === 'notes' && (
+                <PublicNotesScreen
+                  web={PK_WEB}
+                  profile={activeProfile}
+                  onBack={backToHub}
+                />
+              )}
               {route === 'listen' && (
                 <EverydayFunctionScreen
                   mode="listen"
@@ -583,6 +591,7 @@ function App() {
             onMarketplace={() => openModeFromHub('shop')}
             onWallet={openWallet}
             onPlan={() => openModeFromHub('plan')}
+            onNotes={() => openModeFromHub('notes')}
             onBounty={() => { pkHaptic('select'); setBountyOpen(true); }}
             unread={headerUnread}
             onInbox={openInbox}
