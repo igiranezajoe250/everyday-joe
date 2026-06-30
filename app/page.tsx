@@ -135,7 +135,7 @@ export default function Home() {
       </div>
 
       <section className="il-hero" id="top">
-        <img className="il-hero-image" src="/images/ingoga/hero-scientist.png" alt="Rwandan researcher looking toward the camera" />
+        <img className="il-hero-image" src="/images/ingoga/hero-research-plate-v2.png" alt="Illustrated Rwandan researcher studying connected human, terrestrial, and orbital systems" />
         <div className="il-hero-copy">
           <p>Independent research &amp; development lab</p>
           <h1><span>IMAGINE</span><span>WHAT&apos;S <em>NEXT</em></span></h1>

@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import "./book.css";
+import "./audio.css";
+import {
+  PODCAST, K, RATES, uid, fmtTime, loadJSON, saveJSON, buildShareCardSVG,
+  BOOK_TITLE, BOOK_AUTHOR,
+  type Note, type Highlight, type Bookmark, type DownloadState, type Progress,
+} from "./audioData";
 
 /* ── Concept definitions ─────────────────────────────────────── */
 const CONCEPTS: Record<string, { name: string; definition: string }> = {
@@ -271,6 +277,34 @@ const SCREENS: Screen[] = (() => {
 
 const TOTAL = SCREENS.length;
 
+/* ── Small shared pieces ─────────────────────────────────────── */
+function DownloadPill({ state, onClick }: { state: DownloadState; onClick: () => void }) {
+  if (state === "downloading")
+    return <span className="au-dl"><span className="au-dl__ring" />Saving</span>;
+  if (state === "done")
+    return (
+      <span className="au-dl is-done">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        Saved offline
+      </span>
+    );
+  return (
+    <button className="au-dl" onClick={onClick}>
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8M8 10 5 7M8 10l3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 13h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+      Download
+    </button>
+  );
+}
+
+function Empty({ label }: { label: string }) {
+  return (
+    <div className="au-empty">
+      <div className="au-empty__mark">&ldquo;</div>
+      <p className="au-empty__text">{label}</p>
+    </div>
+  );
+}
+
 /* ── Reader ──────────────────────────────────────────────────── */
 export default function TheBottomLine() {
   const [si, setSi]         = useState(0);
@@ -279,10 +313,32 @@ export default function TheBottomLine() {
   const [playing, setPlaying]     = useState(false);
   const [audioTime, setAudioTime] = useState(0);
   const [audioDur,  setAudioDur]  = useState(0);
-  const [notesOpen, setNotesOpen] = useState(false);
-  const [noteText,  setNoteText]  = useState("");
-  const touchX   = useRef(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [audioErr, setAudioErr]   = useState(false);
+  const [rate, setRate]           = useState(1);
+
+  /* listen experience */
+  const [mode, setMode]           = useState<"read" | "listen">("read");
+  const [listenTab, setListenTab] = useState<"listen" | "podcast">("listen");
+  const [notes, setNotes]             = useState<Note[]>([]);
+  const [highlights, setHighlights]   = useState<Highlight[]>([]);
+  const [bookmarks, setBookmarks]     = useState<Bookmark[]>([]);
+  const [progress, setProgress]       = useState<Record<string, Progress>>({});
+  const [downloads, setDownloads]     = useState<Record<string, DownloadState>>({});
+  const [libOpen, setLibOpen]         = useState(false);
+  const [libTab, setLibTab]           = useState<"notes" | "highlights" | "bookmarks">("notes");
+  const [composer, setComposer]       = useState<
+    null | { kind: "note" | "highlight"; chId: string; t: number; text: string }
+  >(null);
+  const [shareTarget, setShareTarget] = useState<
+    null | { text: string; chapterTitle: string | null }
+  >(null);
+
+  const touchX        = useRef(0);
+  const audioRef      = useRef<HTMLAudioElement>(null);
+  const pendingSeek   = useRef<number | null>(null);
+  const progressRef   = useRef<Record<string, Progress>>({});
+  const audioTimeRef  = useRef(0);
+  const audioDurRef   = useRef(0);
 
   const goNext = useCallback(() => setSi(i => Math.min(i + 1, TOTAL - 1)), []);
   const goPrev = useCallback(() => setSi(i => Math.max(i - 1, 0)), []);
@@ -297,10 +353,51 @@ export default function TheBottomLine() {
     return () => window.removeEventListener("keydown", h);
   }, [goNext, goPrev]);
 
+  /* theme — saved preference, else system; applied pre-paint by the
+     route layout script. This only syncs React state to what is already
+     on <html>, so there is no flash. */
+  useEffect(() => {
+    let t = document.documentElement.getAttribute("data-theme");
+    if (t !== "dark" && t !== "light") {
+      try { t = localStorage.getItem("tbl-theme"); } catch { t = null; }
+      if (t !== "dark" && t !== "light") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    }
+    setDark(t === "dark");
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !dark;
+    const value = next ? "dark" : "light";
+    /* Suppress transitions for the single frame of the switch so the
+       theme applies instantly and cleanly (also sidesteps a Chromium
+       repaint glitch with var()-driven transitions). Hover/interaction
+       animations are untouched outside this frame. */
+    const style = document.createElement("style");
+    style.appendChild(
+      document.createTextNode("*,*::before,*::after{transition:none !important}")
+    );
+    document.head.appendChild(style);
+    document.documentElement.setAttribute("data-theme", value);
+    try { localStorage.setItem("tbl-theme", value); } catch { /* ignore */ }
+    window.getComputedStyle(document.body).opacity; // force reflow
+    requestAnimationFrame(() => style.remove());
+    setDark(next);
+  };
+
   const screen    = SCREENS[si];
   const chId      = screen.kind !== "cover" && screen.kind !== "end" ? screen.id : null;
   const chapter   = chId ? CHAPTERS.find(c => c.id === chId) ?? null : null;
-  const progress  = si / (TOTAL - 1);
+  const readProgress = si / (TOTAL - 1);
+
+  const chapterList  = CHAPTERS.filter(c => c.type === "chapter");
+  const chapterIdx   = chId ? chapterList.findIndex(c => c.id === chId) : -1;
+  const nextChapter  = chapterIdx >= 0 ? chapterList[chapterIdx + 1] ?? null : null;
+  const audioDefined = !!(chId && AUDIO[chId]);
+  const audioReady   = audioDefined && !audioErr;
+  const playedChapters = chapterList.filter(c => (progress[c.id]?.t ?? 0) > 5).length;
 
   const jumpTo = (id: string) => {
     const idx = SCREENS.findIndex(s => s.kind === "intro" && s.id === id);
@@ -308,47 +405,189 @@ export default function TheBottomLine() {
     setMenu(false);
   };
 
-  /* audio + notes — reset when chapter changes */
+  /* load the local-first library once */
+  useEffect(() => {
+    setNotes(loadJSON<Note[]>(K.notes, []));
+    setHighlights(loadJSON<Highlight[]>(K.highlights, []));
+    setBookmarks(loadJSON<Bookmark[]>(K.bookmarks, []));
+    setDownloads(loadJSON<Record<string, DownloadState>>(K.downloads, {}));
+    setRate(loadJSON<number>(K.rate, 1));
+    const p = loadJSON<Record<string, Progress>>(K.progress, {});
+    progressRef.current = p;
+    setProgress(p);
+  }, []);
+
+  const commitProgress = useCallback((id: string, t: number, dur: number) => {
+    const p = { ...progressRef.current, [id]: { t, dur, updatedAt: Date.now() } };
+    progressRef.current = p;
+    setProgress(p);
+    saveJSON(K.progress, p);
+  }, []);
+
+  /* audio — reset transport when the chapter changes */
   useEffect(() => {
     const el = audioRef.current;
-    if (el) { el.pause(); el.currentTime = 0; }
+    if (el) { el.pause(); el.currentTime = 0; el.playbackRate = rate; }
     setPlaying(false);
     setAudioTime(0);
     setAudioDur(0);
-    setNotesOpen(false);
-    if (chId) setNoteText(localStorage.getItem(`tbl-note-${chId}`) ?? "");
-  }, [chId]);
+    setAudioErr(false);
+    audioTimeRef.current = 0;
+  }, [chId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* persist listening position when leaving a chapter */
+  useEffect(() => {
+    return () => {
+      if (chId && audioTimeRef.current > 1) {
+        commitProgress(chId, audioTimeRef.current, audioDurRef.current);
+      }
+    };
+  }, [chId, commitProgress]);
+
+  /* keep playback rate applied to the element */
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = rate;
+  }, [rate, chId]);
 
   const togglePlay = () => {
     const el = audioRef.current;
     if (!el) return;
-    if (playing) { el.pause(); setPlaying(false); }
-    else el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    if (playing) {
+      el.pause();
+      setPlaying(false);
+      if (chId) commitProgress(chId, el.currentTime, el.duration || audioDur);
+    } else {
+      el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    }
   };
 
   const skip = (s: number) => {
     const el = audioRef.current;
     if (!el) return;
-    el.currentTime = Math.max(0, Math.min(audioDur || 0, el.currentTime + s));
+    el.currentTime = Math.max(0, Math.min(audioDur || el.duration || 0, el.currentTime + s));
+  };
+
+  const seekTo = (t: number) => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = t;
+    setAudioTime(t);
+    audioTimeRef.current = t;
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = audioRef.current;
-    if (!el || !audioDur) return;
+    if (!audioDur) return;
     const rect  = e.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    el.currentTime = ratio * audioDur;
-    setAudioTime(ratio * audioDur);
+    seekTo(ratio * audioDur);
   };
 
-  const handleNoteChange = (text: string) => {
-    setNoteText(text);
-    if (chId) localStorage.setItem(`tbl-note-${chId}`, text);
+  const cycleRate = () => {
+    const idx  = RATES.indexOf(rate as (typeof RATES)[number]);
+    const next = RATES[(idx + 1) % RATES.length];
+    setRate(next);
+    saveJSON(K.rate, next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
   };
 
-  const fmt = (s: number) => {
-    if (!s || isNaN(s)) return "0:00";
-    return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
+  /* library mutations — local-first, write-through to localStorage */
+  const addNote = (text: string, t = audioTime) => {
+    if (!chId || !text.trim()) return;
+    const next: Note[] = [
+      { id: uid(), chId, t, text: text.trim(), createdAt: Date.now() },
+      ...notes,
+    ];
+    setNotes(next); saveJSON(K.notes, next);
+  };
+  const deleteNote = (id: string) => {
+    const next = notes.filter(n => n.id !== id);
+    setNotes(next); saveJSON(K.notes, next);
+  };
+  const addHighlight = (text: string, t = audioTime) => {
+    if (!chId || !text.trim()) return;
+    const next: Highlight[] = [
+      { id: uid(), chId, t, text: text.trim(), createdAt: Date.now() },
+      ...highlights,
+    ];
+    setHighlights(next); saveJSON(K.highlights, next);
+  };
+  const deleteHighlight = (id: string) => {
+    const next = highlights.filter(h => h.id !== id);
+    setHighlights(next); saveJSON(K.highlights, next);
+  };
+  const addBookmark = () => {
+    if (!chId) return;
+    const next: Bookmark[] = [
+      { id: uid(), chId, t: audioTime, label: chapter?.title ?? "Bookmark", createdAt: Date.now() },
+      ...bookmarks,
+    ];
+    setBookmarks(next); saveJSON(K.bookmarks, next);
+  };
+  const deleteBookmark = (id: string) => {
+    const next = bookmarks.filter(b => b.id !== id);
+    setBookmarks(next); saveJSON(K.bookmarks, next);
+  };
+
+  /* jump to a saved timestamp (seamless across chapters) */
+  const jumpToStamp = (targetChId: string, t: number) => {
+    setLibOpen(false);
+    setMode("listen");
+    if (targetChId === chId) {
+      seekTo(t);
+    } else {
+      pendingSeek.current = t;
+      const idx = SCREENS.findIndex(s => s.kind === "intro" && s.id === targetChId);
+      if (idx >= 0) setSi(idx);
+    }
+  };
+
+  /* real download with graceful fallback (caches the file when present) */
+  const startDownload = async (id: string, src: string) => {
+    setDownloads(prev => {
+      const next = { ...prev, [id]: "downloading" as DownloadState };
+      saveJSON(K.downloads, next); return next;
+    });
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error("unavailable");
+      if ("caches" in window) {
+        const cache = await caches.open("tbl-audio");
+        await cache.put(src, res.clone());
+      }
+      setDownloads(prev => {
+        const next = { ...prev, [id]: "done" as DownloadState };
+        saveJSON(K.downloads, next); return next;
+      });
+    } catch {
+      /* file not yet published — revert so it can be retried later */
+      setDownloads(prev => {
+        const next = { ...prev, [id]: "idle" as DownloadState };
+        saveJSON(K.downloads, next); return next;
+      });
+    }
+  };
+
+  /* export a branded share card as PNG (user-initiated) */
+  const downloadShareCard = (svg: string) => {
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url  = URL.createObjectURL(blob);
+    const img  = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080; canvas.height = 1350;
+      const ctx = canvas.getContext("2d");
+      if (ctx) { ctx.drawImage(img, 0, 0); }
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b => {
+        if (!b) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b);
+        a.download = "the-bottom-line-quote.png";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }, "image/png");
+    };
+    img.src = url;
   };
 
   /* helpers */
@@ -357,7 +596,7 @@ export default function TheBottomLine() {
 
   return (
     <div
-      className={`bl-reader${dark ? " bl-reader--dark" : ""}`}
+      className="bl-reader"
       onTouchStart={e => { touchX.current = e.touches[0].clientX; }}
       onTouchEnd={e => {
         const dx = e.changedTouches[0].clientX - touchX.current;
@@ -373,9 +612,25 @@ export default function TheBottomLine() {
           </span>
         </div>
         <div className="bl-topbar__right">
+          {chId && (
+            <div className="au-seg" role="tablist" aria-label="Read or listen">
+              <button
+                className={`au-seg__btn${mode === "read" ? " is-active" : ""}`}
+                onClick={() => setMode("read")}
+                role="tab"
+                aria-selected={mode === "read"}
+              >Read</button>
+              <button
+                className={`au-seg__btn${mode === "listen" ? " is-active" : ""}`}
+                onClick={() => setMode("listen")}
+                role="tab"
+                aria-selected={mode === "listen"}
+              >Listen</button>
+            </div>
+          )}
           <button
             className="bl-topbar__dark"
-            onClick={() => setDark(d => !d)}
+            onClick={toggleTheme}
             aria-label={dark ? "Light mode" : "Dark mode"}
           />
           <button
@@ -390,7 +645,7 @@ export default function TheBottomLine() {
 
       {/* ── Progress ── */}
       <div className="bl-progress">
-        <div className="bl-progress__fill" style={{ width: `${progress * 100}%` }} />
+        <div className="bl-progress__fill" style={{ width: `${readProgress * 100}%` }} />
       </div>
 
       {/* ── Contents overlay ── */}
@@ -517,98 +772,65 @@ export default function TheBottomLine() {
         </div>
       </div>
 
-      {/* ── Audio bar ── */}
-      {chId && AUDIO[chId] && (
-        <div className="bl-audio">
+      {/* ── Audio: persistent element + compact docked player ── */}
+      {audioDefined && chId && (
+        <>
           <audio
             ref={audioRef}
             src={AUDIO[chId].src}
-            onTimeUpdate={e => setAudioTime(e.currentTarget.currentTime)}
-            onDurationChange={e => setAudioDur(e.currentTarget.duration)}
+            preload="metadata"
+            onTimeUpdate={e => { const t = e.currentTarget.currentTime; setAudioTime(t); audioTimeRef.current = t; }}
+            onLoadedMetadata={e => {
+              const d = e.currentTarget.duration;
+              setAudioDur(d); audioDurRef.current = d;
+              e.currentTarget.playbackRate = rate;
+              if (pendingSeek.current != null) {
+                e.currentTarget.currentTime = pendingSeek.current;
+                setAudioTime(pendingSeek.current);
+                pendingSeek.current = null;
+              }
+            }}
+            onDurationChange={e => { const d = e.currentTarget.duration; setAudioDur(d); audioDurRef.current = d; }}
             onEnded={() => setPlaying(false)}
+            onError={() => setAudioErr(true)}
           />
 
-          {/* Notes panel — floats above bar */}
-          {notesOpen && (
-            <div className="bl-notes" onClick={e => e.stopPropagation()}>
-              <div className="bl-notes__head">
-                <span className="bl-notes__label">NOTES</span>
-                <span className="bl-notes__chapter">{chapter?.title}</span>
-              </div>
-              <textarea
-                className="bl-notes__area"
-                placeholder="Write your thoughts…"
-                value={noteText}
-                onChange={e => handleNoteChange(e.target.value)}
-                autoFocus
-              />
-              {noteText.length > 0 && (
-                <p className="bl-notes__hint">saved · {noteText.length} chars</p>
-              )}
+          <div className="au-mini">
+            <div className="au-mini__thread">
+              <div className="au-mini__thread-fill" style={{ width: `${audioDur ? (audioTime / audioDur) * 100 : 0}%` }} />
             </div>
-          )}
-
-          <div className="bl-audio__inner">
-            {/* Controls */}
-            <div className="bl-audio__controls">
-              <button className="bl-audio__skip" onClick={() => skip(-15)} aria-label="Back 15 seconds">
-                <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 3C5.686 3 3 5.686 3 9s2.686 6 6 6 6-2.686 6-6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                  <path d="M9 3 6.5 5.5 9 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span>15</span>
-              </button>
-
-              <button className="bl-audio__play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
-                {playing ? (
-                  <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="3" y="2" width="3.5" height="12" rx="1"/>
-                    <rect x="9.5" y="2" width="3.5" height="12" rx="1"/>
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 2L13 8 3 14V2Z"/>
-                  </svg>
-                )}
-              </button>
-
-              <button className="bl-audio__skip" onClick={() => skip(15)} aria-label="Forward 15 seconds">
-                <span>15</span>
-                <svg viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 3c3.314 0 6 2.686 6 6s-2.686 6-6 6-6-2.686-6-6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                  <path d="M9 3l2.5 2.5L9 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Track */}
-            <div className="bl-audio__meta">
-              <span className="bl-audio__label">{AUDIO[chId].label}</span>
-              <div className="bl-audio__track" onClick={handleSeek}>
-                <div className="bl-audio__fill" style={{ width: `${audioDur ? (audioTime / audioDur) * 100 : 0}%` }} />
-                <div className="bl-audio__thumb" style={{ left: `${audioDur ? (audioTime / audioDur) * 100 : 0}%` }} />
-              </div>
-            </div>
-
-            <span className="bl-audio__time">
-              {fmt(audioTime)}{audioDur ? ` / ${fmt(audioDur)}` : ""}
-            </span>
-
-            {/* Note button */}
-            <button
-              className={`bl-audio__note-btn${notesOpen ? " is-active" : ""}`}
-              onClick={() => setNotesOpen(v => !v)}
-              aria-label="Notes"
-            >
-              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2.5" y="1.5" width="11" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
-                <line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                <line x1="5" y1="8"   x2="11" y2="8"   stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                <line x1="5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-              </svg>
+            <button className="au-mini__play" onClick={togglePlay} disabled={!audioReady} aria-label={playing ? "Pause" : "Play"}>
+              {playing
+                ? <svg viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg>
+                : <svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>}
             </button>
+            <div
+              className="au-mini__meta"
+              role="button"
+              tabIndex={0}
+              onClick={() => setMode("listen")}
+              onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMode("listen"); } }}
+            >
+              <span className="au-mini__title">{chapter?.title ?? BOOK_TITLE}</span>
+              <span className="au-mini__sub">
+                <span>{AUDIO[chId].label}</span>
+                <span className="au-mini__dot">·</span>
+                <span className="au-mini__time">{audioReady ? `${fmtTime(audioTime)} / ${fmtTime(audioDur)}` : "Audio coming soon"}</span>
+              </span>
+            </div>
+            <div className="au-mini__actions">
+              <button className="au-iconbtn" onClick={() => setComposer({ kind: "note", chId, t: audioTime, text: "" })} aria-label="Add note">
+                <svg viewBox="0 0 16 16" fill="none"><rect x="2.5" y="1.5" width="11" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2" /><line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /><line x1="5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /></svg>
+              </button>
+              <button className="au-iconbtn" onClick={addBookmark} aria-label="Bookmark this moment">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M4 2.5h8v11l-4-2.6-4 2.6v-11Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
+              </button>
+              <button className="au-iconbtn au-iconbtn--expand" onClick={() => setMode("listen")} aria-label="Open player">
+                <svg viewBox="0 0 18 18" fill="none"><path d="M5 11l4-4 4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ── Bottom navigation ── */}
@@ -634,6 +856,283 @@ export default function TheBottomLine() {
           aria-label="Next"
         >→</button>
       </div>
+
+      {/* ── Listen sheet (expanded now-playing) ── */}
+      {mode === "listen" && chId && (
+        <div className="au-sheet" role="dialog" aria-label="Audio player">
+          <div className="au-sheet__bar">
+            <button className="au-iconbtn au-iconbtn--expand" onClick={() => setMode("read")} aria-label="Back to reading">
+              <svg viewBox="0 0 18 18" fill="none"><path d="M5 7l4 4 4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+            <div className="au-sheet__tabs" role="tablist">
+              <button className={`au-tab${listenTab === "listen" ? " is-active" : ""}`} onClick={() => setListenTab("listen")} role="tab" aria-selected={listenTab === "listen"}>Listen</button>
+              <button className={`au-tab${listenTab === "podcast" ? " is-active" : ""}`} onClick={() => setListenTab("podcast")} role="tab" aria-selected={listenTab === "podcast"}>Podcast</button>
+            </div>
+            <button className="au-iconbtn" onClick={() => { setLibTab("notes"); setLibOpen(true); }} aria-label="Open library">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M3 2.5h3v11l-1.5-1-1.5 1v-11Z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><path d="M7.5 2.5H13v11H7.5" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><line x1="9" y1="6" x2="11.5" y2="6" stroke="currentColor" strokeWidth="1" /><line x1="9" y1="8.5" x2="11.5" y2="8.5" stroke="currentColor" strokeWidth="1" /></svg>
+            </button>
+          </div>
+
+          <div className="au-sheet__body">
+            {listenTab === "listen" ? (
+              <>
+                <div className="au-now">
+                  <div
+                    className="au-now__art"
+                    style={{ backgroundImage: "url(/images/books/the-bottom-line/trust-built-v2.png)" }}
+                    aria-hidden="true"
+                  >
+                    <span className="au-now__art-mark">{chapter?.num ?? "·"}</span>
+                  </div>
+                  <p className="au-now__part">{chapter?.part ?? BOOK_TITLE}</p>
+                  <h2 className="au-now__title">{chapter?.title}</h2>
+                  {chapter?.subtitle && <p className="au-now__sub">{chapter.subtitle}</p>}
+                  <div className="au-now__dl">
+                    {audioReady
+                      ? <DownloadPill state={downloads[chId] ?? "idle"} onClick={() => startDownload(chId, AUDIO[chId].src)} />
+                      : <span className="au-now__unavailable">Narration coming soon</span>}
+                  </div>
+                </div>
+
+                <div className="au-transport">
+                  <div className="au-scrub__bar" onClick={handleSeek}>
+                    <div className="au-scrub__fill" style={{ width: `${audioDur ? (audioTime / audioDur) * 100 : 0}%` }} />
+                    <div className="au-scrub__thumb" style={{ left: `${audioDur ? (audioTime / audioDur) * 100 : 0}%` }} />
+                    <div className="au-scrub__marks">
+                      {audioDur > 0 && bookmarks.filter(b => b.chId === chId).map(b => (
+                        <span key={b.id} className="au-scrub__mark" style={{ left: `${(b.t / audioDur) * 100}%` }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="au-scrub__time">
+                    <span>{fmtTime(audioTime)}</span>
+                    <span>-{fmtTime(Math.max(0, audioDur - audioTime))}</span>
+                  </div>
+
+                  <div className="au-controls">
+                    <button className="au-ctrl au-ctrl--chev" disabled={chapterIdx <= 0} aria-label="Previous chapter"
+                      onClick={() => { const p = chapterList[chapterIdx - 1]; const idx = SCREENS.findIndex(s => s.kind === "intro" && s.id === p?.id); if (idx >= 0) setSi(idx); }}>
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    </button>
+                    <button className="au-ctrl" onClick={() => skip(-15)} disabled={!audioReady} aria-label="Back 15 seconds">
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M12 5a7 7 0 1 0 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M12 5 8.5 8 12 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      <span className="au-ctrl__skip-label">15</span>
+                    </button>
+                    <button className="au-ctrl au-ctrl--play" onClick={togglePlay} disabled={!audioReady} aria-label={playing ? "Pause" : "Play"}>
+                      {playing
+                        ? <svg viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg>
+                        : <svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>}
+                    </button>
+                    <button className="au-ctrl" onClick={() => skip(15)} disabled={!audioReady} aria-label="Forward 15 seconds">
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M12 5a7 7 0 1 1-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M12 5l3.5 3L12 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      <span className="au-ctrl__skip-label">15</span>
+                    </button>
+                    <button className="au-ctrl au-ctrl--chev" disabled={!nextChapter} aria-label="Next chapter"
+                      onClick={() => { if (nextChapter) { const idx = SCREENS.findIndex(s => s.kind === "intro" && s.id === nextChapter.id); if (idx >= 0) setSi(idx); } }}>
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    </button>
+                  </div>
+
+                  <div className="au-subrow">
+                    <button className="au-speed" onClick={cycleRate} aria-label="Playback speed">{rate}&times;</button>
+                    <div className="au-subrow__group">
+                      <button className="au-iconbtn" onClick={addBookmark} aria-label="Bookmark">
+                        <svg viewBox="0 0 16 16" fill="none"><path d="M4 2.5h8v11l-4-2.6-4 2.6v-11Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>
+                      </button>
+                      <button className="au-iconbtn" onClick={() => setComposer({ kind: "note", chId, t: audioTime, text: "" })} aria-label="Add note">
+                        <svg viewBox="0 0 16 16" fill="none"><rect x="2.5" y="1.5" width="11" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2" /><line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /><line x1="5" y1="10.5" x2="8.5" y2="10.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /></svg>
+                      </button>
+                      <button className="au-iconbtn" onClick={() => setComposer({ kind: "highlight", chId, t: audioTime, text: chapter?.pull ?? "" })} aria-label="Add highlight">
+                        <svg viewBox="0 0 16 16" fill="none"><path d="M3 4h7M3 7h10M3 10h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+                      </button>
+                      <button className="au-iconbtn" onClick={() => setShareTarget({ text: chapter?.pull ?? chapter?.title ?? BOOK_TITLE, chapterTitle: chapter?.title ?? null })} aria-label="Share">
+                        <svg viewBox="0 0 16 16" fill="none"><path d="M8 10V2M8 2 5.5 4.5M8 2l2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M3.5 8v5h9V8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="au-queue">
+                  <p className="au-queue__label">Next in queue</p>
+                  {nextChapter ? (
+                    <button className="au-queue__item" onClick={() => { const idx = SCREENS.findIndex(s => s.kind === "intro" && s.id === nextChapter.id); if (idx >= 0) setSi(idx); }}>
+                      <span className="au-queue__num">{nextChapter.num}</span>
+                      <span className="au-queue__title">{nextChapter.title}</span>
+                      <span className="au-queue__meta">Chapter</span>
+                    </button>
+                  ) : (
+                    <button className="au-queue__item" onClick={() => setListenTab("podcast")}>
+                      <span className="au-queue__num">&#9834;</span>
+                      <span className="au-queue__title">{PODCAST[0].title}</span>
+                      <span className="au-queue__meta">Podcast</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="au-pod">
+                <p className="au-pod__intro">Conversations, author insight and related listening around {BOOK_TITLE}.</p>
+                {PODCAST.map(ep => (
+                  <div className="au-pod__item" key={ep.id}>
+                    <div className="au-pod__art">
+                      <img src={ep.image} alt="" />
+                      <button className="au-pod__play" aria-label={`Play ${ep.title}`}>
+                        <svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>
+                      </button>
+                    </div>
+                    <div className="au-pod__body">
+                      <p className="au-pod__kind">{ep.kind}</p>
+                      <h3 className="au-pod__title">{ep.title}</h3>
+                      <p className="au-pod__blurb">{ep.blurb}</p>
+                      <div className="au-pod__foot">
+                        {ep.guest && <span className="au-pod__guest">{ep.guest}</span>}
+                        <span>{ep.duration}</span>
+                        <DownloadPill state={downloads[ep.id] ?? "idle"} onClick={() => startDownload(ep.id, ep.src)} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Library ── */}
+      {libOpen && (
+        <div className="au-scrim" onClick={() => setLibOpen(false)}>
+          <div className="au-panel" onClick={e => e.stopPropagation()}>
+            <div className="au-panel__head">
+              <span className="au-panel__title">Library</span>
+              <button className="au-iconbtn" onClick={() => setLibOpen(false)} aria-label="Close library">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+            <div className="au-libtabs">
+              <button className={`au-libtab${libTab === "notes" ? " is-active" : ""}`} onClick={() => setLibTab("notes")}>Notes<span className="au-libtab__count">{notes.length}</span></button>
+              <button className={`au-libtab${libTab === "highlights" ? " is-active" : ""}`} onClick={() => setLibTab("highlights")}>Highlights<span className="au-libtab__count">{highlights.length}</span></button>
+              <button className={`au-libtab${libTab === "bookmarks" ? " is-active" : ""}`} onClick={() => setLibTab("bookmarks")}>Bookmarks<span className="au-libtab__count">{bookmarks.length}</span></button>
+            </div>
+            <div className="au-panel__body">
+              <div className="au-prog">
+                <p className="au-prog__label">Listening progress · synced to this device</p>
+                <div className="au-prog__row">
+                  <span className="au-prog__pct">{Math.round((playedChapters / chapterList.length) * 100)}%</span>
+                  <span className="au-prog__meta">{playedChapters} / {chapterList.length} chapters</span>
+                </div>
+                <div className="au-prog__track"><div className="au-prog__fill" style={{ width: `${(playedChapters / chapterList.length) * 100}%` }} /></div>
+              </div>
+
+              {libTab === "notes" && (notes.length ? notes.map(n => {
+                const c = CHAPTERS.find(x => x.id === n.chId);
+                return (
+                  <div className="au-item" key={n.id}>
+                    <div className="au-item__top">
+                      <button className="au-item__stamp" onClick={() => jumpToStamp(n.chId, n.t)}><svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>{fmtTime(n.t)}</button>
+                      <span className="au-item__chapter">{c?.num ? `${c.num} · ${c.title}` : c?.title}</span>
+                    </div>
+                    <p className="au-item__text">{n.text}</p>
+                    <div className="au-item__row">
+                      <button className="au-item__action" onClick={() => setShareTarget({ text: n.text, chapterTitle: c?.title ?? null })}>Share</button>
+                      <button className="au-item__action" onClick={() => deleteNote(n.id)}>Delete</button>
+                    </div>
+                  </div>
+                );
+              }) : <Empty label="No notes yet. Tap the note icon while listening to capture a thought at the exact moment." />)}
+
+              {libTab === "highlights" && (highlights.length ? highlights.map(h => {
+                const c = CHAPTERS.find(x => x.id === h.chId);
+                return (
+                  <div className="au-item au-item--highlight" key={h.id}>
+                    <div className="au-item__top">
+                      <button className="au-item__stamp" onClick={() => jumpToStamp(h.chId, h.t)}><svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>{fmtTime(h.t)}</button>
+                      <span className="au-item__chapter">{c?.title}</span>
+                    </div>
+                    <p className="au-item__text">{h.text}</p>
+                    <div className="au-item__row">
+                      <button className="au-item__action" onClick={() => setShareTarget({ text: h.text, chapterTitle: c?.title ?? null })}>Share</button>
+                      <button className="au-item__action" onClick={() => deleteHighlight(h.id)}>Delete</button>
+                    </div>
+                  </div>
+                );
+              }) : <Empty label="No highlights yet. Save a line that matters and it lives here." />)}
+
+              {libTab === "bookmarks" && (bookmarks.length ? bookmarks.map(b => {
+                const c = CHAPTERS.find(x => x.id === b.chId);
+                return (
+                  <div className="au-item" key={b.id}>
+                    <div className="au-item__top">
+                      <button className="au-item__stamp" onClick={() => jumpToStamp(b.chId, b.t)}><svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>{fmtTime(b.t)}</button>
+                      <span className="au-item__chapter">{c?.num ? `${c.num} · ${c.title}` : c?.title}</span>
+                    </div>
+                    <div className="au-item__row">
+                      <button className="au-item__action" onClick={() => deleteBookmark(b.id)}>Remove</button>
+                    </div>
+                  </div>
+                );
+              }) : <Empty label="No bookmarks yet. Mark a moment to return to it instantly." />)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Note / highlight composer ── */}
+      {composer && (
+        <div className="au-note-window-layer">
+          <div
+            className="au-compose"
+            role="dialog"
+            aria-modal="false"
+            aria-label={composer.kind === "note" ? "Add a note" : "Add a highlight"}
+          >
+            <div className="au-compose__head">
+              <span className="au-compose__stamp">{composer.kind === "note" ? "Note at" : "Highlight at"} <b>{fmtTime(composer.t)}</b></span>
+              <button className="au-iconbtn" onClick={() => setComposer(null)} aria-label="Close">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+            <textarea
+              className="au-compose__area"
+              autoFocus
+              placeholder={composer.kind === "note" ? "Capture a thought…" : "The line worth keeping…"}
+              value={composer.text}
+              onChange={e => setComposer({ ...composer, text: e.target.value })}
+            />
+            <div className="au-compose__foot">
+              <button className="au-btn au-btn--primary" disabled={!composer.text.trim()}
+                onClick={() => {
+                  if (composer.kind === "note") addNote(composer.text, composer.t);
+                  else addHighlight(composer.text, composer.t);
+                  setComposer(null);
+                }}>
+                Save {composer.kind === "note" ? "note" : "highlight"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Share card ── */}
+      {shareTarget && (() => {
+        const svg = buildShareCardSVG({ quote: shareTarget.text, chapterTitle: shareTarget.chapterTitle, dark });
+        return (
+          <div className="au-scrim au-scrim--center" onClick={() => setShareTarget(null)}>
+            <div className="au-share" onClick={e => e.stopPropagation()}>
+              <div className="au-share__head">
+                <span className="au-compose__stamp">Share card</span>
+                <button className="au-iconbtn" onClick={() => setShareTarget(null)} aria-label="Close">
+                  <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+                </button>
+              </div>
+              <div className="au-share__preview" dangerouslySetInnerHTML={{ __html: svg }} />
+              <div className="au-share__foot">
+                <button className="au-btn" onClick={async () => { try { await navigator.clipboard.writeText(`"${shareTarget.text}"\n— ${BOOK_TITLE}, ${BOOK_AUTHOR}`); } catch { /* ignore */ } }}>Copy quote</button>
+                <button className="au-btn au-btn--primary" onClick={() => downloadShareCard(svg)}>Download card</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

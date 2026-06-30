@@ -1,70 +1,49 @@
-/* ── Books — author stage ────────────────────────────────────── */
+/* ── Books — author stage ─────────────────────────────────────────
+   Palette matched to the reader (parchment / copper / warm dark). */
 
 .bl-stage {
   position: fixed;
   inset: 0;
-  background: #0a0b0c;
+  background: #100c0a;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-space-grotesk, "Space Grotesk"), sans-serif;
 }
 
-/* ── Frame ───────────────────────────────────────────────────── */
+/* ── Full-bleed image stage — no card framing ─────────────────── */
 .bl-crt {
   position: relative;
-  width: min(96vw, 1320px);
-  height: min(90vh, 840px);
-  border-radius: 20px;
-  overflow: hidden;
-  background: #12100d;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.06),
-    0 40px 120px rgba(0,0,0,.9),
-    0 8px 32px rgba(0,0,0,.6);
-}
-
-/* ── Abstract bg ─────────────────────────────────────────────── */
-.bl-crt__bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.bl-crt__svg {
-  position: absolute;
-  top: 0; left: 0;
   width: 100%;
-  height: 60%;
+  height: 100%;
+  overflow: hidden;
+  background: #161210;
 }
 
-/* ── Portrait ────────────────────────────────────────────────── */
-.bl-crt__portrait {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
+/* ── Portrait — fills the card perfectly, edge to edge ─────────── */
 .bl-crt__photo {
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 72%;
-  height: 95%;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  object-position: center 8%;
-  filter: grayscale(18%) contrast(1.04) brightness(0.92);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 12%, black 28%, black 72%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 12%, black 28%, black 72%, transparent 100%);
+  object-position: center top;
+  filter: grayscale(16%) contrast(1.04) brightness(0.94);
 }
 
-/* ── Vignette ────────────────────────────────────────────────── */
-.bl-crt__vignette {
+/* ── Readability scrim (bottom only — keeps the face untouched) ── */
+.bl-crt__scrim {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 90% 80% at 50% 35%, transparent 45%, rgba(0,0,0,.15) 100%),
-    linear-gradient(to bottom, rgba(0,0,0,.45) 0%, transparent 25%, transparent 55%, rgba(0,0,0,.75) 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(16, 12, 10, 0.55) 0%,
+    transparent 22%,
+    transparent 46%,
+    rgba(16, 12, 10, 0.72) 78%,
+    rgba(16, 12, 10, 0.92) 100%
+  );
 }
 
 /* ── Top bar ─────────────────────────────────────────────────── */
@@ -79,67 +58,32 @@
 }
 .bl-crt__brand {
   font-size: 10px;
-  letter-spacing: .22em;
-  color: rgba(255,255,255,.3);
+  letter-spacing: 0.22em;
+  color: rgba(240, 234, 216, 0.4);
   font-weight: 600;
 }
 .bl-crt__meta {
   font-size: 10px;
-  letter-spacing: .14em;
-  color: rgba(255,255,255,.2);
+  letter-spacing: 0.14em;
+  color: rgba(240, 234, 216, 0.28);
 }
 
-/* ── Side nav ────────────────────────────────────────────────── */
-.bl-crt__side {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  writing-mode: vertical-rl;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 14px 10px;
-  z-index: 20;
-}
-.bl-crt__side span {
-  font-size: 9px;
-  letter-spacing: .22em;
-  color: rgba(255,255,255,.2);
-  transition: color .2s;
-  font-weight: 600;
-  font-family: inherit;
-}
-.bl-crt__side:hover span { color: rgba(255,255,255,.6); }
-.bl-crt__side--left  { left: 14px; }
-.bl-crt__side--right { right: 14px; }
-
-/* ── Counter ─────────────────────────────────────────────────── */
-.bl-crt__counter {
-  position: absolute;
-  bottom: 30px;
-  right: 36px;
-  font-size: 10px;
-  letter-spacing: .14em;
-  color: rgba(255,255,255,.2);
-  z-index: 20;
-}
-
-/* ── Author nameplate ────────────────────────────────────────── */
+/* ── Nameplate ───────────────────────────────────────────────── */
 .bl-crt__author {
   position: absolute;
   bottom: 0;
   inset-inline: 0;
-  padding: 0 48px 44px;
+  padding: 0 48px 48px;
   z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
 }
 .bl-crt__role {
   font-size: 9px;
-  letter-spacing: .24em;
-  color: rgba(255,255,255,.35);
+  letter-spacing: 0.24em;
+  color: rgba(192, 104, 64, 0.95);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -148,155 +92,86 @@
   flex-direction: column;
   gap: 0;
   margin: 0;
-  line-height: .84;
+  line-height: 0.84;
 }
 .bl-crt__name span {
   display: block;
-  font-size: clamp(52px, 9vw, 130px);
+  font-size: clamp(48px, 8.5vw, 124px);
   font-weight: 700;
   letter-spacing: -0.055em;
-  color: #fff;
-  text-shadow: 0 4px 60px rgba(0,0,0,.5);
+  color: #f0ead8;
+  text-shadow: 0 4px 60px rgba(0, 0, 0, 0.55);
 }
+
+/* book line */
+.bl-crt__bookline {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 4px;
+}
+.bl-crt__book-title {
+  font-family: var(--font-playfair, "Playfair Display"), Georgia, serif;
+  font-style: italic;
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 600;
+  color: #f0ead8;
+  letter-spacing: -0.01em;
+}
+.bl-crt__book-sub {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: rgba(240, 234, 216, 0.45);
+  text-transform: uppercase;
+}
+
+/* ── CTA — single step into the reader ───────────────────────── */
 .bl-crt__cta {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: none;
-  border: 1px solid rgba(255,255,255,.22);
-  color: rgba(255,255,255,.6);
-  font-size: 10px;
-  letter-spacing: .18em;
-  padding: 11px 22px;
-  cursor: pointer;
-  font-family: inherit;
   margin-top: 6px;
-  transition: border-color .2s, color .2s, background .2s;
+  padding: 13px 24px 13px 16px;
+  border-radius: 999px;
+  background: #c06840;
+  color: #fdf6e8;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 .bl-crt__cta:hover {
-  border-color: rgba(255,255,255,.55);
-  color: #fff;
-  background: rgba(255,255,255,.05);
+  background: #9b4f32;
+  transform: translateY(-1px);
 }
-
-/* ── Book card (replaces shelf) ──────────────────────────────── */
-.bl-crt__shelf {
-  position: absolute;
-  inset: 0;
-  z-index: 25;
-  background: rgba(8,7,6,.92);
-  backdrop-filter: blur(20px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 10vw;
-  animation: shelfIn .28s cubic-bezier(.19,1,.22,1);
-}
-@keyframes shelfIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.bl-crt__shelf-back {
-  position: absolute;
-  top: 28px;
-  left: 36px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 10px;
-  letter-spacing: .18em;
-  color: rgba(255,255,255,.25);
-  font-family: inherit;
-  transition: color .15s;
-  padding: 0;
-}
-.bl-crt__shelf-back:hover { color: rgba(255,255,255,.7); }
-
-/* Book card */
-.bl-crt__shelf-list { display: flex; flex-direction: column; gap: 0; }
-.bl-crt__book {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 40px 0;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  text-decoration: none;
-  group: true;
-}
-.bl-crt__book:first-child { border-top: 1px solid rgba(255,255,255,.06); }
-.bl-crt__book-tag {
-  font-size: 9px;
-  letter-spacing: .2em;
-  color: rgba(255,255,255,.22);
-  margin-bottom: 18px;
-}
-.bl-crt__book-title {
-  font-family: var(--font-playfair, "Playfair Display"), Georgia, serif;
-  font-size: clamp(38px, 6vw, 80px);
-  font-weight: 700;
-  font-style: italic;
-  letter-spacing: -0.03em;
-  color: #f0ebe2;
-  line-height: .92;
-  margin-bottom: 10px;
-  transition: color .2s ease;
-}
-.bl-crt__book:hover .bl-crt__book-title { color: #fff; }
-.bl-crt__book-sub {
-  font-size: 14px;
-  color: rgba(255,255,255,.28);
-  letter-spacing: .02em;
-  margin-bottom: 36px;
-}
-
-/* Play button */
-.bl-crt__play {
-  display: inline-flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 4px;
-}
-.bl-crt__play-btn {
-  width: 52px;
-  height: 52px;
+.bl-crt__cta-icon {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(253, 246, 232, 0.18);
   display: grid;
   place-items: center;
-  transition: border-color .2s ease, background .2s ease;
   flex-shrink: 0;
 }
-.bl-crt__book:hover .bl-crt__play-btn {
-  border-color: rgba(169,217,236,.6);
-  background: rgba(169,217,236,.08);
+.bl-crt__cta-icon svg {
+  width: 11px;
+  height: 11px;
+  fill: #fdf6e8;
+  margin-left: 1px;
 }
-.bl-crt__play-btn svg {
-  width: 14px;
-  height: 14px;
-  fill: rgba(255,255,255,.5);
-  margin-left: 2px;
-  transition: fill .2s ease;
-}
-.bl-crt__book:hover .bl-crt__play-btn svg { fill: #a9d9ec; }
-.bl-crt__play-label {
-  font-size: 10px;
-  letter-spacing: .16em;
-  color: rgba(255,255,255,.28);
-  transition: color .2s ease;
-}
-.bl-crt__book:hover .bl-crt__play-label { color: rgba(255,255,255,.6); }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .bl-crt {
-    width: 100vw;
-    height: 100dvh;
-    border-radius: 0;
-    box-shadow: none;
+  .bl-crt__author {
+    padding: 0 24px 36px;
+    gap: 12px;
   }
-  .bl-crt__author  { padding: 0 24px 32px; }
-  .bl-crt__shelf   { padding: 0 28px; }
-  .bl-crt__name span { font-size: clamp(48px, 14vw, 72px); }
-  .bl-crt__photo { width: 100%; }
-  .bl-crt__topbar { inset-inline: 20px; top: 20px; }
+  .bl-crt__name span {
+    font-size: clamp(46px, 15vw, 80px);
+  }
+  .bl-crt__topbar {
+    inset-inline: 20px;
+    top: 20px;
+  }
 }
