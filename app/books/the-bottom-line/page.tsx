@@ -976,7 +976,12 @@ export default function TheBottomLine() {
                   <div className="au-pod__item" key={ep.id}>
                     <div className="au-pod__art">
                       <img src={ep.image} alt="" />
-                      <button className="au-pod__play" aria-label={`Play ${ep.title}`}>
+                      <button
+                        className="au-pod__play"
+                        disabled
+                        title="Audio preview coming soon"
+                        aria-label={`${ep.title} audio preview coming soon`}
+                      >
                         <svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>
                       </button>
                     </div>
@@ -987,7 +992,7 @@ export default function TheBottomLine() {
                       <div className="au-pod__foot">
                         {ep.guest && <span className="au-pod__guest">{ep.guest}</span>}
                         <span>{ep.duration}</span>
-                        <DownloadPill state={downloads[ep.id] ?? "idle"} onClick={() => startDownload(ep.id, ep.src)} />
+                        <span className="au-pod__status">Coming soon</span>
                       </div>
                     </div>
                   </div>
