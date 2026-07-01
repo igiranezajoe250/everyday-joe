@@ -26,3 +26,6 @@ Keys.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# narration generator scratch (ffmpeg temp)
+/public/audio/.tmp/
