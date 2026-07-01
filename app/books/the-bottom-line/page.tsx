@@ -315,6 +315,9 @@ export default function TheBottomLine() {
   const [audioDur,  setAudioDur]  = useState(0);
   const [audioErr, setAudioErr]   = useState(false);
   const [rate, setRate]           = useState(1);
+  /* on-demand narration (text-to-speech) */
+  const [audioUrl, setAudioUrl]   = useState<string | null>(null);
+  const [synth, setSynth]         = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   /* listen experience */
   const [mode, setMode]           = useState<"read" | "listen">("read");
@@ -339,6 +342,8 @@ export default function TheBottomLine() {
   const progressRef   = useRef<Record<string, Progress>>({});
   const audioTimeRef  = useRef(0);
   const audioDurRef   = useRef(0);
+  const narrationCache = useRef<Map<string, string>>(new Map());
+  const playAfterLoad  = useRef(false);
 
   const goNext = useCallback(() => setSi(i => Math.min(i + 1, TOTAL - 1)), []);
   const goPrev = useCallback(() => setSi(i => Math.max(i - 1, 0)), []);
