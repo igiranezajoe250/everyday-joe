@@ -277,6 +277,73 @@ const SCREENS: Screen[] = (() => {
 
 const TOTAL = SCREENS.length;
 
+/* ── Narration timing estimate ───────────────────────────────────
+   No word-level timestamps are available from TTS, so each paragraph's
+   start is estimated as its cumulative share of chapter text length.
+   Good enough to keep reading and listening roughly aligned; not
+   frame-accurate. */
+function paragraphStartFractions(body: string[]): number[] {
+  const lens = body.map(p => p.length);
+  const total = lens.reduce((a, b) => a + b, 0) || 1;
+  let acc = 0;
+  return lens.map(l => { const f = acc / total; acc += l; return f; });
+}
+
+/* Split chapter paragraphs into ≤limit-char groups (never mid-paragraph)
+   so long chapters can be synthesized as multiple TTS calls and stitched
+   into one continuous track instead of being truncated. */
+function chunkParagraphs(body: string[], limit = 7000): string[][] {
+  const chunks: string[][] = [];
+  let current: string[] = [];
+  let len = 0;
+  for (const p of body) {
+    if (current.length && len + p.length > limit) {
+      chunks.push(current);
+      current = [];
+      len = 0;
+    }
+    current.push(p);
+    len += p.length + 2;
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
+/* Concatenate WAV blobs returned by /api/tts into one playable WAV
+   (strip each 44-byte header, keep the first, recompute sizes). */
+async function concatWavBlobs(blobs: Blob[]): Promise<Blob> {
+  if (blobs.length === 1) return blobs[0];
+  const buffers = await Promise.all(blobs.map(b => b.arrayBuffer()));
+  const HEADER = 44;
+  const pcmParts = buffers.map(buf => new Uint8Array(buf, HEADER));
+  const totalPcmLen = pcmParts.reduce((n, p) => n + p.length, 0);
+  const first = new DataView(buffers[0]);
+  const sampleRate = first.getUint32(24, true);
+  const channels = first.getUint16(22, true);
+  const bitsPerSample = first.getUint16(34, true);
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const header = new ArrayBuffer(HEADER);
+  const view = new DataView(header);
+  const writeStr = (offset: number, s: string) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+  };
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + totalPcmLen, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeStr(36, "data");
+  view.setUint32(40, totalPcmLen, true);
+  return new Blob([header, ...pcmParts], { type: "audio/wav" });
+}
+
 /* ── Small shared pieces ─────────────────────────────────────── */
 function DownloadPill({ state, onClick }: { state: DownloadState; onClick: () => void }) {
   if (state === "downloading")
@@ -336,6 +403,10 @@ export default function TheBottomLine() {
     null | { text: string; chapterTitle: string | null }
   >(null);
 
+  /* podcast preview playback (spoken preview of each episode blurb) */
+  const [podPlaying, setPodPlaying] = useState<string | null>(null);
+  const [podState, setPodState]     = useState<Record<string, "idle" | "loading" | "error">>({});
+
   const touchX        = useRef(0);
   const audioRef      = useRef<HTMLAudioElement>(null);
   const pendingSeek   = useRef<number | null>(null);
@@ -344,6 +415,11 @@ export default function TheBottomLine() {
   const audioDurRef   = useRef(0);
   const narrationCache = useRef<Map<string, string>>(new Map());
   const playAfterLoad  = useRef(false);
+  const chIdRef        = useRef<string | null>(null);
+  const syncFromAudio   = useRef(false);
+  const synthInFlight   = useRef<Set<string>>(new Set());
+  const podAudioRef     = useRef<HTMLAudioElement | null>(null);
+  const podCache        = useRef<Map<string, string>>(new Map());
 
   const goNext = useCallback(() => setSi(i => Math.min(i + 1, TOTAL - 1)), []);
   const goPrev = useCallback(() => setSi(i => Math.max(i - 1, 0)), []);
@@ -438,7 +514,94 @@ export default function TheBottomLine() {
     setAudioDur(0);
     setAudioErr(false);
     audioTimeRef.current = 0;
+    playAfterLoad.current = false;
+    const cached = chId ? narrationCache.current.get(chId) : undefined;
+    setAudioUrl(cached ?? null);
+    setSynth(cached ? "ready" : "idle");
   }, [chId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { chIdRef.current = chId; }, [chId]);
+
+  /* on-demand narration: synthesize via /api/tts when no static file
+     exists for this chapter (audioErr fires once the static src 404s) */
+  const synthesizeNarration = useCallback(async (id: string) => {
+    const cached = narrationCache.current.get(id);
+    if (cached) {
+      setAudioUrl(cached);
+      setAudioErr(false);
+      setSynth("ready");
+      return;
+    }
+    if (synthInFlight.current.has(id)) return;
+    const ch = CHAPTERS.find(c => c.id === id);
+    if (!ch || !ch.body.length) { if (chIdRef.current === id) setSynth("error"); return; }
+
+    synthInFlight.current.add(id);
+    if (chIdRef.current === id) setSynth("loading");
+    try {
+      const groups = chunkParagraphs(ch.body);
+      const blobs: Blob[] = [];
+      for (const group of groups) {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: group.join("\n\n") }),
+        });
+        if (!res.ok) throw new Error("tts failed");
+        blobs.push(await res.blob());
+      }
+      const combined = await concatWavBlobs(blobs);
+      const url = URL.createObjectURL(combined);
+      narrationCache.current.set(id, url);
+      if (chIdRef.current === id) {
+        setAudioUrl(url);
+        setAudioErr(false);
+        setSynth("ready");
+      }
+    } catch {
+      if (chIdRef.current === id) setSynth("error");
+    } finally {
+      synthInFlight.current.delete(id);
+    }
+  }, []);
+
+  /* kick off synthesis once we know the static file is missing */
+  useEffect(() => {
+    if (audioErr && chId && synth === "idle") synthesizeNarration(chId);
+  }, [audioErr, chId, synth, synthesizeNarration]);
+
+  /* seek the track to the estimated start of whatever passage the reader
+     is currently on (used when playback begins fresh, so listening starts
+     where the eye already is rather than at 0:00) */
+  const alignAudioToScreen = useCallback((dur: number) => {
+    const scr = SCREENS[si];
+    if (scr.kind !== "para" || scr.id !== chId || !dur) return;
+    const ch = CHAPTERS.find(c => c.id === chId);
+    if (!ch) return;
+    const starts = paragraphStartFractions(ch.body);
+    const target = (starts[scr.idx] ?? 0) * dur;
+    const el = audioRef.current;
+    if (el && Math.abs(target - el.currentTime) > 2.5) {
+      el.currentTime = target;
+      setAudioTime(target);
+      audioTimeRef.current = target;
+    }
+  }, [si, chId]);
+
+  /* auto-play once narration finishes loading, if Play was pressed early */
+  useEffect(() => {
+    if (synth === "ready" && playAfterLoad.current) {
+      playAfterLoad.current = false;
+      const el = audioRef.current;
+      if (!el) return;
+      const start = () => {
+        alignAudioToScreen(el.duration || audioDurRef.current);
+        el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      };
+      if (el.readyState >= 1 && el.duration) start();
+      else el.addEventListener("loadedmetadata", start, { once: true });
+    }
+  }, [synth, audioUrl, alignAudioToScreen]);
 
   /* persist listening position when leaving a chapter */
   useEffect(() => {
@@ -456,13 +619,17 @@ export default function TheBottomLine() {
 
   const togglePlay = () => {
     const el = audioRef.current;
-    if (!el) return;
+    if (!el || !chId) return;
     if (playing) {
       el.pause();
       setPlaying(false);
-      if (chId) commitProgress(chId, el.currentTime, el.duration || audioDur);
-    } else {
+      commitProgress(chId, el.currentTime, el.duration || audioDur);
+    } else if (audioReady) {
+      if (el.currentTime < 0.5) alignAudioToScreen(el.duration || audioDur);
       el.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    } else if (synth !== "loading") {
+      playAfterLoad.current = true;
+      synthesizeNarration(chId);
     }
   };
 
@@ -487,6 +654,41 @@ export default function TheBottomLine() {
     seekTo(ratio * audioDur);
   };
 
+  /* reading follows listening: while playing, advance the passage on
+     screen to match the estimated narration position */
+  useEffect(() => {
+    if (!playing || !chId || !audioDur) return;
+    const ch = CHAPTERS.find(c => c.id === chId);
+    if (!ch || !ch.body.length) return;
+    const starts = paragraphStartFractions(ch.body);
+    const frac = audioTime / audioDur;
+    let idealIdx = 0;
+    for (let i = 0; i < starts.length; i++) if (frac + 1e-6 >= starts[i]) idealIdx = i;
+    const wantIdx = SCREENS.findIndex(s => s.kind === "para" && s.id === chId && s.idx === idealIdx);
+    if (wantIdx < 0 || wantIdx === si) return;
+    const cur = SCREENS[si];
+    const onThisChapter =
+      (cur.kind === "para" || cur.kind === "intro" || cur.kind === "concept") && cur.id === chId;
+    if (onThisChapter) {
+      syncFromAudio.current = true;
+      setSi(wantIdx);
+    }
+  }, [audioTime, playing, chId, audioDur]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* listening follows reading: turning the page (tap/swipe/keys/drawer)
+     seeks the audio to that passage's estimated start */
+  useEffect(() => {
+    if (syncFromAudio.current) { syncFromAudio.current = false; return; }
+    const scr = SCREENS[si];
+    if (scr.kind !== "para" || scr.id !== chId || !audioDur) return;
+    const ch = CHAPTERS.find(c => c.id === chId);
+    if (!ch) return;
+    const starts = paragraphStartFractions(ch.body);
+    const target = (starts[scr.idx] ?? 0) * audioDur;
+    if (Math.abs(target - audioTimeRef.current) > 2.5) seekTo(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [si]);
+
   const cycleRate = () => {
     const idx  = RATES.indexOf(rate as (typeof RATES)[number]);
     const next = RATES[(idx + 1) % RATES.length];
@@ -494,6 +696,56 @@ export default function TheBottomLine() {
     saveJSON(K.rate, next);
     if (audioRef.current) audioRef.current.playbackRate = next;
   };
+
+  /* podcast preview — synthesize and play a short spoken preview of the
+     episode blurb (the full conversation isn't produced yet, so this is
+     clearly framed as a preview, not the episode). */
+  const togglePodcast = useCallback(async (ep: (typeof PODCAST)[number]) => {
+    let el = podAudioRef.current;
+    if (!el) { el = new Audio(); podAudioRef.current = el; }
+
+    if (podPlaying === ep.id) {           // pause the currently-playing preview
+      el.pause();
+      setPodPlaying(null);
+      return;
+    }
+
+    el.pause();                            // stop any other preview first
+    if (audioRef.current && playing) { audioRef.current.pause(); setPlaying(false); }
+
+    const cached = podCache.current.get(ep.id);
+    const start = (url: string) => {
+      el!.src = url;
+      el!.onended = () => setPodPlaying(null);
+      el!.play().then(() => setPodPlaying(ep.id)).catch(() => setPodPlaying(null));
+    };
+    if (cached) { start(cached); return; }
+
+    setPodState(s => ({ ...s, [ep.id]: "loading" }));
+    try {
+      const preview = `${ep.title}. ${ep.blurb} This is a short preview. The full episode is in production.`;
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: preview }),
+      });
+      if (!res.ok) throw new Error("tts failed");
+      const url = URL.createObjectURL(await res.blob());
+      podCache.current.set(ep.id, url);
+      setPodState(s => ({ ...s, [ep.id]: "idle" }));
+      start(url);
+    } catch {
+      setPodState(s => ({ ...s, [ep.id]: "error" }));
+    }
+  }, [podPlaying, playing]);
+
+  /* stop any podcast preview when leaving the podcast tab or the sheet */
+  useEffect(() => {
+    if (listenTab !== "podcast" || mode !== "listen") {
+      podAudioRef.current?.pause();
+      setPodPlaying(null);
+    }
+  }, [listenTab, mode]);
 
   /* library mutations — local-first, write-through to localStorage */
   const addNote = (text: string, t = audioTime) => {
@@ -793,7 +1045,7 @@ export default function TheBottomLine() {
         <>
           <audio
             ref={audioRef}
-            src={AUDIO[chId].src}
+            src={audioUrl ?? AUDIO[chId].src}
             preload="metadata"
             onTimeUpdate={e => { const t = e.currentTarget.currentTime; setAudioTime(t); audioTimeRef.current = t; }}
             onLoadedMetadata={e => {
@@ -807,8 +1059,13 @@ export default function TheBottomLine() {
               }
             }}
             onDurationChange={e => { const d = e.currentTarget.duration; setAudioDur(d); audioDurRef.current = d; }}
-            onEnded={() => setPlaying(false)}
-            onError={() => setAudioErr(true)}
+            onEnded={() => {
+              setPlaying(false);
+              if (chId) commitProgress(chId, audioDurRef.current, audioDurRef.current);
+              const takeawayIdx = SCREENS.findIndex(s => s.kind === "takeaway" && s.id === chId);
+              if (takeawayIdx >= 0 && takeawayIdx !== si) setSi(takeawayIdx);
+            }}
+            onError={() => { if (!audioUrl) setAudioErr(true); }}
           />
 
           <div className="au-mini">
@@ -829,9 +1086,15 @@ export default function TheBottomLine() {
             >
               <span className="au-mini__title">{chapter?.title ?? BOOK_TITLE}</span>
               <span className="au-mini__sub">
-                <span>{AUDIO[chId].label}</span>
+                <span>{audioUrl ? "AI NARRATION" : AUDIO[chId].label}</span>
                 <span className="au-mini__dot">·</span>
-                <span className="au-mini__time">{audioReady ? `${fmtTime(audioTime)} / ${fmtTime(audioDur)}` : "Audio coming soon"}</span>
+                <span className="au-mini__time">
+                  {audioReady
+                    ? `${fmtTime(audioTime)} / ${fmtTime(audioDur)}`
+                    : synth === "loading" ? "Generating narration…"
+                    : synth === "error"   ? "Narration unavailable"
+                    : "Loading narration…"}
+                </span>
               </span>
             </div>
             <div className="au-mini__actions">
@@ -915,10 +1178,23 @@ export default function TheBottomLine() {
                   <p className="au-now__part">{chapter?.part ?? BOOK_TITLE}</p>
                   <h2 className="au-now__title">{chapter?.title}</h2>
                   {chapter?.subtitle && <p className="au-now__sub">{chapter.subtitle}</p>}
+                  {audioUrl && <p className="au-now__unavailable">AI-generated narration</p>}
                   <div className="au-now__dl">
-                    {audioReady
-                      ? <DownloadPill state={downloads[chId] ?? "idle"} onClick={() => startDownload(chId, AUDIO[chId].src)} />
-                      : <span className="au-now__unavailable">Narration coming soon</span>}
+                    {audioReady && !audioUrl && (
+                      <DownloadPill state={downloads[chId] ?? "idle"} onClick={() => startDownload(chId, AUDIO[chId].src)} />
+                    )}
+                    {audioReady && audioUrl && (
+                      <span className="au-now__unavailable">Generated for this session</span>
+                    )}
+                    {!audioReady && synth === "loading" && (
+                      <span className="au-dl"><span className="au-dl__ring" />Generating narration</span>
+                    )}
+                    {!audioReady && synth === "error" && (
+                      <button className="au-dl" onClick={() => chId && synthesizeNarration(chId)}>Retry narration</button>
+                    )}
+                    {!audioReady && synth === "idle" && (
+                      <span className="au-now__unavailable">Narration coming soon</span>
+                    )}
                   </div>
                 </div>
 
@@ -1000,17 +1276,25 @@ export default function TheBottomLine() {
             ) : (
               <div className="au-pod">
                 <p className="au-pod__intro">Conversations, author insight and related listening around {BOOK_TITLE}.</p>
-                {PODCAST.map(ep => (
+                {PODCAST.map(ep => {
+                  const isPlaying = podPlaying === ep.id;
+                  const isLoading = podState[ep.id] === "loading";
+                  const isError   = podState[ep.id] === "error";
+                  return (
                   <div className="au-pod__item" key={ep.id}>
                     <div className="au-pod__art">
                       <img src={ep.image} alt="" />
                       <button
-                        className="au-pod__play"
-                        disabled
-                        title="Audio preview coming soon"
-                        aria-label={`${ep.title} audio preview coming soon`}
+                        className={`au-pod__play${isPlaying ? " is-playing" : ""}`}
+                        onClick={() => togglePodcast(ep)}
+                        disabled={isLoading}
+                        aria-label={isPlaying ? `Pause ${ep.title} preview` : `Play ${ep.title} preview`}
                       >
-                        <svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>
+                        {isLoading
+                          ? <span className="au-dl__ring" />
+                          : isPlaying
+                            ? <svg viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg>
+                            : <svg viewBox="0 0 16 16"><path d="M3 2L13 8 3 14V2Z" /></svg>}
                       </button>
                     </div>
                     <div className="au-pod__body">
@@ -1020,11 +1304,14 @@ export default function TheBottomLine() {
                       <div className="au-pod__foot">
                         {ep.guest && <span className="au-pod__guest">{ep.guest}</span>}
                         <span>{ep.duration}</span>
-                        <span className="au-pod__status">Coming soon</span>
+                        <span className="au-pod__status">
+                          {isError ? "Preview unavailable" : isPlaying ? "Playing preview" : isLoading ? "Generating…" : "Preview"}
+                        </span>
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

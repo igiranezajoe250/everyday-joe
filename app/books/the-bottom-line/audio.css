@@ -521,12 +521,14 @@
   backdrop-filter: blur(8px);
 }
 .au-pod__play:hover { background: rgba(192, 104, 64, .95); border-color: transparent; }
+.au-pod__play.is-playing { background: rgba(192, 104, 64, .95); border-color: transparent; }
 .au-pod__play:disabled {
   cursor: default;
   opacity: .76;
 }
 .au-pod__play:disabled:hover { background: rgba(20, 14, 10, .78); border-color: var(--bl-rule); }
 .au-pod__play svg { width: 14px; height: 14px; fill: currentColor; }
+.au-pod__play .au-dl__ring { border-color: rgba(242, 233, 211, .4); border-top-color: #f2e9d3; }
 .au-pod__body { flex: 1; min-width: 0; }
 .au-pod__kind {
   font-size: 8px;
