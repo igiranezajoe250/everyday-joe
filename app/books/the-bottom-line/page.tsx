@@ -170,6 +170,11 @@ export default function TheBottomLine() {
   const [podPlaying, setPodPlaying] = useState<string | null>(null);
   const [podState, setPodState]     = useState<Record<string, "idle" | "loading" | "error">>({});
 
+  /* per-paragraph narration cue points (absolute seconds), keyed by chapter.
+     Measured from the audio itself (scripts/generate-cues.mjs). When absent
+     for a chapter, sync falls back to a length-proportional estimate. */
+  const [cues, setCues] = useState<Record<string, number[]>>({});
+
   const touchX        = useRef(0);
   const audioRef      = useRef<HTMLAudioElement>(null);
   const pendingSeek   = useRef<number | null>(null);
@@ -261,6 +266,26 @@ export default function TheBottomLine() {
     setProgress(p);
   }, []);
 
+  /* load narration cue points once (static, best-effort) */
+  useEffect(() => {
+    let alive = true;
+    fetch("/audio/tbl-cues.json")
+      .then(r => (r.ok ? r.json() : {}))
+      .then(j => { if (alive && j && typeof j === "object") setCues(j as Record<string, number[]>); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  /* absolute per-paragraph start times for a chapter: exact measured cues
+     when available, else a length-proportional estimate scaled to duration */
+  const paraStartTimes = useCallback((id: string | null, dur: number): number[] => {
+    const ch = id ? CHAPTERS.find(c => c.id === id) : null;
+    if (!ch || !ch.body.length) return [];
+    const measured = id ? cues[id] : undefined;
+    if (measured && measured.length === ch.body.length) return measured;
+    return paragraphStartFractions(ch.body).map(f => f * dur);
+  }, [cues]);
+
   const commitProgress = useCallback((id: string, t: number, dur: number) => {
     const p = { ...progressRef.current, [id]: { t, dur, updatedAt: Date.now() } };
     progressRef.current = p;
@@ -339,17 +364,14 @@ export default function TheBottomLine() {
   const alignAudioToScreen = useCallback((dur: number) => {
     const scr = SCREENS[si];
     if (scr.kind !== "para" || scr.id !== chId || !dur) return;
-    const ch = CHAPTERS.find(c => c.id === chId);
-    if (!ch) return;
-    const starts = paragraphStartFractions(ch.body);
-    const target = (starts[scr.idx] ?? 0) * dur;
+    const target = paraStartTimes(chId, dur)[scr.idx] ?? 0;
     const el = audioRef.current;
     if (el && Math.abs(target - el.currentTime) > 2.5) {
       el.currentTime = target;
       setAudioTime(target);
       audioTimeRef.current = target;
     }
-  }, [si, chId]);
+  }, [si, chId, paraStartTimes]);
 
   /* auto-play once narration finishes loading, if Play was pressed early */
   useEffect(() => {
@@ -421,12 +443,10 @@ export default function TheBottomLine() {
      screen to match the estimated narration position */
   useEffect(() => {
     if (!playing || !chId || !audioDur) return;
-    const ch = CHAPTERS.find(c => c.id === chId);
-    if (!ch || !ch.body.length) return;
-    const starts = paragraphStartFractions(ch.body);
-    const frac = audioTime / audioDur;
+    const starts = paraStartTimes(chId, audioDur);
+    if (!starts.length) return;
     let idealIdx = 0;
-    for (let i = 0; i < starts.length; i++) if (frac + 1e-6 >= starts[i]) idealIdx = i;
+    for (let i = 0; i < starts.length; i++) if (audioTime + 0.15 >= starts[i]) idealIdx = i;
     const wantIdx = SCREENS.findIndex(s => s.kind === "para" && s.id === chId && s.idx === idealIdx);
     if (wantIdx < 0 || wantIdx === si) return;
     const cur = SCREENS[si];
@@ -436,18 +456,15 @@ export default function TheBottomLine() {
       syncFromAudio.current = true;
       setSi(wantIdx);
     }
-  }, [audioTime, playing, chId, audioDur]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [audioTime, playing, chId, audioDur, paraStartTimes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* listening follows reading: turning the page (tap/swipe/keys/drawer)
-     seeks the audio to that passage's estimated start */
+     seeks the audio to that passage's measured start */
   useEffect(() => {
     if (syncFromAudio.current) { syncFromAudio.current = false; return; }
     const scr = SCREENS[si];
     if (scr.kind !== "para" || scr.id !== chId || !audioDur) return;
-    const ch = CHAPTERS.find(c => c.id === chId);
-    if (!ch) return;
-    const starts = paragraphStartFractions(ch.body);
-    const target = (starts[scr.idx] ?? 0) * audioDur;
+    const target = paraStartTimes(chId, audioDur)[scr.idx] ?? 0;
     if (Math.abs(target - audioTimeRef.current) > 2.5) seekTo(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [si]);
