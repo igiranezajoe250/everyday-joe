@@ -6,7 +6,6 @@ import {
   Space_Grotesk,
 } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
-import Providers from "./components/Providers";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -68,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${spaceGrotesk.variable} ${hankenGrotesk.variable} ${jetBrainsMono.variable} ${playfairDisplay.variable}`}
     >
       <body>
-        <Providers>{children}</Providers>
+        {children}
         <Analytics />
       </body>
     </html>
